@@ -12,11 +12,12 @@ __pragma__('noalias', 'update')
 
 
 # only for defending the remote room from ai
-def run_remote_defender(creep, creeps):
+def run_remote_defender(creep, creeps, hostile_creeps):
     """
     blindly search and kills npc invaders
     :param creep:
     :param creeps: creep.room.find(FIND_MY_CREEPS)
+    :param hostile_creeps: 적
     :return:
     """
     # random blurtin'
@@ -29,7 +30,10 @@ def run_remote_defender(creep, creeps):
         creep.moveTo(Game.flags[creep.memory.flag_name], {'visualizePathStyle': {'stroke': '#ffffff'}})
         return
     # find the goddamn enemies
-    enemies = Game.flags[creep.memory.flag_name].room.find(FIND_HOSTILE_CREEPS)
+    if creep.room.name != Game.flags[creep.memory.flag_name].room.name:
+        enemies = hostile_creeps
+    else:
+        enemies = Game.flags[creep.memory.flag_name].room.find(FIND_HOSTILE_CREEPS)
 
     if len(enemies) > 0:
 
@@ -65,3 +69,6 @@ def run_remote_defender(creep, creeps):
             # just to get the creep off the road
             creep.moveTo(Game.flags[creep.memory.flag_name], {'visualizePathStyle': {'stroke': '#ffffff'},
                                                               'reusePath': 50})
+
+
+# def run_defender(creep, creeps, )

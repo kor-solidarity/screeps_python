@@ -184,6 +184,8 @@ def main():
 
         minerals = chambro.find(FIND_MINERALS)
 
+        # 단계별 제곱근값
+        square = 7.5
         # list of ALL repairs in the room.
         repairs = all_structures.filter(lambda s: (((s.structureType == STRUCTURE_ROAD
                                                      or s.structureType == STRUCTURE_TOWER
@@ -194,10 +196,9 @@ def main():
                                                      or s.structureType == STRUCTURE_STORAGE)
                                                     and s.hits < s.hitsMax)
                                                    or (s.structureType == STRUCTURE_WALL
-                                                       # and s.hits < int(6.306 ** chambro.controller.level))
-                                                       and s.hits < int(6.4512 ** chambro.controller.level))
+                                                       and s.hits < int(square ** chambro.controller.level))
                                                    or (s.structureType == STRUCTURE_RAMPART
-                                                       and s.hits < int(6.8766 ** chambro.controller.level))))
+                                                       and s.hits < int(square ** chambro.controller.level))))
         # s.pos.isEqualTo(STRUCTURE_SPAWN)
 
         if not repairs or len(repairs) == 0:
@@ -604,15 +605,15 @@ def main():
                                                                        and (c.spawning or (c.hits > c.hitsMax * .6
                                                                                            and c.ticksToLive > 100)))
                             creep_carriers = _.filter(creeps, lambda c: c.memory.role == 'carrier'
-                                                                        and c.memory.flag_name == flag)
-                                                                        # and (c.spawning or c.ticksToLive > 200))
+                                                                        and c.memory.flag_name == flag
+                                                                        and (c.spawning or c.ticksToLive > 200))
                             # exclude creeps with less than 100 life ticks so the new guy can be replaced right away
                             creep_harvesters = _.filter(creeps, lambda c: c.memory.role == 'harvester'
                                                                           and c.memory.flag_name == flag
                                                                           and (c.spawning or c.ticksToLive > 120))
                             remote_reservers = _.filter(creeps, lambda c: c.memory.role == 'reserver'
-                                                                          and c.memory.flag_name == flag
-                                                                          and (c.spawning or c.ticksToLive > 100))
+                                                                          and c.memory.flag_name == flag)
+                                                                          # and (c.spawning or c.ticksToLive > 100))
 
                             hostiles = Game.flags[flag].room.find(FIND_HOSTILE_CREEPS)
                             # to filter out the allies.
@@ -827,7 +828,7 @@ def main():
                                 # sometimes these could die you know....
                                 if Game.getObjectById(tower):
                                     building_action.run_tower(Game.getObjectById(tower), all_structures,
-                                                              creeps, hostile_creeps, repairs)
+                                                              creeps, hostile_creeps, repairs, square)
                         elif building_name == STRUCTURE_LINK:
                             for link in structure_list[building_name]:
                                 if Game.getObjectById(link):

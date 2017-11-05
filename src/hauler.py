@@ -68,6 +68,7 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
         creep.memory.laboro = 0
         creep.say('🚛운송투쟁!', True)
         del creep.memory.to_storage
+        del creep.memory.haul_target
 
     elif _.sum(creep.carry) > creep.carryCapacity * .90 and creep.memory.laboro == 0:
         if creep.memory.dropped_target:
@@ -194,19 +195,20 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
         if not creep.memory.priority:
             creep.memory.priority = 0
 
-        # helper_carrier is only for transfer
-        if creep.memory.priority == 0 and creep.memory.role == 'helper_carrier':
-            creep.memory.priority = 1
         # if their priority is not decided. gonna need to pick it firsthand.
-        elif creep.memory.priority == 0:
+        if creep.memory.priority == 0:
 
-            # construction_available = False
-
+            if creep.memory.build_target and Game.getObjectById(creep.memory.build_target):
+                # 건설할 거리가 지정돼있고 존재하면 50%확률로 건설실시.
+                picker = random.randint(1, 2)
             # construction sites.
-            if len(constructions) > 0:
+            elif len(constructions) > 0:
                 # for 1/5 chance going to phase 2.
                 picker = random.randint(0, 4)
             else:
+                # 첫 가정문 관련.
+                if creep.memory.build_target:
+                    del creep.memory.build_target
                 picker = 0
 
             # defining structures to fill the energy on. originally above of this spot but replaced for cpu eff.
@@ -291,9 +293,6 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
 
                         structure = creep.pos.findClosestByRange(structures)
 
-                        # print(' len(structures):', len(structures))
-                        # print('structures:', structures)
-                        # print('structure:', structure)
                         for kripo in portist_kripoj:
                             # se nomo de kripo estas sama kun ĉi tiu creep-o aŭ kripo ne havas haul_target, transsaltu
                             if creep.name == kripo or not kripo.memory.haul_target:
@@ -495,9 +494,9 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
 
         # priority 4: upgrade the controller
         elif creep.memory.priority == 4:
-            # 혹시 딴짓하다 옆방으로 새는거에 대한 대비 - it really happened lol
+            # 혹시 딴짓하다 옆방으로 새는거에 대한 대비
             if not creep.memory.upgrade_target:
-                creep.memory.upgrade_target = creep.room.controller['id']
+                creep.memory.upgrade_target = Game.rooms[creep.memory.assigned_room].controller['id']
 
             upgrade_result = creep.upgradeController(Game.getObjectById(creep.memory.upgrade_target))
             if upgrade_result == ERR_NOT_IN_RANGE:

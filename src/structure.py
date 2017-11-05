@@ -11,7 +11,7 @@ __pragma__('noalias', 'type')
 __pragma__('noalias', 'update')
 
 
-def run_tower(tower, all_structures, creeps, hostile_creeps, repairs):
+def run_tower(tower, all_structures, creeps, hostile_creeps, repairs, square):
     """
 
     :param tower:
@@ -19,6 +19,7 @@ def run_tower(tower, all_structures, creeps, hostile_creeps, repairs):
     :param creeps: tower.room.find(FIND_MY_CREEPS)
     :param hostile_creeps: tower.room.find(FIND_HOSTILE_CREEPS)
     :param repairs: repair stuffs.
+    :param square: 제곱근값. 별건 아니고 건물확인차 쓰이는거임.
     :return:
     """
     # tower havas du laborojn.
