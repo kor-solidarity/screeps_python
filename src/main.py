@@ -397,15 +397,24 @@ def main():
                 creep_miners = _.filter(creeps, lambda c: (c.memory.role == 'miner'
                                                            and c.memory.assigned_room == spawn.pos.roomName
                                                            and (c.spawning or c.ticksToLive > 150)))
-                # creep_melees = _.filter(creeps, lambda c: c.memory.role == 'melee'
-                #                                           and c.memory.assigned_room == spawn.pos.roomName)
-
-                # all containers in the room
-                containers = _.filter(all_structures, lambda s: s.structureType == STRUCTURE_CONTAINER)
 
                 # ﷽
-                # if number of containers are less than that of sources.
-                if len(containers) < len(sources):
+                # if number of close containers/links are less than that of sources.
+                harvest_carry_targets = []
+
+                for structure in all_structures:
+                    if structure.structureType == STRUCTURE_CONTAINER or structure.structureType == STRUCTURE_LINK:
+                        for source in sources:
+                            if source.pos.inRangeTo(structure, 3):
+                                harvest_carry_targets.push(structure.id)
+                                break
+                    if len(harvest_carry_targets) >= len(sources):
+                        break
+                print('harvest_carry_targets', harvest_carry_targets)
+
+                # if len(containers) < len(sources):
+                if len(harvest_carry_targets) < len(sources):
+                    # print('!!!!')
                     harvesters_bool = bool(len(creep_harvesters) < len(sources) * 2)
                 # if numbers of creep_harvesters are less than number of sources in the spawn's room.
                 else:
@@ -457,15 +466,30 @@ def main():
                     continue
 
                 plus = 0
-                containers_store = 0
-                containers_total_store = 0
-                for container in containers:
-                    # if container.store[RESOURCE_ENERGY] > container.storeCapacity * .89:
-                    if _.sum(container.store) > container.storeCapacity * .89:
-                        plus += 1
-                    elif _.sum(container.store) < container.storeCapacity * .05:
-                        plus -= 1
-                if len(containers) == 0:
+                for harvest_container in harvest_carry_targets:
+                    # 컨테이너와 링크 둘이 공존중.
+                    if Game.getObjectById(harvest_container).structureType == STRUCTURE_CONTAINER:
+                        if _.sum(Game.getObjectById(harvest_container).store) \
+                            > Game.getObjectById(harvest_container).storeCapacity * .89:
+                            plus += 1
+                        elif _.sum(Game.getObjectById(harvest_container).store) \
+                                < Game.getObjectById(harvest_container).storeCapacity * .05:
+                            plus -= 1
+                    else:
+                        if _.sum(Game.getObjectById(harvest_container).energy) \
+                            > Game.getObjectById(harvest_container).energyCapacity * .89:
+                            plus += 1
+                        elif _.sum(Game.getObjectById(harvest_container).energy) \
+                                < Game.getObjectById(harvest_container).energyCapacity * .05:
+                            plus -= 1
+
+                # for container in containers:
+                #     # if container.store[RESOURCE_ENERGY] > container.storeCapacity * .89:
+                #     if _.sum(container.store) > container.storeCapacity * .89:
+                #         plus += 1
+                #     elif _.sum(container.store) < container.storeCapacity * .05:
+                #         plus -= 1
+                if len(harvest_carry_targets) == 0:
                     plus = -len(sources)
                 elif plus < -2:
                     plus = -2
@@ -474,7 +498,7 @@ def main():
 
                 hauler_capacity = len(sources) + 1 + plus
                 # print('hauler_capacity', hauler_capacity)
-                # minimum number of hauler in the room is 2
+                # minimum number of haulers in the room is 2
                 if hauler_capacity <= 1:
                     hauler_capacity = 2
                 # print('hauler_capacity:', hauler_capacity)

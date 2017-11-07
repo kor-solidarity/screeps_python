@@ -283,11 +283,16 @@ def run_miner(creep, all_structures, minerals):
     # memory.extractor == extractor dude. what else.
     # memory.mineral == mineral
     if not creep.memory.extractor or not creep.memory.mineral:
-        # minerals = creep.room.find(FIND_MINERALS)
-        extractors = all_structures.filter(lambda s: s.structureType == STRUCTURE_EXTRACTOR)
-        # there's only one mineral per room anyway.
-        creep.memory.extractor = extractors[0].id
-        creep.memory.mineral = minerals[0].id
+        try:
+            # minerals = creep.room.find(FIND_MINERALS)
+            extractors = all_structures.filter(lambda s: s.structureType == STRUCTURE_EXTRACTOR)
+            # there's only one mineral per room anyway.
+            creep.memory.extractor = extractors[0].id
+            creep.memory.mineral = minerals[0].id
+        except:
+            creep.say("광물못캐!!", True)
+            return
+
 
     # If you have nothing but on laboro 1 => get back to harvesting.
     if _.sum(creep.carry) == 0 and creep.memory.laboro == 1:
