@@ -296,6 +296,7 @@ def main():
                 # 깃발 위치가 현 방과 이름이 같은가?
                 if Game.flags[name].room.name == chambra_nomo:
 
+
                     # 깃발 하나만 꽂으면 끝남.
                     break
 
@@ -620,11 +621,11 @@ def main():
                                                                        and c.memory.flag_name == flag
                                                                        and (c.spawning or (c.hits > c.hitsMax * .6
                                                                                            and c.ticksToLive > 100)))
-                            creep_carriers = _.filter(creeps, lambda c: c.memory.role == 'carrier'
+                            remote_carriers = _.filter(creeps, lambda c: c.memory.role == 'carrier'
                                                                         and c.memory.flag_name == flag)
 
                             # exclude creeps with less than 100 life ticks so the new guy can be replaced right away
-                            creep_harvesters = _.filter(creeps, lambda c: c.memory.role == 'harvester'
+                            remote_harvesters = _.filter(creeps, lambda c: c.memory.role == 'harvester'
                                                                           and c.memory.flag_name == flag
                                                                           and (c.spawning or c.ticksToLive > 120))
                             remote_reservers = _.filter(creeps, lambda c: c.memory.role == 'reserver'
@@ -681,7 +682,7 @@ def main():
                             # 운송크립 확인을 위한 작업.
                             actual_avail_carriers = 0
                             carrier_pickup = None
-                            for c in creep_carriers:
+                            for c in remote_carriers:
                                 # 스폰중인가? 생명이 200이상 남았는가? 그러면 숫자 추가한다.
                                 if c.spawning or c.ticksToLive > 200:
                                     actual_avail_carriers += 1
@@ -689,10 +690,15 @@ def main():
                                 else:
                                     carrier_pickup = c.memory.pickup
                             print('actual_avail_carriers', actual_avail_carriers)
-                            # if len(flag_energy_sources) > len(creep_carriers):
+                            # if len(flag_energy_sources) > len(remote_carriers):
                             if len(flag_energy_sources) > actual_avail_carriers:
-                                print('pass')
-                                print('carrier_pickup', carrier_pickup)
+                                # se tie ne estas carrier_pickup, unue, vi povas trovi harvesters.
+                                if not Game.getObjectById(carrier_pickup):
+                                    print('remote_harvesters', bool(remote_harvesters))
+                                    if bool(remote_harvesters):
+                                        # kaj asignu el havester-a container
+                                        carrier_pickup = remote_harvesters[0].memory.container
+
                                 # 대충 해야하는일: 캐리어의 픽업위치에서 본진거리 확인. 그 후 거리만큼 추가.
                                 if Game.getObjectById(carrier_pickup):
                                     path = Game.getObjectById(carrier_pickup).room.findPath(
@@ -735,7 +741,7 @@ def main():
                                     print('body', body)
                                     spawning = spawn.createCreep(body, undefined,
                                                       {'role': 'carrier', 'assigned_room': spawn.pos.roomName,
-                                                       'flag_name': flag})
+                                                       'flag_name': flag, 'pickup': carrier_pickup})
                                     print('spawning', spawning)
                                     if spawning == 0:
                                         continue
@@ -753,14 +759,14 @@ def main():
                                                 body,
                                                 undefined,
                                                 {'role': 'carrier', 'assigned_room': spawn.pos.roomName,
-                                                 'flag_name': flag})
+                                                 'flag_name': flag, 'pickup': carrier_pickup})
                                         else:
                                             spawn.createCreep(
                                                 [WORK, WORK, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, MOVE,
                                                  MOVE, MOVE, MOVE, MOVE],
                                                 undefined,
                                                 {'role': 'carrier', 'assigned_room': spawn.pos.roomName,
-                                                 'flag_name': flag})
+                                                 'flag_name': flag, 'pickup': carrier_pickup})
                                         continue
                                 # 픽업이 존재하지 않는다는건 현재 해당 건물이 없다는 뜻이므로 새로 지어야 함.
                                 else:
@@ -769,7 +775,7 @@ def main():
                                          WORK, WORK, WORK, CARRY, CARRY],
                                         undefined,
                                         {'role': 'carrier', 'assigned_room': spawn.pos.roomName,
-                                         'flag_name': flag})
+                                         'flag_name': flag, 'frontier': True})
                                     if spawning == ERR_NOT_ENOUGH_RESOURCES:
                                         spawn.createCreep(
                                             [WORK, WORK, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, MOVE,
@@ -779,7 +785,7 @@ def main():
                                              'flag_name': flag})
                                     continue
 
-                            if len(flag_containers) > len(creep_harvesters):
+                            if len(flag_containers) > len(remote_harvesters):
 
                                 # perfect for 3000 cap
                                 regular_spawn = spawn.createCreep(

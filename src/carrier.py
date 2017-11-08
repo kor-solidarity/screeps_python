@@ -87,6 +87,10 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
         # if there's pickup, no need to go through all them below.
         # creep.memory.pickup == id of the container carrier's gonna pick up
         elif creep.memory.pickup:
+            # 이걸 가진 크립은 컨테이너 생산용 일회용 크립이라 픽업배정이 되면 사용가치가 없음.
+            if creep.memory.frontier == True:
+                creep.suicide()
+                return
             # 1. if 1 == False, look for storage|containers to get the energy from.
             # 2. if 2 == False, you harvest on ur own.
 
