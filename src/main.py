@@ -420,11 +420,8 @@ def main():
                                 break
                     if len(harvest_carry_targets) >= len(sources):
                         break
-                print('harvest_carry_targets', harvest_carry_targets)
 
-                # if len(containers) < len(sources):
                 if len(harvest_carry_targets) < len(sources):
-                    # print('!!!!')
                     harvesters_bool = bool(len(creep_harvesters) < len(sources) * 2)
                 # if numbers of creep_harvesters are less than number of sources in the spawn's room.
                 else:
@@ -493,12 +490,6 @@ def main():
                                 < Game.getObjectById(harvest_container).energyCapacity * .05:
                             plus -= 1
 
-                # for container in containers:
-                #     # if container.store[RESOURCE_ENERGY] > container.storeCapacity * .89:
-                #     if _.sum(container.store) > container.storeCapacity * .89:
-                #         plus += 1
-                #     elif _.sum(container.store) < container.storeCapacity * .05:
-                #         plus -= 1
                 if len(harvest_carry_targets) == 0:
                     plus = -len(sources)
                 elif plus < -2:
@@ -507,7 +498,6 @@ def main():
                     plus = 2
 
                 hauler_capacity = len(sources) + 1 + plus
-                # print('hauler_capacity', hauler_capacity)
                 # minimum number of haulers in the room is 2
                 if hauler_capacity <= 1:
                     hauler_capacity = 2
@@ -519,7 +509,7 @@ def main():
                              CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY],
                             undefined, {'role': 'hauler', 'assigned_room': spawn.pos.roomName,
                                         'level': 8})
-
+                        # 이거 쓴 이유가...?
                         if type(spawning_creep) == str:
                             continue
                         print('checking spawning_creep:', spawning_creep)
@@ -543,7 +533,6 @@ def main():
 
                 # if there's an extractor, make a miner.
                 if len(extractor) > 0 and len(creep_miners) == 0:
-
                     # continue
                     if minerals[0].mineralAmount != 0 or minerals[0].ticksToRegeneration < 120:
                         # only one is needed
@@ -606,18 +595,11 @@ def main():
                                 [WORK, WORK, WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY,
                                  CARRY, CARRY, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE], undefined,
                                 {'role': 'upgrader', 'assigned_room': spawn.pos.roomName, 'level': 3}) == -6:
-                            # if spawn.createCreep([WORK, WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY,
-                            #                       MOVE, MOVE, MOVE, MOVE],
-                            #                      undefined, {'role': 'upgrader', 'assigned_room': spawn.pos.roomName}) == -6:
                             spawn.createCreep([WORK, WORK, CARRY, CARRY, MOVE, MOVE], undefined,
                                               {'role': 'upgrader', 'assigned_room': spawn.pos.roomName})
                     continue
 
                 # REMOTE---------------------------------------------------------------------------
-                # (Game.getObjectById('59ee87577bfc4f22c043a2ad').room.findPath(
-                #     Game.getObjectById('59ee87577bfc4f22c043a2ad').pos,
-                #     Game.getObjectById('59bfbb35d84ef70733b4f604').pos)).length
-
                 if len(flag_name) > 0:
                     for flag in flag_name:
 
@@ -640,7 +622,7 @@ def main():
                                                                                            and c.ticksToLive > 100)))
                             creep_carriers = _.filter(creeps, lambda c: c.memory.role == 'carrier'
                                                                         and c.memory.flag_name == flag)
-                            # and (c.spawning or c.ticksToLive > 200))
+
                             # exclude creeps with less than 100 life ticks so the new guy can be replaced right away
                             creep_harvesters = _.filter(creeps, lambda c: c.memory.role == 'harvester'
                                                                           and c.memory.flag_name == flag
@@ -716,12 +698,19 @@ def main():
                                     path = Game.getObjectById(carrier_pickup).room.findPath(
                                         Game.getObjectById(carrier_pickup).pos, spawn.pos, {'ignoreCreeps': True})
                                     distance = len(path)
-                                    work_chance = random.randint(0, 1)
+
+                                    if _.sum(Game.getObjectById(carrier_pickup).store) \
+                                            >= Game.getObjectById(carrier_pickup).storeCapacity * .7:
+                                        work_chance = 1
+                                    else:
+                                        work_chance = random.randint(0, 1)
 
                                     carry_body_odd = [MOVE, MOVE, CARRY, CARRY, CARRY]
                                     carry_body_even = [MOVE, CARRY, CARRY, CARRY]
                                     work_body = [MOVE, WORK, WORK, MOVE, WORK, WORK]
                                     body = []
+
+                                    work_check = 0
                                     for i in range(int(distance / 6)):
                                         if i % 2 == 1:
                                             for bodypart in carry_body_odd:
@@ -730,12 +719,18 @@ def main():
                                             for bodypart in carry_body_even:
                                                 body.push(bodypart)
                                         if work_chance == 0:
-                                            for bodypart in work_body:
-                                                body.push(bodypart)
+                                            work_check += 1
+                                            if work_check <= 2:
+                                                for bodypart in work_body:
+                                                    body.push(bodypart)
+                                    if distance % 6 > 0:
+                                        body.push(MOVE)
+                                        body.push(CARRY)
                                     if _.sum(Game.getObjectById(carrier_pickup).store) \
                                             >= Game.getObjectById(carrier_pickup).storeCapacity * .7:
                                         print('extra')
-                                        body.push(MOVE)
+                                        if distance % 6 == 0:
+                                            body.push(MOVE)
                                         body.push(CARRY)
                                     print('body', body)
                                     spawning = spawn.createCreep(body, undefined,
@@ -767,13 +762,21 @@ def main():
                                                 {'role': 'carrier', 'assigned_room': spawn.pos.roomName,
                                                  'flag_name': flag})
                                         continue
+                                # 픽업이 존재하지 않는다는건 현재 해당 건물이 없다는 뜻이므로 새로 지어야 함.
                                 else:
-                                    spawn.createCreep(
-                                        [WORK, WORK, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, MOVE,
-                                         MOVE, MOVE, MOVE, MOVE],
+                                    spawning = spawn.createCreep(
+                                        [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, WORK,
+                                         WORK, WORK, WORK, CARRY, CARRY],
                                         undefined,
                                         {'role': 'carrier', 'assigned_room': spawn.pos.roomName,
                                          'flag_name': flag})
+                                    if spawning == ERR_NOT_ENOUGH_RESOURCES:
+                                        spawn.createCreep(
+                                            [WORK, WORK, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, MOVE,
+                                             MOVE, MOVE, MOVE, MOVE],
+                                            undefined,
+                                            {'role': 'carrier', 'assigned_room': spawn.pos.roomName,
+                                             'flag_name': flag})
                                     continue
 
                             if len(flag_containers) > len(creep_harvesters):
