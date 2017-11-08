@@ -290,6 +290,16 @@ def main():
             elif creep.memory.role == 'reserver':
                 upgrader.run_reserver(creep)
 
+        # 멀티자원방 관련 스크립트
+        if Game.time % structure_renew_count == 1 or not Memory.rooms:
+            for name in Object.keys(Game.flags):
+                # 깃발 위치가 현 방과 이름이 같은가?
+                if Game.flags[name].room.name == chambra_nomo:
+
+                    # 깃발 하나만 꽂으면 끝남.
+                    break
+
+
         # 스폰 여럿이어서 생길 중복방지.
         room_names = []
 
@@ -315,14 +325,11 @@ def main():
 
                 new_json = '{}'
                 new_json = JSON.parse(new_json)
-                # new_room = {spawn.room.name:{}}
+
                 new_towers = {STRUCTURE_TOWER: []}
-                # new_towers = JSON.parse(new_towers)
+
                 new_links = {STRUCTURE_LINK: []}
                 new_labs = {STRUCTURE_LAB: []}
-                # if not Memory.buildings:
-                #     Memory.buildings = {}
-                # Memory.buildings[spawn.room.name] = new_json
 
                 for room_name in room_names:
                     print('room_name({}) || spawn.room.name({})'.format(room_name, spawn.room.name))
@@ -375,8 +382,11 @@ def main():
 
                 # check all flags with same name with the spawn.
                 for name in Object.keys(flags):
+                    print('spawn.name', spawn.name)
+                    print('name', name)
                     # if re.match(spawn.name, name):
                     if re.match(str(spawn.name).lower(), str(name).lower()):
+                        print('added?')
                         # if there is, get it's flag's name out.
                         flag_name.push(flags[name].name)
 
@@ -702,7 +712,7 @@ def main():
                                 print('pass')
                                 print('carrier_pickup', carrier_pickup)
                                 # 대충 해야하는일: 캐리어의 픽업위치에서 본진거리 확인. 그 후 거리만큼 추가.
-                                if carrier_pickup:
+                                if Game.getObjectById(carrier_pickup):
                                     path = Game.getObjectById(carrier_pickup).room.findPath(
                                         Game.getObjectById(carrier_pickup).pos, spawn.pos, {'ignoreCreeps': True})
                                     distance = len(path)
@@ -723,7 +733,7 @@ def main():
                                             for bodypart in work_body:
                                                 body.push(bodypart)
                                     if _.sum(Game.getObjectById(carrier_pickup).store) \
-                                        >= Game.getObjectById(carrier_pickup).storeCapacity * .7:
+                                            >= Game.getObjectById(carrier_pickup).storeCapacity * .7:
                                         print('extra')
                                         body.push(MOVE)
                                         body.push(CARRY)
@@ -805,8 +815,8 @@ def main():
                 spawn.room.visual.text(
                     '🛠 ' + spawning_creep.memory.role + ' '
                     + str(int(
-                        ((
-                             spawn.spawning.needTime - spawn.spawning.remainingTime) / spawn.spawning.needTime) * 100)) + '%',
+                        ((spawn.spawning.needTime - spawn.spawning.remainingTime)
+                         / spawn.spawning.needTime) * 100)) + '%',
                     spawn.pos.x + 1,
                     spawn.pos.y,
                     {'align': 'left', 'opacity': 0.8}
@@ -857,9 +867,7 @@ def main():
 
     # 스트럭쳐 목록 초기화 위한 작업. 마지막에 다 지워야 운용에 차질이 없음.
     if Game.time % structure_renew_count == 0:
-        # del Memory.towers
-        # del Memory.links
-        del Memory.buildings
+
         del Memory.rooms
 
     # cpu counter
