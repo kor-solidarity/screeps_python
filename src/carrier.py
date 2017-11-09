@@ -87,10 +87,6 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
         # if there's pickup, no need to go through all them below.
         # creep.memory.pickup == id of the container carrier's gonna pick up
         elif creep.memory.pickup:
-            # 이걸 가진 크립은 컨테이너 생산용 일회용 크립이라 픽업배정이 되면 사용가치가 없음.
-            if creep.memory.frontier == True:
-                creep.suicide()
-                return
             # 1. if 1 == False, look for storage|containers to get the energy from.
             # 2. if 2 == False, you harvest on ur own.
 
@@ -105,7 +101,7 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                 creep.memory.laboro = 1
                 creep.memory.priority = 0
             elif result == ERR_NOT_ENOUGH_ENERGY:
-                del creep.memory.pickup
+
                 return
             # other errors? just delete 'em
             else:
@@ -160,11 +156,8 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                     creep.memory.pickup = remote_containers[0].id
                     return
 
-            # print('creep.room.name({}) == Game.flags[creep.memory.flag_name].room({}):'
-            #       .format(creep.room.name, Game.flags[creep.memory.flag_name].room.name)
-            #       , bool(creep.room.name == Game.flags[creep.memory.flag_name].room.name))
-
             try:
+                # carrier_pickup == 첫 스폰 시 건설작업이 필요할 경우 자원 뽑아가는 위치
                 # there's no remote structures and no carrier_pickup
                 if creep.memory.no_remote and not creep.memory.carrier_pickup:
                     # find any containers/links with any resources inside

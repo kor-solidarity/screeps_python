@@ -475,7 +475,7 @@ def main():
 
                 plus = 0
                 for harvest_container in harvest_carry_targets:
-                    # 컨테이너와 링크 둘이 공존중.
+                    # 컨테이너.
                     if Game.getObjectById(harvest_container).structureType == STRUCTURE_CONTAINER:
                         if _.sum(Game.getObjectById(harvest_container).store) \
                                 > Game.getObjectById(harvest_container).storeCapacity * .89:
@@ -483,12 +483,13 @@ def main():
                         elif _.sum(Game.getObjectById(harvest_container).store) \
                                 < Game.getObjectById(harvest_container).storeCapacity * .05:
                             plus -= 1
+                    # 링크.
                     else:
                         if _.sum(Game.getObjectById(harvest_container).energy) \
                                 > Game.getObjectById(harvest_container).energyCapacity * .89:
                             plus += 1
                         elif _.sum(Game.getObjectById(harvest_container).energy) \
-                                < Game.getObjectById(harvest_container).energyCapacity * .05:
+                                < Game.getObjectById(harvest_container).energyCapacity * .125:
                             plus -= 1
 
                 if len(harvest_carry_targets) == 0:
@@ -686,6 +687,11 @@ def main():
                                 # 스폰중인가? 생명이 200이상 남았는가? 그러면 숫자 추가한다.
                                 if c.spawning or c.ticksToLive > 200:
                                     actual_avail_carriers += 1
+                                    # 프론티어 불이 존재하고 픽업이 존재할 시 건설작업 끝난거니 셈에서 제외하고 픽업값 넣는다.
+                                    if c.memory.frontier and c.memory.pickup:
+                                        actual_avail_carriers -= 1
+                                        carrier_pickup = c.memory.pickup
+
                                 # 아니면 새로 생성해야하니 픽업값 넣는다.
                                 else:
                                     carrier_pickup = c.memory.pickup
@@ -711,31 +717,32 @@ def main():
                                     else:
                                         work_chance = random.randint(0, 1)
 
-                                    carry_body_odd = [MOVE, MOVE, CARRY, CARRY, CARRY]
-                                    carry_body_even = [MOVE, CARRY, CARRY, CARRY]
+                                    carry_body_odd = [MOVE, CARRY, CARRY, CARRY]
+                                    carry_body_even = [MOVE, MOVE, CARRY, CARRY, CARRY]
                                     work_body = [MOVE, WORK, WORK, MOVE, WORK, WORK]
                                     body = []
 
                                     work_check = 0
                                     for i in range(int(distance / 6)):
-                                        if i % 2 == 1:
-                                            for bodypart in carry_body_odd:
+                                        # 이거부터 들어가야함
+                                        if i % 2 == 0:
+                                            for bodypart in carry_body_even:
                                                 body.push(bodypart)
                                         else:
-                                            for bodypart in carry_body_even:
+                                            for bodypart in carry_body_odd:
                                                 body.push(bodypart)
                                         if work_chance == 0:
                                             work_check += 1
                                             if work_check <= 2:
                                                 for bodypart in work_body:
                                                     body.push(bodypart)
-                                    if distance % 6 > 0:
+                                    if distance % 6 > 1:
                                         body.push(MOVE)
                                         body.push(CARRY)
                                     if _.sum(Game.getObjectById(carrier_pickup).store) \
                                             >= Game.getObjectById(carrier_pickup).storeCapacity * .7:
                                         print('extra')
-                                        if distance % 6 == 0:
+                                        if distance % 6 <= 1:
                                             body.push(MOVE)
                                         body.push(CARRY)
                                     print('body', body)
