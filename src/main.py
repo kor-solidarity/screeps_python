@@ -293,13 +293,13 @@ def main():
         # 멀티자원방 관련 스크립트
         if Game.time % structure_renew_count == 1 or not Memory.rooms:
             for name in Object.keys(Game.flags):
-                # 깃발 위치가 현 방과 이름이 같은가?
-                if Game.flags[name].room.name == chambra_nomo:
-
-
-                    # 깃발 하나만 꽂으면 끝남.
-                    break
-
+                try:
+                    # 깃발 위치가 현 방과 이름이 같은가?
+                    if Game.flags[name].room.name == chambra_nomo:
+                        # 깃발 하나만 꽂으면 끝남.
+                        break
+                except:
+                    pass
 
         # 스폰 여럿이어서 생길 중복방지.
         room_names = []
@@ -315,6 +315,7 @@ def main():
             divider += 1
             if divider > counter:
                 divider -= counter
+
 
             # this part is made to save memory and seperate functional structures out of spawn loop.
             if Game.time % structure_renew_count == 1 or not Memory.rooms:
@@ -383,11 +384,11 @@ def main():
 
                 # check all flags with same name with the spawn.
                 for name in Object.keys(flags):
-                    print('spawn.name', spawn.name)
-                    print('name', name)
+                    # print('spawn.name', spawn.name)
+                    # print('name', name)
                     # if re.match(spawn.name, name):
                     if re.match(str(spawn.name).lower(), str(name).lower()):
-                        print('added?')
+
                         # if there is, get it's flag's name out.
                         flag_name.push(flags[name].name)
 
@@ -423,6 +424,7 @@ def main():
                         break
 
                 if len(harvest_carry_targets) < len(sources):
+                        # and not spawn.pos.inRangeTo(2, hostile_creeps[0]):
                     harvesters_bool = bool(len(creep_harvesters) < len(sources) * 2)
                 # if numbers of creep_harvesters are less than number of sources in the spawn's room.
                 else:
@@ -475,21 +477,19 @@ def main():
 
                 plus = 0
                 for harvest_container in harvest_carry_targets:
+                    # Ĉar uzi getObjectById k.t.p estas tro longa.
+                    harvest_target = Game.getObjectById(harvest_container)
                     # 컨테이너.
-                    if Game.getObjectById(harvest_container).structureType == STRUCTURE_CONTAINER:
-                        if _.sum(Game.getObjectById(harvest_container).store) \
-                                > Game.getObjectById(harvest_container).storeCapacity * .89:
+                    if harvest_target.structureType == STRUCTURE_CONTAINER:
+                        if _.sum(harvest_target.store) > harvest_target.storeCapacity * .89:
                             plus += 1
-                        elif _.sum(Game.getObjectById(harvest_container).store) \
-                                < Game.getObjectById(harvest_container).storeCapacity * .05:
+                        elif _.sum(harvest_target.store) <= harvest_target.storeCapacity * .25:
                             plus -= 1
                     # 링크.
                     else:
-                        if _.sum(Game.getObjectById(harvest_container).energy) \
-                                > Game.getObjectById(harvest_container).energyCapacity * .89:
+                        if harvest_target.energy > harvest_target.energyCapacity * .89:
                             plus += 1
-                        elif _.sum(Game.getObjectById(harvest_container).energy) \
-                                < Game.getObjectById(harvest_container).energyCapacity * .125:
+                        elif harvest_target.energy <= harvest_target.energyCapacity * .126:
                             plus -= 1
 
                 if len(harvest_carry_targets) == 0:
@@ -500,27 +500,30 @@ def main():
                     plus = 2
 
                 hauler_capacity = len(sources) + 1 + plus
-                # minimum number of haulers in the room is 2
-                if hauler_capacity <= 1:
-                    hauler_capacity = 2
-                # print('hauler_capacity:', hauler_capacity)
+                # minimum number of haulers in the room is 1
+                if hauler_capacity <= 0:
+                    # if len(harvest_carry_targets) == 0:
+                    #     hauler_capacity = 1
+                    # else:
+                    hauler_capacity = 1
+                elif hauler_capacity > 4:
+                    hauler_capacity = 4
+
                 if len(creep_haulers) < hauler_capacity:
-                    if spawn.room.energyAvailable >= spawn.room.energyCapacityAvailable * .85:
+                    # first hauler is always 250 sized. - 'balance' purpose(idk just made it up)
+                    if spawn.room.energyAvailable >= spawn.room.energyCapacityAvailable * .85 \
+                            and len(creep_haulers) != 0:
                         spawning_creep = spawn.createCreep(
                             [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, CARRY, CARRY, CARRY,
                              CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY],
                             undefined, {'role': 'hauler', 'assigned_room': spawn.pos.roomName,
                                         'level': 8})
-                        # 이거 쓴 이유가...?
-                        if type(spawning_creep) == str:
-                            continue
-                        print('checking spawning_creep:', spawning_creep)
-
-                    spawning_creep = spawn.createCreep([WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY,
-                                                        CARRY, CARRY, MOVE, MOVE, MOVE, MOVE, MOVE],
-                                                       undefined,
-                                                       {'role': 'hauler', 'assigned_room': spawn.pos.roomName,
-                                                        'level': 5})
+                    else:
+                        spawning_creep = spawn.createCreep([WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY,
+                                                            CARRY, CARRY, MOVE, MOVE, MOVE, MOVE, MOVE],
+                                                           undefined,
+                                                           {'role': 'hauler', 'assigned_room': spawn.pos.roomName,
+                                                            'level': 5})
 
                     if spawning_creep == -6:
                         if spawn.createCreep([WORK, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE], undefined,
@@ -529,8 +532,7 @@ def main():
                             spawn.createCreep([MOVE, MOVE, WORK, CARRY, CARRY], undefined,
                                               {'role': 'hauler', 'assigned_room': spawn.pos.roomName,
                                                'level': 0})
-                    print('spawning_creep', spawning_creep)
-                    print('type', type(spawning_creep))
+
                     continue
 
                 # if there's an extractor, make a miner.
@@ -556,7 +558,7 @@ def main():
                 plus = 0
                 if len(creep_upgraders) < 2:
                     # some prime number.
-                    if Game.time % 59999 < 11:
+                    if Game.time % 6491 < 11:
                         plus = 1
                     if spawn.room.controller.ticksToDowngrade < 10000:
                         plus += 1
@@ -585,13 +587,15 @@ def main():
 
                 if len(creep_upgraders) < proper_level + plus \
                         and not (Game.cpu.bucket < 2000):
-
-                    big = spawn.createCreep(
-                        [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK,
-                         WORK, WORK,
-                         WORK,
-                         WORK, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY], undefined,
-                        {'role': 'upgrader', 'assigned_room': spawn.pos.roomName, 'level': 5})
+                    if spawn.room.controller.level != 8:
+                        big = spawn.createCreep(
+                            [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK,
+                             WORK, WORK,
+                             WORK,
+                             WORK, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY], undefined,
+                            {'role': 'upgrader', 'assigned_room': spawn.pos.roomName, 'level': 5})
+                    else:
+                        big = -6
                     if big == -6:
                         if spawn.createCreep(
                                 [WORK, WORK, WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY,
@@ -623,12 +627,12 @@ def main():
                                                                        and (c.spawning or (c.hits > c.hitsMax * .6
                                                                                            and c.ticksToLive > 100)))
                             remote_carriers = _.filter(creeps, lambda c: c.memory.role == 'carrier'
-                                                                        and c.memory.flag_name == flag)
+                                                                         and c.memory.flag_name == flag)
 
                             # exclude creeps with less than 100 life ticks so the new guy can be replaced right away
                             remote_harvesters = _.filter(creeps, lambda c: c.memory.role == 'harvester'
-                                                                          and c.memory.flag_name == flag
-                                                                          and (c.spawning or c.ticksToLive > 120))
+                                                                           and c.memory.flag_name == flag
+                                                                           and (c.spawning or c.ticksToLive > 120))
                             remote_reservers = _.filter(creeps, lambda c: c.memory.role == 'reserver'
                                                                           and c.memory.flag_name == flag)
 
@@ -640,12 +644,14 @@ def main():
                                       .format(len(hostiles), len(remote_troops)))
                             if len(hostiles) > 1:
                                 plus = 1
+
                             else:
                                 plus = 0
                             # print(Game.flags[flag].room.name, 'remote_troops', len(remote_troops))
                             if len(hostiles) + plus > len(remote_troops):
                                 # second one is the BIG GUY. made in case invader's too strong.
-                                if len(remote_troops) == 1:
+                                # 임시로 0으로 놨음. 구조 자체를 뜯어고쳐야함.
+                                if len(remote_troops) == 0:
                                     spawn_res = spawn.createCreep(
                                         [TOUGH, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE,
                                          MOVE, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK,
@@ -684,23 +690,23 @@ def main():
                             actual_avail_carriers = 0
                             carrier_pickup = None
                             for c in remote_carriers:
-                                # 스폰중인가? 생명이 200이상 남았는가? 그러면 숫자 추가한다.
-                                if c.spawning or c.ticksToLive > 200:
+                                # 스폰중인가? 생명이 100이상 남았는가? 그러면 숫자 추가한다.
+                                if c.spawning or c.ticksToLive > 100:
                                     actual_avail_carriers += 1
                                     # 프론티어 불이 존재하고 픽업이 존재할 시 건설작업 끝난거니 셈에서 제외하고 픽업값 넣는다.
-                                    if c.memory.frontier and c.memory.pickup:
+                                    if c.memory.frontier and c.memory.pickup and c.ticksToLive < 1350:
                                         actual_avail_carriers -= 1
                                         carrier_pickup = c.memory.pickup
 
                                 # 아니면 새로 생성해야하니 픽업값 넣는다.
                                 else:
                                     carrier_pickup = c.memory.pickup
-                            print('actual_avail_carriers', actual_avail_carriers)
+                            # print('actual_avail_carriers', actual_avail_carriers)
                             # if len(flag_energy_sources) > len(remote_carriers):
                             if len(flag_energy_sources) > actual_avail_carriers:
                                 # se tie ne estas carrier_pickup, unue, vi povas trovi harvesters.
                                 if not Game.getObjectById(carrier_pickup):
-                                    print('remote_harvesters', bool(remote_harvesters))
+                                    # print('remote_harvesters', bool(remote_harvesters))
                                     if bool(remote_harvesters):
                                         # kaj asignu el havester-a container
                                         carrier_pickup = remote_harvesters[0].memory.container
@@ -716,7 +722,7 @@ def main():
                                         work_chance = 1
                                     else:
                                         work_chance = random.randint(0, 1)
-
+                                    # 굳이 따로 둔 이유: 캐리 둘에 무브 하나.
                                     carry_body_odd = [MOVE, CARRY, CARRY, CARRY]
                                     carry_body_even = [MOVE, MOVE, CARRY, CARRY, CARRY]
                                     work_body = [MOVE, WORK, WORK, MOVE, WORK, WORK]
@@ -736,19 +742,21 @@ def main():
                                             if work_check <= 2:
                                                 for bodypart in work_body:
                                                     body.push(bodypart)
-                                    if distance % 6 > 1:
+                                    # 거리 나머지값 반영.
+                                    if distance % 6 > 2:
                                         body.push(MOVE)
                                         body.push(CARRY)
                                     if _.sum(Game.getObjectById(carrier_pickup).store) \
-                                            >= Game.getObjectById(carrier_pickup).storeCapacity * .7:
+                                            >= Game.getObjectById(carrier_pickup).storeCapacity * .8:
                                         print('extra')
-                                        if distance % 6 <= 1:
+                                        if distance % 6 <= 2:
                                             body.push(MOVE)
                                         body.push(CARRY)
                                     print('body', body)
                                     spawning = spawn.createCreep(body, undefined,
-                                                      {'role': 'carrier', 'assigned_room': spawn.pos.roomName,
-                                                       'flag_name': flag, 'pickup': carrier_pickup})
+                                                                 {'role': 'carrier',
+                                                                  'assigned_room': spawn.pos.roomName,
+                                                                  'flag_name': flag, 'pickup': carrier_pickup})
                                     print('spawning', spawning)
                                     if spawning == 0:
                                         continue
@@ -773,7 +781,7 @@ def main():
                                                  MOVE, MOVE, MOVE, MOVE],
                                                 undefined,
                                                 {'role': 'carrier', 'assigned_room': spawn.pos.roomName,
-                                                 'flag_name': flag, 'pickup': carrier_pickup})
+                                                 'flag_name': flag, 'pickup': carrier_pickup, 'frontier': True})
                                         continue
                                 # 픽업이 존재하지 않는다는건 현재 해당 건물이 없다는 뜻이므로 새로 지어야 함.
                                 else:
@@ -789,7 +797,7 @@ def main():
                                              MOVE, MOVE, MOVE, MOVE],
                                             undefined,
                                             {'role': 'carrier', 'assigned_room': spawn.pos.roomName,
-                                             'flag_name': flag})
+                                             'flag_name': flag, 'frontier': True})
                                     continue
 
                             if len(flag_containers) > len(remote_harvesters):
@@ -867,6 +875,16 @@ def main():
                     for building_name in Object.keys(structure_list):
 
                         if building_name == STRUCTURE_TOWER:
+                            # 수리작업을 할때 벽·방어막 체력 만 이하가 있으면 그걸 최우선으로 고친다.
+                            # 적이 있을 시 수리 자체를 안하니 있으면 아예 무시.
+                            if len(hostile_creeps) == 0:
+                                for repair_wall_rampart in repairs:
+                                    if repair_wall_rampart.structureType == STRUCTURE_WALL \
+                                            or repair_wall_rampart.structureType == STRUCTURE_RAMPART:
+                                        if repair_wall_rampart.hits < 10000:
+                                            repairs = [repair_wall_rampart]
+                                            break
+
                             for tower in structure_list[building_name]:
                                 # sometimes these could die you know....
                                 if Game.getObjectById(tower):
@@ -883,7 +901,6 @@ def main():
 
     # 스트럭쳐 목록 초기화 위한 작업. 마지막에 다 지워야 운용에 차질이 없음.
     if Game.time % structure_renew_count == 0:
-
         del Memory.rooms
 
     # cpu counter

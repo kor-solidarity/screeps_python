@@ -392,7 +392,7 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                         try:
                             # ERR_INVALID_TARGET == nothing to store == look for storage with energy less than 5k
                             # first, look for terminal and check if energy is less than 5k
-                            if creep.room.terminal and creep.room.terminal.store[RESOURCE_ENERGY] <= 250000:
+                            if creep.room.terminal and creep.room.terminal.store[RESOURCE_ENERGY] <= 15000:
                                 creep.say('경제활성화!', True)
                                 creep.memory.haul_target = creep.room.terminal.id
                                 creep.moveTo(Game.getObjectById(creep.memory.haul_target),

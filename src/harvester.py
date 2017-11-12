@@ -169,6 +169,7 @@ def run_harvester(creep, all_structures, constructions, creeps, dropped_all, sou
     elif (_.sum(creep.carry) >= creep.carryCapacity and creep.memory.laboro == 0) or creep.ticksToLive < 5:
         creep.say('民衆民主主義萬世', True)
         creep.memory.laboro = 1
+        del creep.memory.pickup
 
     # harvesting job. if on harvest(laboro == 0) and carrying energy is smaller than carryCapacity
     if creep.memory.laboro == 0:

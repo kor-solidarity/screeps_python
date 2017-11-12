@@ -91,7 +91,7 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
             # 2. if 2 == False, you harvest on ur own.
 
             result = harvest_stuff.grab_energy(creep, creep.memory.pickup, True)
-
+            # print(creep.name, result)
             if result == ERR_NOT_IN_RANGE:
                 creep.moveTo(Game.getObjectById(creep.memory.pickup),
                              {'visualizePathStyle': {'stroke': '#ffffff'}, 'reusePath': 25})
@@ -101,7 +101,9 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                 creep.memory.laboro = 1
                 creep.memory.priority = 0
             elif result == ERR_NOT_ENOUGH_ENERGY:
-
+                if _.sum(creep.carry) > 0:
+                    creep.memory.laboro = 1
+                    creep.memory.priority = 0
                 return
             # other errors? just delete 'em
             else:
@@ -209,13 +211,6 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
         # 2. else, carry energy or whatever to the nearest link of the assigned_room
         # 3. repair
 
-        # all_structures in the home room
-        # home_structures = Game.rooms[creep.memory.assigned_room].find(FIND_STRUCTURES)
-
-        # all links and containers in home_structures
-        # links_and_containers = _.filter(home_structures, lambda s: s.structureType == STRUCTURE_LINK
-        #                                             or s.structureType == STRUCTURE_CONTAINER)
-
         if creep.memory.priority == 0:
             # print(creep.name)
             # made for cases carriers dont have WORK
@@ -225,10 +220,13 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                     creep_body_has_work = True
                     break
 
-            # construction sites. only find if creep is not in its flag location.
-            if creep.room.name != Game.flags[creep.memory.flag_name].room.name:
-                constructions = Game.flags[creep.memory.flag_name].room.find(FIND_CONSTRUCTION_SITES)
-
+            try:
+                # construction sites. only find if creep is not in its flag location.
+                if creep.room.name != Game.flags[creep.memory.flag_name].room.name:
+                    constructions = Game.flags[creep.memory.flag_name].room.find(FIND_CONSTRUCTION_SITES)
+            except:
+                # 이게 걸리면 지금 반대쪽 방에 아무것도 없어서 시야확보 안됐단 소리.
+                return
             # if there's no WORK in carrier they cant do fix or build at all.
             if not creep_body_has_work:
                 creep.say('🔄물류,염려말라!', True)
@@ -240,19 +238,16 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                 # 수리할 것이 있는가? 있으면 확률 발동. 없으면 1 고정. 20% 이하 체력건물이 있으면 100%
                 # 이제 있을때만 적용.
                 if len(repairs) > 0:
-                    # random_chance = random.randint(0, 10)
                     random_chance = 1
                     if creep.memory.pickup:
                         for repair in repairs:
                             if Game.getObjectById(creep.memory.pickup).pos.inRangeTo(repair, 3):
-                                # print('repair', repair)
-                                # print('repair.hits({}) < repair.hitsMax * .2 ({})'
-                                #       .format(repair.hits, repair.hitsMax * .2))
-                                if repair.hits <= repair.hitsMax * .2:
+
+                                if repair.hits <= repair.hitsMax * .25:
                                     random_chance = 0
                                     break
                 else:
-                    random_chance = 1
+                   random_chance = random.randint(0, 10)
 
                 if random_chance != 0:
                     creep.say('🔄물류,염려말라!', True)

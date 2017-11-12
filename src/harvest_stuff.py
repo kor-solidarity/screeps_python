@@ -131,27 +131,6 @@ def grab_energy(creep, pickup, only_energy):
         # pick it up.
         return creep.withdraw(Game.getObjectById(pickup), RESOURCE_ENERGY)
 
-        return grab_action
-
-        # NULLIFIED. All actions except actually grabbing the resources will not be done in here.
-        # creep.say(grab_action)
-        if grab_action == ERR_NOT_IN_RANGE:
-            creep.moveTo(Game.getObjectById(pickup),
-                         {'visualizePathStyle': {'stroke': '#ffffff'}})
-
-        elif grab_action == 0:
-            # idk why but they're returning 0 before actually grabbing.
-            del pickup
-            # a part switching to new laboro, let's not do that in shared script.
-            if creep.memory.role == 'hauler' or creep.memory.role == 'carrier':
-                creep.memory.laboro = 1
-                creep.memory.priority = 0
-                creep.say('BEEP BEEP⛟', True)
-
-        # other errors? just delete 'em
-        else:
-            del pickup
-
     # else == STRUCTURE_CONTAINER || STRUCTURE_STORAGE
     else:
         # resources = Object.keys(carry_objects)
@@ -205,35 +184,6 @@ def grab_energy(creep, pickup, only_energy):
             # print(creep.name, 'grab_action:', grab_action)
             # 오직 잡기 결과값만 반환한다. 이 함수에서 수거활동 외 활동을 금한다!
             return grab_action
-
-            # if creep.name == check_name:
-            #     print('grabs???:', grab_action)
-            if grab_action == ERR_NOT_IN_RANGE:
-                creep.moveTo(Game.getObjectById(pickup),
-                             {'visualizePathStyle': {'stroke': '#ffffff'}})
-
-            elif grab_action == 0:
-                # idk why but they're returning 0 before actually grabbing.
-                del pickup
-                # a part switching to new laboro, let's not do that in shared script.
-                if creep.memory.role == 'hauler' or creep.memory.role == 'carrier' \
-                        or creep.memory.role == 'helper_carrier':
-                    if _.sum(creep.carry) >= creep.carryCapacity * .5:
-                        creep.memory.laboro = 1
-                        creep.memory.priority = 0
-                    if resource == 'energy':
-                        creep.say('BEEP BEEP⛟', True)
-                    else:
-                        creep.say("GRAB 💎s", True)
-
-                break
-
-            # other errors? just delete 'em
-            else:
-                print(creep.name, 'ELSE ERROR:', grab_action)
-                del pickup
-
-    # ------------------------------------------------
 
 
 def pick_drops(creep, drop):

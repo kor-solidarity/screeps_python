@@ -36,27 +36,6 @@ def filter_allies(hostile_creeps):
 
     return hostile_creeps
 
-# NULLIFIED
-# def memory_carry(creep):
-#     """
-#     define the CARRY size of the creep.
-#     creep.carryCapacity
-#     :param creep:
-#     :return:
-#     """
-#
-#     if not creep.carryCapacity:
-#         carry_size = 0
-#         for body in creep.body:
-#             if body.type == 'carry':
-#                 carry_size += 50
-#
-#         creep.carryCapacity = carry_size
-#         return
-#     # if there is a carry memory. this def. is unneeded.
-#     else:
-#         return
-
 
 def pick_pickup(creep, creeps, storages):
     """
@@ -66,23 +45,14 @@ def pick_pickup(creep, creeps, storages):
     :param storages: 대상 자원.
     :return storage: closest storage with energy left
     """
-    # print('-------------name', creep.name)
-
-    # if there's no empty storage at all
-    # if len(storages) == 0:
-    #     return ERR_INVALID_TARGET
-
     # storage with closest.... yeah
     closest_storage = creep.pos.findClosestByRange(storages)
 
-    # hauler creep NULLIFIED
-    # portist_kripoj = _.filter(creeps, lambda c: c.memory.role == 'hauler')
     # creeps.
     portist_kripoj = creeps
     # will filter for leftover energy,
     # tldr - if theres already a creep going for it, dont go unless there's some for you.
     while not creep.memory.pickup or len(storages) > 0:
-        # print('storages:', storages)
         # safety trigger
         if len(storages) == 0:
             break
@@ -96,8 +66,6 @@ def pick_pickup(creep, creeps, storages):
         # else == container or storage.
         else:
             stored_energy = _.sum(loop_storage.store)
-
-        # print('designated storage: {}, stored_energy: {}'.format(loop_storage, stored_energy))
 
         for kripo in portist_kripoj:
             # if hauler dont have pickup, pass
@@ -113,7 +81,7 @@ def pick_pickup(creep, creeps, storages):
                 else:
                     continue
         # if leftover stored_energy has enough energy for carry, set pickup.
-        if stored_energy >= creep.carryCapacity * .5:
+        if stored_energy >= int(creep.carryCapacity * .45):
             return loop_storage.id
             # creep.memory.pickup = loop_storage.id
             # break
@@ -130,6 +98,9 @@ def pick_pickup(creep, creeps, storages):
             # creep.memory.pickup = creep.room.storage.id
             # 이건 왜...??
             # creep.memory.only_energy = True
+        # 현재 25k 수치는 임시방편일 뿐임.
+        elif creep.room.terminal and creep.room.terminal.store[RESOURCE_ENERGY] >= 25000:
+            return creep.room.terminal.id
         else:
             if not closest_storage:
                 return ERR_INVALID_TARGET
