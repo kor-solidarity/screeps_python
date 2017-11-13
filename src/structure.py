@@ -34,10 +34,17 @@ def run_tower(tower, all_structures, creeps, hostile_creeps, repairs, square):
 
     malsana_amikoj = _.filter(creeps, lambda c: c.hits < c.hitsMax)
 
-    if len(hostile_creeps) > 0:
+    if len(hostile_creeps) > 0 and len(malsana_amikoj) > 0:
+        flip = random.randint(0, 1)
+        if flip == 1:
+            malsana_amiko = tower.pos.findClosestByRange(malsana_amikoj)
+            tower.heal(malsana_amiko)
+        else:
+            hostile_creep = tower.pos.findClosestByRange(hostile_creeps)
+            tower.attack(hostile_creep)
+    elif len(hostile_creeps) > 0:
         hostile_creep = tower.pos.findClosestByRange(hostile_creeps)
         tower.attack(hostile_creep)
-
     elif len(malsana_amikoj) > 0:
         malsana_amiko = tower.pos.findClosestByRange(malsana_amikoj)
         tower.heal(malsana_amiko)
@@ -63,9 +70,8 @@ def run_links(link, my_structures):
     if link.cooldown == 0 and link.energy >= 100:
         # links with any energy left in storage and inside the boundaries
         inside_links = my_structures.filter(lambda s: s.structureType == STRUCTURE_LINK
-                                                      and not (
-        s.pos.x < 5 or s.pos.x > 44 or s.pos.y < 5 or s.pos.y > 44)
-                                                      and s.energy < s.energyCapacity * .9)
+                                            and not (s.pos.x < 5 or s.pos.x > 44 or s.pos.y < 5 or s.pos.y > 44)
+                                            and s.energy < s.energyCapacity * .9)
 
         if len(inside_links) > 0:
             # 내부(테두리 5칸 이상 이내)에 있는 링크 중 무작위 하나를 고르고 거기에 보낸다.
