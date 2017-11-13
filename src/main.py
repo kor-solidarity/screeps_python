@@ -182,6 +182,10 @@ def main():
 
         hostile_creeps = chambro.find(FIND_HOSTILE_CREEPS)
 
+        # to filter out the allies.
+        if len(hostile_creeps) > 0:
+            hostile_creeps = miscellaneous.filter_allies(hostile_creeps)
+
         minerals = chambro.find(FIND_MINERALS)
 
         # 단계별 제곱근값
@@ -209,10 +213,6 @@ def main():
             if structure.structureType == STRUCTURE_EXTRACTOR:
                 extractor = structure
                 break
-
-        # to filter out the allies.
-        if len(hostile_creeps) > 0:
-            hostile_creeps = miscellaneous.filter_allies(hostile_creeps)
 
         # my_structures = _.filter(all_structures, lambda s: s.my == True)
         my_structures = chambro.find(FIND_MY_STRUCTURES)
@@ -316,7 +316,6 @@ def main():
             if divider > counter:
                 divider -= counter
 
-
             # this part is made to save memory and seperate functional structures out of spawn loop.
             if Game.time % structure_renew_count == 1 or not Memory.rooms:
                 # TESTING PART
@@ -373,6 +372,9 @@ def main():
                         Memory.rooms[spawn.room.name][Object.keys(json)] = additive
 
                     room_names.append(spawn.room.name)
+            # 스폰 옆에 적이 있는지 확인.
+            # for jeok in hostile_creeps:
+            #     if spawn.pos.inRangeTo()
 
             # if spawn is not spawning, try and make one i guess.
             # spawning priority: harvester > hauler > upgrader > melee > etc.
@@ -502,9 +504,6 @@ def main():
                 hauler_capacity = len(sources) + 1 + plus
                 # minimum number of haulers in the room is 1
                 if hauler_capacity <= 0:
-                    # if len(harvest_carry_targets) == 0:
-                    #     hauler_capacity = 1
-                    # else:
                     hauler_capacity = 1
                 elif hauler_capacity > 4:
                     hauler_capacity = 4
@@ -637,12 +636,17 @@ def main():
                                                                           and c.memory.flag_name == flag)
 
                             hostiles = Game.flags[flag].room.find(FIND_HOSTILE_CREEPS)
+
+                            ai_hostiles = []
+                            for hostile in hostiles:
+                                if hostile.owner.username == 'Invader':
+                                    ai_hostiles.push(hostile)
                             # to filter out the allies.
-                            if len(hostiles) > 0:
+                            if len(ai_hostiles) > 0:
                                 hostiles = miscellaneous.filter_allies(hostiles)
                                 print('len(hostiles) == {} and len(remote_troops) == {}'
                                       .format(len(hostiles), len(remote_troops)))
-                            if len(hostiles) > 1:
+                            if len(ai_hostiles) > 1:
                                 plus = 1
 
                             else:
@@ -701,8 +705,7 @@ def main():
                                 # 아니면 새로 생성해야하니 픽업값 넣는다.
                                 else:
                                     carrier_pickup = c.memory.pickup
-                            # print('actual_avail_carriers', actual_avail_carriers)
-                            # if len(flag_energy_sources) > len(remote_carriers):
+
                             if len(flag_energy_sources) > actual_avail_carriers:
                                 # se tie ne estas carrier_pickup, unue, vi povas trovi harvesters.
                                 if not Game.getObjectById(carrier_pickup):
@@ -713,15 +716,15 @@ def main():
 
                                 # 대충 해야하는일: 캐리어의 픽업위치에서 본진거리 확인. 그 후 거리만큼 추가.
                                 if Game.getObjectById(carrier_pickup):
-                                    path = Game.getObjectById(carrier_pickup).room.findPath(
-                                        Game.getObjectById(carrier_pickup).pos, spawn.pos, {'ignoreCreeps': True})
+                                    pickup_container = Game.getObjectById(carrier_pickup)
+                                    path = pickup_container.room.findPath(pickup_container.pos, spawn.pos
+                                                                          , {'ignoreCreeps': True})
                                     distance = len(path)
 
-                                    if _.sum(Game.getObjectById(carrier_pickup).store) \
-                                            >= Game.getObjectById(carrier_pickup).storeCapacity * .7:
+                                    # 컨테이너 체력이 1/3 이하일 시에만 WORK를 가진다. 그외는 그냥 자원낭비.
+                                    if pickup_container.hits < pickup_container.maxHits * .35:
                                         work_chance = 1
-                                    else:
-                                        work_chance = random.randint(0, 1)
+
                                     # 굳이 따로 둔 이유: 캐리 둘에 무브 하나.
                                     carry_body_odd = [MOVE, CARRY, CARRY, CARRY]
                                     carry_body_even = [MOVE, MOVE, CARRY, CARRY, CARRY]
