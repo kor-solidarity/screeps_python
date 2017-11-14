@@ -71,11 +71,13 @@ def run_remote_defender(creep, creeps, hostile_creeps):
                                                               'reusePath': 50})
 
 
-def archer_defender(creep):
+def defender(creep, hostile_creeps):
     """
     방어용 저격수
-    :param creep:
+    :type creep: Game.creeps
+    :type hostile_creeps: dict[str, Creep]
     :return:
     """
+    hostile_creeps
 
 # def run_defender(creep, creeps, )
