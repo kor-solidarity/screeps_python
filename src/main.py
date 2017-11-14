@@ -143,14 +143,23 @@ def main():
     except:
         pass
 
-    # NULLIFIED - no longer check for dropped resources
-    # # 아래 initialize_count 기준값. not rational but also affects spawning timer
-    # init_count = 20
-    #
-    # # deletes everything so all can be remade
-    # # if Memory.initialize_count > init_count:
-    # if Game.time % init_count == 0:
-    #     del Memory.dropped_sources
+    if not Memory.debug and not Memory.debug == False:
+        Memory.debug = True
+
+    if Memory.debug:
+        print(JSON.stringify(Memory.rooms))
+
+        # 각 방 이름.
+        for rooms in Object.keys(Memory.rooms):
+
+            structure_list = Memory.rooms[rooms]
+            # structure_list에는 각각 타입별 머시기가 들어있다.
+
+
+        # for items in Memory.rooms:
+        #     print(JSON.stringify(items))
+
+        Memory.debug = False
 
     if Memory.dropped_sources:
         del Memory.dropped_sources
@@ -316,8 +325,7 @@ def main():
             if divider > counter:
                 divider -= counter
 
-
-            # this part is made to save memory and seperate functional structures out of spawn loop.
+            # this part is made to save memory and separate functional structures out of spawn loop.
             if Game.time % structure_renew_count == 1 or not Memory.rooms:
                 # TESTING PART
                 print('check')
@@ -378,16 +386,26 @@ def main():
             # spawning priority: harvester > hauler > upgrader > melee > etc.
             # checks every 10 + len(Game.spawns) ticks
             if not spawn.spawning and Game.time % counter == divider:
+                hostile_around = False
+                # 적이 주변에 있으면 생산 안한다. 추후 수정해야함.
+                if hostile_creeps:
+                    for enemy in hostile_creeps:
+                        if spawn.pos.inRangeTo(enemy, 2):
+                            hostile_around = True
+                            break
+                if hostile_around:
+                    continue
+
                 # ALL flags.
                 flags = Game.flags
                 flag_name = []
 
                 # check all flags with same name with the spawn.
                 for name in Object.keys(flags):
-                    # print('spawn.name', spawn.name)
-                    # print('name', name)
                     # if re.match(spawn.name, name):
-                    if re.match(str(spawn.name).lower(), str(name).lower()):
+                    # if re.match(str(spawn.name).lower(), str(name).lower()):
+                    regex = spawn.name + r'\d-rm'
+                    if re.match(regex, name, re.IGNORECASE):
 
                         # if there is, get it's flag's name out.
                         flag_name.push(flags[name].name)
@@ -863,6 +881,13 @@ def main():
                             # print(creep.ticksToLive)
                             result = spawn.renewCreep(creep)
                             break
+        # 멀티방 건물정보 저장. 현재는 아무기능 안한다.
+        if Game.time % structure_renew_count == 1:
+            # 정규식으로 확인. -rm 으로 끝나는 깃발은 다 멀티자원방이기 때문에 그걸 확인한다.
+            regex_flag = r'.+-rm'
+            for flag in Object.keys(Game.flags):
+                if re.match(regex_flag, flag, re.IGNORECASE):
+                    pass
 
         # loop for ALL STRUCTURES
         if Memory.rooms:
@@ -873,8 +898,11 @@ def main():
                     structure_list = Memory.rooms[room_name]
                     # divide them by structure names
                     for building_name in Object.keys(structure_list):
-
-                        if building_name == STRUCTURE_TOWER:
+                        if building_name == 'remote':
+                            # 재건 관련 지역
+                            if Game.time % 47 == 0:
+                                pass
+                        elif building_name == STRUCTURE_TOWER:
                             # 수리작업을 할때 벽·방어막 체력 만 이하가 있으면 그걸 최우선으로 고친다.
                             # 적이 있을 시 수리 자체를 안하니 있으면 아예 무시.
                             if len(hostile_creeps) == 0:
@@ -895,6 +923,8 @@ def main():
                                 if Game.getObjectById(link):
                                     building_action.run_links(Game.getObjectById(link), my_structures)
                     break
+
+
 
     if Game.cpu.bucket < 2000 and Game.cpu.limit < 20:
         print('passed creeps:', passing_creep_counter)
@@ -923,7 +953,8 @@ def main():
         for cpu in Memory.cpu_usage:
             cpu_total += cpu
         cpu_average = cpu_total / len(Memory.cpu_usage)
-        print("average cpu usage in the last {} ticks: {}".format(len(Memory.cpu_usage), cpu_average))
+        print("average cpu usage in the last {} ticks: {}, and current CPU bucket is {}"
+              .format(len(Memory.cpu_usage), cpu_average, Game.cpu.bucket))
         Memory.tick_check = False
 
 
