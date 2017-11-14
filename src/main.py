@@ -388,6 +388,7 @@ def main():
             if not spawn.spawning and Game.time % counter == divider:
                 hostile_around = False
                 # 적이 주변에 있으면 생산 안한다. 추후 수정해야함.
+
                 if hostile_creeps:
                     for enemy in hostile_creeps:
                         if spawn.pos.inRangeTo(enemy, 2):
