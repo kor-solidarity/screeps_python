@@ -91,8 +91,8 @@ def main():
     Main game logic loop.
     """
 
-    if not Memory.updateAlliance:
-        Memory.updateAlliance = False
+    if not Memory.updateAlliance and Memory.updateAlliance != False:
+        Memory.updateAlliance = True
 
     try:
         # adding alliance
@@ -145,21 +145,23 @@ def main():
 
     if not Memory.debug and not Memory.debug == False:
         Memory.debug = True
+    try:
+        if Memory.debug:
+            print(JSON.stringify(Memory.rooms))
 
-    if Memory.debug:
-        print(JSON.stringify(Memory.rooms))
+            # 각 방 이름.
+            for rooms in Object.keys(Memory.rooms):
 
-        # 각 방 이름.
-        for rooms in Object.keys(Memory.rooms):
-
-            structure_list = Memory.rooms[rooms]
-            # structure_list에는 각각 타입별 머시기가 들어있다.
+                structure_list = Memory.rooms[rooms]
+                # structure_list에는 각각 타입별 머시기가 들어있다.
 
 
-        # for items in Memory.rooms:
-        #     print(JSON.stringify(items))
+            # for items in Memory.rooms:
+            #     print(JSON.stringify(items))
 
-        Memory.debug = False
+            Memory.debug = False
+    except:
+        print('error in Memory.debug part')
 
     if Memory.dropped_sources:
         del Memory.dropped_sources
@@ -601,6 +603,9 @@ def main():
 
                     else:
                         proper_level = 1
+                elif spawn.room.energyCapacityAvailable <= 1000:
+                    # 어차피 여기올쯤이면 소형애들만 생성됨.
+                    proper_level = 4
                 else:
                     proper_level = 0
 
@@ -616,10 +621,14 @@ def main():
                     else:
                         big = -6
                     if big == -6:
-                        if spawn.createCreep(
+                        small= spawn.createCreep(
                                 [WORK, WORK, WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY,
                                  CARRY, CARRY, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE], undefined,
-                                {'role': 'upgrader', 'assigned_room': spawn.pos.roomName, 'level': 3}) == -6:
+                                {'role': 'upgrader', 'assigned_room': spawn.pos.roomName, 'level': 3})
+                        if small == -6:
+                            little = spawn.createCreep([WORK, WORK, WORK, CARRY, MOVE, MOVE], undefined,
+                                              {'role': 'upgrader', 'assigned_room': spawn.pos.roomName})
+                        if little == -6:
                             spawn.createCreep([WORK, WORK, CARRY, CARRY, MOVE, MOVE], undefined,
                                               {'role': 'upgrader', 'assigned_room': spawn.pos.roomName})
                     continue
