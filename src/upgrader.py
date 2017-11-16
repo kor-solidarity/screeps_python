@@ -12,11 +12,10 @@ __pragma__('noalias', 'type')
 __pragma__('noalias', 'update')
 
 
-def run_upgrader(creep, all_structures, sources):
+def run_upgrader(creep, all_structures):
     """
     :param creep:
     :param all_structures: creep.room.find(FIND_STRUCTURES)
-    :param sources: creep.room.find(FIND_SOURCES)
     :return:
     """
     # upgrader = upgrades the room. UPGRADES ONLY
@@ -40,9 +39,10 @@ def run_upgrader(creep, all_structures, sources):
         creep.say('TTL:' + creep.ticksToLive)
         return
 
-    # initialize memories needed
-    if not creep.memory.source_num and creep.memory.source_num != 0:
-        creep.memory.source_num = 0
+    # 혹시 딴짓하다 옆방으로 새는거에 대한 대비 - it really happened lol
+    if not creep.memory.upgrade_target:
+        creep.memory.upgrade_target = creep.room.controller['id']
+    elif not creep.memory.laboro and creep.memory.laboro != 0:
         creep.memory.laboro = 0
 
     # setting laboro
@@ -53,6 +53,7 @@ def run_upgrader(creep, all_structures, sources):
     elif _.sum(creep.carry) >= creep.carryCapacity * .5 and creep.memory.laboro == 0:
         creep.say('⚡ Upgrade', True)
         creep.memory.laboro = 1
+        del creep.memory.source_num
 
     # when you have to harvest. laboro: 0 == HARVEST
     if creep.memory.laboro == 0:
@@ -69,7 +70,7 @@ def run_upgrader(creep, all_structures, sources):
 
         # find containers that are full.
         full_containers = all_structures.filter(lambda s: ((s.structureType == STRUCTURE_STORAGE
-                                                            and s.store[RESOURCE_ENERGY] > creep.carryCapacity * .5)
+                                                            and s.store[RESOURCE_ENERGY] >- creep.carryCapacity * .5)
                                                            or (s.structureType == STRUCTURE_CONTAINER
                                                                and s.store[RESOURCE_ENERGY] >= s.storeCapacity * .9)))
         # get energy from these firsthand
@@ -125,13 +126,12 @@ def run_upgrader(creep, all_structures, sources):
                 creep.memory.laboro = 1
         # if not, manually harvest
         else:
-            harvest_stuff.harvest_energy(creep, sources, creep.memory.source_num)
+            if not creep.memory.source_num:
+                creep.memory.source_num = creep.pos.findClosestByRange(creep.room.find(FIND_SOURCES)).id
+            harvest_stuff.harvest_energy(creep, creep.memory.source_num)
 
     # laboro: 1 == UPGRADE
     elif creep.memory.laboro == 1:
-        # 혹시 딴짓하다 옆방으로 새는거에 대한 대비 - it really happened lol
-        if not creep.memory.upgrade_target:
-            creep.memory.upgrade_target = creep.room.controller['id']
 
         result = creep.upgradeController(Game.getObjectById(creep.memory.upgrade_target))
         # if there's no controller around, go there.

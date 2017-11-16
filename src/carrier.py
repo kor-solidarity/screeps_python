@@ -13,7 +13,7 @@ __pragma__('noalias', 'type')
 __pragma__('noalias', 'update')
 
 
-def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repairs, sources):
+def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repairs):
     """
     technically same with hauler, but more concentrated in carrying itself.
         and it's for remote mining ONLY.
@@ -172,7 +172,10 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                                                          (s.pos.x < 5 or s.pos.x > 44 or s.pos.y < 5 or s.pos.y > 44)))
                     carrier_pickup = miscellaneous.pick_pickup(creep, creeps, storages)
                     if carrier_pickup == ERR_INVALID_TARGET:
-                        harvest_stuff.harvest_energy(creep, sources, 0)
+                        if not creep.memory.source_num:
+                            source = creep.pos.findClosestByRange(creep.room.find(FIND_SOURCES))
+                            creep.memory.source_num = source.id
+                        harvest_stuff.harvest_energy(creep, creep.memory.source_num)
                     else:
                         creep.memory.carrier_pickup = carrier_pickup
 
@@ -198,8 +201,10 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                     return
                 # 아직 공사작업을 해야 하는데 크립이 방 안에 있으면? 리소스로 간다.
                 elif creep.room.name == Game.flags[creep.memory.flag_name].room.name:
-                    # source = creep.pos.findClosestByRange(sources)
-                    harvest_stuff.harvest_energy(creep, sources, 0)
+                    if not creep.memory.source_num:
+                        source = creep.pos.findClosestByRange(creep.room.find(FIND_SOURCES))
+                        creep.memory.source_num = source.id
+                    harvest_stuff.harvest_energy(creep, creep.memory.source_num)
             except:
                 print('no visual in the room where flag "{}" is located'.format(creep.memory.flag_name))
                 return
@@ -263,6 +268,10 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
 
         # PRIORITY 1: construct
         if creep.memory.priority == 1:
+            if not creep.memory.work:
+                creep.memory.priority = 2
+                creep.say('건설못함 ㅠㅠ', True)
+                return
 
             try:
                 # dont have a build_target and not in proper room - get there firsthand.
@@ -356,6 +365,10 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
             # if done, check if there's anything left. if there isn't then priority resets.
             elif transfer_result == ERR_INVALID_TARGET:
                 creep.memory.priority = 0
+            elif transfer_result == 0:
+                # 이동 완료했는데 픽업도없고 그렇다고 일할수있는것도 아니면 죽어야함.
+                if not Game.getObjectById(creep.memory.pickup) and not creep.memory.work:
+                    creep.suicide()
 
         # 수리
         elif creep.memory.priority == 3:

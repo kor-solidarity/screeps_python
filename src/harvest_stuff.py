@@ -13,13 +13,12 @@ __pragma__('noalias', 'update')
 # 자원 얻는 방식에 대한 그 모든것은 여기로 간다.
 
 
-def harvest_energy(creep, sources, source_num):
+def harvest_energy(creep, source_num):
     """
     자원을 캐고 없으면 다음껄로(다음번호) 보낸다.
 
     :param creep: the creep. do i have to tell you? intended for harvesters and upgraders.
-    :param sources: name says it all. ENERGY_SOURCES list
-    :param source_num: sources[creep.memory.source_num]. no use unless
+    :param source_num: ID of the energy source.
     :return: ain't returning shit.
     """
     vis_key = "visualizePathStyle"
@@ -28,52 +27,37 @@ def harvest_energy(creep, sources, source_num):
     # if capacity is full, get to next work.
     # DELETE ALL THIS AND MOVE THEM TO CREEPS.
     # THIS FUNC. MUST WORK ONLY ON HARVESTING
-    if _.sum(creep.carry) >= creep.carryCapacity:
+    if _.sum(creep.carry) == creep.carryCapacity:
         # print('creep.carry.energy >= creep.carryCapacity')
         # print('creep.memory.role:', creep.memory.role)
         creep.memory.laboro = 1
-        if creep.memory.role == 'upgrader':
-            # print('upgrader')
-            # randomly chooses which source to harvest from. not really efficient, but avoids harvester interruption
-            total_sources = len(sources)
-            # print('number of sources:', total_sources)
-            creep.memory.source_num = random.randint(0, total_sources-1)
-            creep.say('⚡ Upgrade', True)
-        elif creep.memory.role == 'harvester':
-            # print('harvester')
-            # if harvester, just reset source_num to 0. would need to edit this as i expand.
-            creep.memory.source_num = 0
+        if creep.memory.role == 'harvester':
             creep.say('民衆民主主義萬世!', True)
-        elif creep.memory.role == 'hauler' or creep.memory.role == 'carrier':
+        else:
             # print('hauler')
             creep.say('일꾼생산해라좀', True)
+        return 0
 
     # activate the harvest cmd.
-    if creep.memory.role == 'harvester':
-        harvested = creep.harvest(sources[source_num])
-    else:
-        harvested = creep.harvest(creep.pos.findClosestByRange(sources))
+    harvested = creep.harvest(Game.getObjectById(source_num))
 
     # is sources too far out?
     # creep.say(harvested)
     if harvested == ERR_NOT_IN_RANGE:
         # then go.
-        if creep.memory.role == 'hauler':
-            creep.moveTo(creep.pos.findClosestByRange(sources), {vis_key: {stroke_key: '#ffffff'}})
-        else:
-            creep.moveTo(sources[source_num], {vis_key: {stroke_key: '#ffffff'}})
-            # creep.say(a)
+        creep.moveTo(Game.getObjectById(source_num), {vis_key: {stroke_key: '#ffffff'}})
+
     # did the energy from the sources got depleted?
     # PROCEED TO NEXT PHASE IF THERE ARE ANYTHING IN CARRY
     # well.... not much important now i guess.
     elif harvested == ERR_NOT_ENOUGH_RESOURCES:
-        # if hauler they just have to wait for anything to pop up...
-        if creep.memory.role == 'hauler':
-            pass
-        elif _.sum(creep.carry) > 0:
+        # do with what you have anyways...
+        if _.sum(creep.carry) > 0:
             creep.say('🐜 SOURCES')
-            # do with what you have first...
             creep.memory.laboro = 1
+    # 교체위한 임시용.
+    elif harvested == ERR_INVALID_TARGET:
+        del creep.memory.source_num
 
 
 def grab_energy(creep, pickup, only_energy):
