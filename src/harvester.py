@@ -53,16 +53,19 @@ def run_harvester(creep, all_structures, constructions, creeps, dropped_all):
     # if there's no source_num, need to distribute it.
     if not creep.memory.source_num:
         # added ifs for remotes
-        if creep.memory.flag_name and creep.room.name != Game.flags[creep.memory.flag_name].pos.roomName:
+        if creep.memory.flag_name and creep.room.name != Game.flags[creep.memory.flag_name].room.name:
             try:
                 # normale, kripos ne devus havi .find() en la skripto, sed ĉi tio estas por malproksima regiono do...
                 sources = Game.flags[creep.memory.flag_name].room.find(FIND_SOURCES)
                 my_area = Game.flags[creep.memory.flag_name].room
                 creeps = Game.flags[creep.memory.flag_name].room.find(FIND_MY_CREEPS)
                 rikoltist_kripoj = _.filter(creeps,
-                                            lambda c: (c.spawning or c.ticksToLive > 100) and c.memory.role == 'harvester')
+                                            lambda c: (c.spawning or c.ticksToLive > 100)
+                                                      and c.memory.role == 'harvester'
+                                                      and not c.name == creep.name)
                 remote_structures = my_area.find(FIND_STRUCTURES)
                 remote_containers = _.filter(remote_structures, lambda s: s.structureType == STRUCTURE_CONTAINER)
+                print('???', remote_structures )
             except:
                 print('no creeps in the remote at flag {}!'.format(creep.memory.flag_name))
                 return
@@ -70,7 +73,12 @@ def run_harvester(creep, all_structures, constructions, creeps, dropped_all):
             sources = creep.room.find(FIND_SOURCES)
             my_area = creep.room
             rikoltist_kripoj = _.filter(creeps,
-                                        lambda c: (c.spawning or c.ticksToLive > 100) and c.memory.role == 'harvester')
+                                        lambda c: (c.spawning or c.ticksToLive > 100)
+                                                  and c.memory.role == 'harvester'
+                                                  and not c.name == creep.name)
+            if creep.memory.flag_name:
+                remote_containers = _.filter(all_structures, lambda s: s.structureType == STRUCTURE_CONTAINER)
+            # print('???', remote_structures)
             # kripoj_3k_aux_pli = _.filter(creeps,
             #                              lambda c: c.tickstolive > 100 and c.memory.size >= 3000
             #                              and c.memory.role == 'harvester')
@@ -85,6 +93,7 @@ def run_harvester(creep, all_structures, constructions, creeps, dropped_all):
         # 3 - more than 2 creeps working
         # kazo 1
         if len(rikoltist_kripoj) == 0:
+            print('rikoltist_kripoj 0')
             # 담당구역이 현재 크립이 있는곳이다?
             if my_area == creep.room.name:
                 # se tie ne estas iu kripoj simple asignu 0
@@ -95,9 +104,12 @@ def run_harvester(creep, all_structures, constructions, creeps, dropped_all):
                 # 에너지 일일히 돌린다.
                 for energy in sources:
                     done = False
+                    print('remote_containers', remote_containers)
                     # 컨테이너 거리 측정해서 4칸이내에 존재하는게 있으면 그걸로 붙는다.
                     for s in remote_containers:
+                        print('energy', energy)
                         if s.pos.inRangeTo(energy, 4):
+                            print('inrange', energy.id)
                             creep.memory.source_num = energy.id
                             done = True
                             break

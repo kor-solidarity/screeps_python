@@ -878,11 +878,13 @@ def main():
                                                                    {'role': 'reserver',
                                                                     'assigned_room': spawn.pos.roomName
                                                                        , 'flag_name': flag})
-                                if type(spawning_creep) == str:
-                                    continue
-                                else:
-                                    print('ERROR? reservers spawning_creep:', spawning_creep)
-                                    continue
+                                if spawning_creep == ERR_NOT_ENOUGH_RESOURCES:
+                                    spawning_creep = spawn.createCreep([MOVE, MOVE, CLAIM, CLAIM]
+                                        , undefined,
+                                        {'role': 'reserver', 'assigned_room': spawn.pos.roomName
+                                            , 'flag_name': flag})
+
+                                continue
 
             elif spawn.spawning:
                 # showing process of the spawning creep by %
