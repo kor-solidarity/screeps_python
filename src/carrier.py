@@ -27,6 +27,11 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
     :return:
     """
 
+    # 현 문제점:
+    # - 건설 필요 시 배정.(?)
+    # - 운송 시 목표지점 배정관련: 자꾸 스폰당시 위치에서 가장 가까운거에 해버림.
+    # - 원래 픽업위치 파괴됐을 시 배정 관련. 방에 자원이 둘일때 엉켜버림. 수리가 시급함.
+
     end_is_near = 40
     # in case it's gonna die soon. switch to some other
     if _.sum(creep.carry) > 0 and creep.ticksToLive < end_is_near and \
@@ -82,11 +87,10 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                     # if there's a dropped resources near 5
                     if creep.pos.inRangeTo(dropped, 5):
                         creep.memory.dropped_target = dropped_all['id']
-                        return
 
         # if there's pickup, no need to go through all them below.
         # creep.memory.pickup == id of the container carrier's gonna pick up
-        elif creep.memory.pickup:
+        if creep.memory.pickup:
             # 1. if 1 == False, look for storage|containers to get the energy from.
             # 2. if 2 == False, you harvest on ur own.
 
@@ -115,6 +119,11 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
         else:
 
             # 여기로 왔다는건 이제 막 스폰을 했거나 기존 컨테이너가 부셔졌다는 소리. 한마디로 not creep.memory.pickup == True
+            # 수정:
+            # 이게 뜨면 무조건 먼져 담당구역으로 간다. 간 후 담당 리소스를 확인한다.(이건 스폰 시 자동)
+            # 그 후에 배정받은 픽업이 존재하는지 확인한다.
+            # 배정받은 픽업이 존재하면 그걸로 끝. 없으면 건설담당인 셈. 자원 캔다.
+
             # 우선 반대편에 컨테이너가 있는지 확인한다. 있으면 그걸로 배정. 동시에 크립의 배정도 따진다.
             # 없을 경우 본진의 자원을 빼쓴다. 우선 스토리지 유무를 확인하고 거기에 에너지가 있으면 빼간다.
             # 스토리지가 없을 경우 컨테이너를 확인한다.
@@ -173,7 +182,11 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                     carrier_pickup = miscellaneous.pick_pickup(creep, creeps, storages)
                     if carrier_pickup == ERR_INVALID_TARGET:
                         if not creep.memory.source_num:
+                            if not creep.room.name == Game.flags[creep.memory.flag_name].room.name:
+                                creep.moveTo(Game.flags[creep.memory.flag_name])
+                                return
                             source = creep.pos.findClosestByRange(creep.room.find(FIND_SOURCES))
+
                             creep.memory.source_num = source.id
                         harvest_stuff.harvest_energy(creep, creep.memory.source_num)
                     else:
@@ -248,7 +261,7 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                         for repair in repairs:
                             if Game.getObjectById(creep.memory.pickup).pos.inRangeTo(repair, 3):
 
-                                if repair.hits <= repair.hitsMax * .25:
+                                if repair.hits <= repair.hitsMax * .6:
                                     random_chance = 0
                                     break
                 else:
@@ -298,6 +311,7 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                 creep.memory.build_target = construction.id
 
             build_result = creep.build(Game.getObjectById(creep.memory.build_target))  # construction)
+            creep.say(build_result)
             # print('build_result:', build_result)
             if build_result == ERR_NOT_IN_RANGE:
                 move_res = creep.moveTo(Game.getObjectById(creep.memory.build_target)
@@ -317,6 +331,10 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                     creep.memory.priority = 0
                     creep.memory.no_remote = False
                     del creep.memory.build_target
+            elif build_result == ERR_NO_BODYPART:
+                creep.memory.priority = 2
+                creep.say('건설못함..', True)
+                return
 
         # PRIORITY 2: carry 'em
         elif creep.memory.priority == 2:
@@ -374,13 +392,19 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
         elif creep.memory.priority == 3:
 
             repair_result = creep.repair(repair)
+            try:
+                if not creep.pos.inRangeTo(Game.getObjectById(creep.memory.pickup), 3)\
+                        or _.sum(creep.carry) <= creep.carryCapacity * .35:
+                    creep.memory.laboro = 0
+                    creep.memory.priority = 0
+                    creep.say('🐜는 뚠뚠', True)
 
-            if not creep.pos.inRangeTo(Game.getObjectById(creep.memory.pickup), 3)\
-                    or _.sum(creep.carry) <= creep.carryCapacity * .35:
-                creep.memory.laboro = 0
-                creep.memory.priority = 0
-                creep.say('🐜는 뚠뚠', True)
-
+                    return
+            except:
+                # 여기 걸리면 컨테이너가 삭제된거임...
+                creep.say('?? 컨테이너가!', True)
+                del creep.memory.pickup
+                creep.memory.priority = 1
                 return
 
             if repair_result == ERR_NOT_IN_RANGE:

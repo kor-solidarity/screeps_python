@@ -448,10 +448,11 @@ def main():
                     harvester_points = 0
 
                     for harvester_creep in creep_harvesters:
-                        if harvester_creep.memory.size >= 3000:
-                            harvester_points += 2
-                        else:
-                            harvester_points += 1
+                        # size scale:
+                        # 1 - small sized: 2 in each. regardless of actual capacity. for lvl 3 or less
+                        # 2 - real standards. suitable for 3k. 4500 not implmented yet.
+                        harvester_points += harvester_creep.memory.size
+
                     if harvester_points < len(sources) * 2:
                         harvesters_bool = True
                     else:
@@ -468,7 +469,7 @@ def main():
                              CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY]
                             , undefined,
                             {'role': 'harvester', 'assigned_room': spawn.pos.roomName,
-                             'size': 4500})
+                             'size': 2})
                     else:
                         # perfect for 3000 cap
                         regular_spawn = spawn.createCreep(
@@ -477,7 +478,7 @@ def main():
                              MOVE, MOVE]
                             , undefined,
                             {'role': 'harvester', 'assigned_room': spawn.pos.roomName,
-                             'size': 3000})
+                             'size': 2})
                     # print('what happened:', regular_spawn)
                     if regular_spawn == -6:
                         # one for 1500 cap == need 2
@@ -485,10 +486,10 @@ def main():
                                 [WORK, WORK, WORK, WORK, WORK, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE],
                                 undefined,
                                 {'role': 'harvester', 'assigned_room': spawn.pos.roomName,
-                                 'size': 1500}) == -6:
+                                 'size': 1}) == -6:
                             spawn.createCreep([MOVE, WORK, WORK, CARRY], undefined,
                                               {'role': 'harvester', 'assigned_room': spawn.pos.roomName,
-                                               'size': 0})  # final barrier
+                                               'size': 1})  # final barrier
                     continue
 
                 plus = 0
@@ -653,10 +654,10 @@ def main():
                                                                                            and c.ticksToLive > 100)))
                             remote_carriers = _.filter(creeps, lambda c: c.memory.role == 'carrier'
                                                                          and c.memory.flag_name == flag
-                                                                         and ((c.spawning or c.ticksToLive > 100)
-                                                                              or not
-                                                                              (c.memory.frontier and c.memory.pickup
-                                                                                  and c.ticksToLive < 1350)))
+                                                                         and c.spawning or c.ticksToLive > 100)
+                                                                              # or not
+                                                                              # (c.memory.frontier and c.memory.pickup
+                                                                              #     and c.ticksToLive < 1350)))
 
                             # exclude creeps with less than 100 life ticks so the new guy can be replaced right away
                             remote_harvesters = _.filter(creeps, lambda c: c.memory.role == 'harvester'
@@ -678,6 +679,9 @@ def main():
                                 plus = 0
                             # print(Game.flags[flag].room.name, 'remote_troops', len(remote_troops))
                             if len(hostiles) + plus > len(remote_troops):
+                                # 임시조치. 한번 그냥 적들어오면 아무것도 안해보자.
+                                continue
+
                                 # second one is the BIG GUY. made in case invader's too strong.
                                 # 임시로 0으로 놨음. 구조 자체를 뜯어고쳐야함.
                                 if len(remote_troops) == 0:
@@ -701,7 +705,8 @@ def main():
                                 continue
 
                             # resources in flag's room
-                            # flag_energy_sources = Game.flags[flag].room.find(FIND_SOURCES)
+                            # 멀티에 소스가 여럿일 경우 둘을 스폰할 필요가 있다.
+                            flag_energy_sources = Game.flags[flag].room.find(FIND_SOURCES)
                             # FIND_SOURCES가 필요없는 이유: 어차피 그걸 보지 않고 건설된 컨테이너 수로 따질거기 때문.
                             flag_structures = Game.flags[flag].room.find(FIND_STRUCTURES)
                             flag_containers = _.filter(flag_structures,
@@ -724,9 +729,59 @@ def main():
                             #     else:
                             #         carrier_pickup = c.memory.pickup
 
-                            # 캐리어가 컨테이너 수만큼 있는가? 또는 컨테이너가 아예 없고 캐리어도 없는가?
-                            if len(flag_containers) > len(remote_carriers) \
-                                    or (len(flag_containers) == 0 and len(remote_carriers) == 0):
+                            # 캐리어가 소스 수만큼 있는가?
+                            if len(flag_energy_sources) > len(remote_carriers):
+                                print('flag carrier?')
+                                # 픽업으로 배정하는 것이 아니라 자원으로 배정한다.
+                                if len(remote_carriers) == 0:
+                                    carrier_source = flag_energy_sources[0].id
+                                else:
+                                    for s in flag_energy_sources:
+
+                                        for c in remote_carriers:
+                                            if s.id == c.memory.source_num:
+                                                continue
+                                            else:
+                                                carrier_source = s.id
+                                                break
+
+                                carrier_pickup = None
+                                source_num = None
+
+                                # carrier_source에서 주변에 컨테이너가 있는지 확인한다.
+                                for s in carrier_source:
+
+                                    # 에너지소스에 담당 컨테이너가 존재하는가?
+                                    containter_exist = False
+                                    # 컨테이너에 담당 캐리어가 존재하는가?
+                                    carrier_exist = False
+
+                                    for sc in flag_containers:
+                                        # 범위안에 컨테이너가 존재하는가?
+                                        if s.pos.inRangeTo(sc, 3):
+                                            containter_exist = True
+                                            # 그 컨테이너에 담당된 캐리어가 존재하는가? 존재한다면 그게 배정돼선 안됨.
+                                            for c in remote_carriers:
+                                                if c.memory.pickup == sc.id:
+                                                    carrier_exist = True
+                                                    break
+
+                                        if containter_exist:
+                                            # 컨테이너가 존재하고 담당 캐리어가 존재할 경우 배정할 필요가 없다.
+                                            # 캐리어가 존재하지 않을 경우 배정한다.
+                                            if not carrier_exist:
+                                                carrier_pickup = sc.id
+                                                source_num = s.id
+                                                break
+
+                                    # 소스번호가 배정됐다는 것은 설정이 끝났다는 소리.
+                                    if source_num:
+                                        break
+                                    # 에너지 근처 컨테이너가 존재하지 않을 경우는?
+                                    elif not containter_exist:
+
+
+
                                 # se tie ne estas carrier_pickup, unue, vi povas trovi harvesters.
                                 if not Game.getObjectById(carrier_pickup):
                                     # print('remote_harvesters', bool(remote_harvesters))
@@ -852,7 +907,6 @@ def main():
                                     continue
 
                             if len(flag_containers) > len(remote_harvesters):
-
                                 # perfect for 3000 cap
                                 regular_spawn = spawn.createCreep(
                                     [WORK, WORK, WORK, WORK, WORK, WORK,
@@ -860,7 +914,7 @@ def main():
                                      MOVE, MOVE]
                                     , undefined,
                                     {'role': 'harvester', 'assigned_room': spawn.pos.roomName,
-                                     'size': 3000, 'flag_name': flag})
+                                     'size': 2, 'flag_name': flag})
                                 # print('what happened:', regular_spawn)
                                 if regular_spawn == -6:
                                     spawn.createCreep([WORK, WORK, WORK, WORK, WORK,
@@ -989,8 +1043,8 @@ def main():
         for cpu in Memory.cpu_usage:
             cpu_total += cpu
         cpu_average = cpu_total / len(Memory.cpu_usage)
-        print("average cpu usage in the last {} ticks: {}, and current CPU bucket is {}"
-              .format(len(Memory.cpu_usage), cpu_average, Game.cpu.bucket))
+        print("{} total creeps, average cpu usage in the last {} ticks: {}, and current CPU bucket: {}"
+              .format(len(Game.creeps), len(Memory.cpu_usage), cpu_average, Game.cpu.bucket))
         Memory.tick_check = False
 
 

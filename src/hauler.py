@@ -441,9 +441,11 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
         elif creep.memory.priority == 2:
 
             if not creep.memory.build_target:
+
                 closest_construction = creep.pos.findClosestByRange(constructions)
                 # 이 시점에서 안뜨면 건설할게 없는거임.
                 if not closest_construction:
+                    creep.say("지을게 없군 ", True)
                     creep.memory.priority = 0
                     return
 

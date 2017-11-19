@@ -59,7 +59,7 @@ def run_remote_defender(creep, creeps, hostile_creeps):
     else:
         wounded = _.filter(creeps, lambda c: c.hits < c.hitsMax)
 
-        if len(wounded) > 0:
+        if len(wounded) > 0 and creep.memory.heal:
             closest = creep.pos.findClosestByRange(wounded)
             heal = creep.heal(closest)
 
@@ -71,6 +71,16 @@ def run_remote_defender(creep, creeps, hostile_creeps):
                                                               'reusePath': 50})
 
 
+def remote_healer(creep, creeps, hostile_creeps):
+    """
+    위 크립 치료용 크립.
+    :param creep:
+    :param creeps:
+    :param hostile_creeps:
+    :return:
+    """
+
+
 def defender(creep, hostile_creeps):
     """
     방어용 저격수
@@ -78,6 +88,7 @@ def defender(creep, hostile_creeps):
     :type hostile_creeps: dict[str, Creep]
     :return:
     """
-    hostile_creeps
+    # hostile_creeps
+    return
 
 # def run_defender(creep, creeps, )

@@ -57,7 +57,7 @@ def run_harvester(creep, all_structures, constructions, creeps, dropped_all):
             try:
                 # normale, kripos ne devus havi .find() en la skripto, sed ĉi tio estas por malproksima regiono do...
                 sources = Game.flags[creep.memory.flag_name].room.find(FIND_SOURCES)
-                my_area = Game.flags[creep.memory.flag_name].room
+                my_area = Game.flags[creep.memory.flag_name].room.name
                 creeps = Game.flags[creep.memory.flag_name].room.find(FIND_MY_CREEPS)
                 rikoltist_kripoj = _.filter(creeps,
                                             lambda c: (c.spawning or c.ticksToLive > 100)
@@ -71,7 +71,7 @@ def run_harvester(creep, all_structures, constructions, creeps, dropped_all):
                 return
         else:
             sources = creep.room.find(FIND_SOURCES)
-            my_area = creep.room
+            my_area = creep.room.name
             rikoltist_kripoj = _.filter(creeps,
                                         lambda c: (c.spawning or c.ticksToLive > 100)
                                                   and c.memory.role == 'harvester'
@@ -83,8 +83,7 @@ def run_harvester(creep, all_structures, constructions, creeps, dropped_all):
             #                              lambda c: c.tickstolive > 100 and c.memory.size >= 3000
             #                              and c.memory.role == 'harvester')
         print('creeps:', creeps)
-        print('kripo:', rikoltist_kripoj)
-        print('current creep:', creep.name)
+        print('kripoj:', rikoltist_kripoj)
         print('len(rikoltist_kripoj): {} || len(sources): {}'.format(len(rikoltist_kripoj), len(sources)))
 
         # tie estus 3 kazoj en ĉi tio:
@@ -93,7 +92,7 @@ def run_harvester(creep, all_structures, constructions, creeps, dropped_all):
         # 3 - more than 2 creeps working
         # kazo 1
         if len(rikoltist_kripoj) == 0:
-            print('rikoltist_kripoj 0')
+            print('creep {} assigning harvest - rikoltist_kripoj 0'.format(creep.name))
             # 담당구역이 현재 크립이 있는곳이다?
             if my_area == creep.room.name:
                 # se tie ne estas iu kripoj simple asignu 0
@@ -120,16 +119,17 @@ def run_harvester(creep, all_structures, constructions, creeps, dropped_all):
                     creep.memory.source_num = sources[0].id
 
         # kazo 2
-        elif len(rikoltist_kripoj) <= len(sources):
-
+        elif len(rikoltist_kripoj) < len(sources):
+            print('creep {} assigning energy - case 2 - creeps present, but not as much as number of sources.'
+                  .format(creep.name, len(rikoltist_kripoj)))
+            print('이 경우 무조건 공동분배한다')
             # to check for sources not overlapping
             checker = 0
             for source in range(len(sources)):
                 # print('-----', source, '-----')
                 for kripo in rikoltist_kripoj:
                     # if the creep is same with current creep, or dont have memory assigned, pass.
-                    if creep.name == kripo.name or \
-                            (not kripo.memory.source_num and kripo.memory.source_num != 0):
+                    if not kripo.memory.source_num:
                         continue
                     # print('creep:{} || TTL: {}'.format(kripo, kripo.ticksToLive))
                     # print('creep.memory.source_num:', kripo.memory.source_num)
@@ -146,28 +146,24 @@ def run_harvester(creep, all_structures, constructions, creeps, dropped_all):
                 if creep.memory.source_num:
                     break
         # kazo 3
-        elif len(rikoltist_kripoj) > len(sources):
-            # print('case 3')
-            # to check the number of sources
-            checker = 0
+        elif len(rikoltist_kripoj) >= len(sources):
+            print('creep {} - case 3: 자원채취꾼 수가 소스의 수 이상이다.'.format(creep.name))
+            # 각 자원별 숫자총합이 2 이상이면 거기엔 배치할 필요가 없는거임.
             # trovu kripoj kun memory.size malpli ol 3k
             for source in range(len(sources)):
                 # print('-----', source, '-----')
                 # for counting number of creeps.
                 counter = 0
                 for kripo in rikoltist_kripoj:
-                    # print('creep:', kripo)
-                    # print('creep.memory.source_num:', kripo.memory.source_num)
+                    # print('creep {}\'s source_num: {}'.format(kripo.name, kripo.memory.source_num))
                     # if the creep is same with current creep, or dont have memory assigned, pass.
-                    if creep.name == kripo.name or \
-                            (not kripo.memory.source_num):
+                    if not kripo.memory.source_num:
                         # print('------pass------')
                         continue
                     # if there's a creep with 3k < size, moves to another source automatically.
                     if kripo.memory.source_num == sources[source].id:
-                        if kripo.memory.size >= 3000:
-                            counter += 1
-                        counter += 1
+                        counter += kripo.memory.size
+                    # print('counter:', counter)
                 # se counter estas malpli ol du, asignu la nuna source.
                 # print('counter:', counter)
                 if counter < 2:
@@ -184,6 +180,7 @@ def run_harvester(creep, all_structures, constructions, creeps, dropped_all):
         # 이럴때는 우선 크립의 ttl, 그리고 크립의 담당 수확지역을 찾는다.
         # print('creep.memory.source_num:', creep.memory.source_num)
         if not creep.memory.source_num:
+            print('WTF')
             my_creeps = creeps
             harvester_that_is_gonna_die_soon = _.filter(my_creeps, lambda c: c.memory.role == 'harvester'
                                                                              and c.tickstolive < 100)
