@@ -84,8 +84,8 @@ def remote_healer(creep, creeps, hostile_creeps):
 def defender(creep, hostile_creeps):
     """
     방어용 저격수
-    :type creep: Game.creeps
-    :type hostile_creeps: dict[str, Creep]
+    :param Game.creeps creep:
+    :param RoomObject.find(FIND_HOSTILE_CREEPS) hostile_creeps:
     :return:
     """
     # hostile_creeps

@@ -17,7 +17,7 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
     """
     technically same with hauler, but more concentrated in carrying itself.
         and it's for remote mining ONLY.
-    :param creep: Game.creep
+    :param Game.creep creep: Game.creep
     :param creeps: creep.room.find(FIND_MY_CREEPS)
     :param all_structures: creep.room.find(FIND_STRUCTURES)
     :param constructions: FIND_CONSTRUCTION_SITES

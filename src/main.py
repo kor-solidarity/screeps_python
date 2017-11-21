@@ -745,11 +745,11 @@ def main():
                                                 carrier_source = s.id
                                                 break
 
-                                carrier_pickup = None
-                                source_num = None
-
                                 # carrier_source에서 주변에 컨테이너가 있는지 확인한다.
                                 for s in carrier_source:
+
+                                    carrier_pickup = ''
+                                    source_num = s.id
 
                                     # 에너지소스에 담당 컨테이너가 존재하는가?
                                     containter_exist = False
@@ -760,25 +760,40 @@ def main():
                                         # 범위안에 컨테이너가 존재하는가?
                                         if s.pos.inRangeTo(sc, 3):
                                             containter_exist = True
+                                            carrier_pickup = sc.id
                                             # 그 컨테이너에 담당된 캐리어가 존재하는가? 존재한다면 그게 배정돼선 안됨.
                                             for c in remote_carriers:
                                                 if c.memory.pickup == sc.id:
                                                     carrier_exist = True
                                                     break
-
+                                        # 컨테이너가 존재하는가?
+                                        # 있으면 통과한다.
                                         if containter_exist:
-                                            # 컨테이너가 존재하고 담당 캐리어가 존재할 경우 배정할 필요가 없다.
-                                            # 캐리어가 존재하지 않을 경우 배정한다.
-                                            if not carrier_exist:
-                                                carrier_pickup = sc.id
-                                                source_num = s.id
-                                                break
+                                            break
 
-                                    # 소스번호가 배정됐다는 것은 설정이 끝났다는 소리.
-                                    if source_num:
-                                        break
-                                    # 에너지 근처 컨테이너가 존재하지 않을 경우는?
-                                    elif not containter_exist:
+                                        # 없을 시 소스에 담당된 캐리어가 존재하는지 확인한다.
+                                        else:
+                                            for c in remote_carriers:
+                                                if c.memory.source_num == source_num:
+                                                    carrier_exist = True
+                                                    break
+                                    # 루프를 다 돌면 컨테이너가 존재하는지 먼져 확인한다.
+                                    # 컨테이너가 있다? 그럼 캐리어가 존재하는지 확인한다.
+                                    # 컨테이너가 없다? 그래도 캐리어가 존재하는지 확인한다.
+                                    # 캐리어의 존재여부에 따라 담당 역할이 달라지는거임.
+                                    if containter_exist:
+                                        if carrier_exist:
+                                            continue
+
+                                    # 필요없을듯
+                                    # # 소스번호가 배정됐다는 것은 설정이 끝났다는 소리.
+                                    # if source_num:
+                                    #     break
+                                    # # 에너지 근처 컨테이너가 존재하지 않을 경우는?
+                                    # elif not containter_exist:
+                                    #     # 이 경우 새로 또 담당 캐리어가 있는지 확인한다.
+                                    #     for c in remote_carriers:
+                                    #         if c.memory.source_num == s.id:
 
 
 
