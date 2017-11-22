@@ -395,7 +395,7 @@ def main():
 
                 # ALL flags.
                 flags = Game.flags
-                flag_name = []
+                flag_names = []
 
                 # check all flags with same name with the spawn.
                 for name in Object.keys(flags):
@@ -404,7 +404,7 @@ def main():
                     regex = spawn.room.name + r'-rm.*'
                     if re.match(regex, name, re.IGNORECASE):
                         # if there is, get it's flag's name out.
-                        flag_name.push(flags[name].name)
+                        flag_names.push(flags[name].name)
 
                 # ALL creeps you have
                 creeps = Game.creeps
@@ -632,8 +632,8 @@ def main():
                     continue
 
                 # REMOTE---------------------------------------------------------------------------
-                if len(flag_name) > 0:
-                    for flag in flag_name:
+                if len(flag_names) > 0:
+                    for flag in flag_names:
 
                         # if seeing the room is False - need to be scouted
                         if not Game.flags[flag].room:
@@ -643,7 +643,7 @@ def main():
                             # print('scouts:', len(creep_scouts))
                             if len(creep_scouts) < 1:
                                 spawn_res = spawn.createCreep([MOVE], 'Scout-' + flag,
-                                                              {'role': 'scout', 'flag_name': flag})
+                                                              {'role': 'scout', 'flag_names': flag})
                                 # print('spawn_res:', spawn_res)
                                 break
                         else:
@@ -654,7 +654,7 @@ def main():
                                                                                            and c.ticksToLive > 100)))
                             remote_carriers = _.filter(creeps, lambda c: c.memory.role == 'carrier'
                                                                          and c.memory.flag_name == flag
-                                                                         and c.spawning or c.ticksToLive > 100)
+                                                                         and (c.spawning or c.ticksToLive > 100))
                                                                               # or not
                                                                               # (c.memory.frontier and c.memory.pickup
                                                                               #     and c.ticksToLive < 1350)))
@@ -690,13 +690,13 @@ def main():
                                          MOVE, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK,
                                          ATTACK, RANGED_ATTACK, HEAL],
                                         undefined, {'role': 'soldier', 'assigned_room': spawn.pos.roomName
-                                            , 'flag_name': flag})
+                                            , 'flag_names': flag})
                                     continue
                                 spawn_res = spawn.createCreep(
                                     [TOUGH, TOUGH, TOUGH, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, ATTACK, RANGED_ATTACK,
                                      HEAL],
                                     undefined, {'role': 'soldier', 'assigned_room': spawn.pos.roomName
-                                        , 'flag_name': flag})
+                                        , 'flag_names': flag})
                                 # if spawn_res == 0:
                                 continue
 
@@ -711,7 +711,7 @@ def main():
                             flag_structures = Game.flags[flag].room.find(FIND_STRUCTURES)
                             flag_containers = _.filter(flag_structures,
                                                        lambda s: s.structureType == STRUCTURE_CONTAINER)
-
+                            flag_constructions = Game.flags[flag].room.find(FIND_CONSTRUCTION_SITES)
                             # # 운송크립 확인을 위한 작업.
                             # actual_avail_carriers = 0
                             # carrier_pickup = None
@@ -734,11 +734,14 @@ def main():
                                 print('flag carrier?')
                                 # 픽업으로 배정하는 것이 아니라 자원으로 배정한다.
                                 if len(remote_carriers) == 0:
+                                    # 캐리어가 아예 없으면 그냥 첫 자원으로.
                                     carrier_source = flag_energy_sources[0].id
                                 else:
+                                    # 캐리어가 존재할 시. 각 소스를 돌린다.
                                     for s in flag_energy_sources:
 
                                         for c in remote_carriers:
+                                            # 캐리어들을 돌려서 만약 캐리어와
                                             if s.id == c.memory.source_num:
                                                 continue
                                             else:
@@ -756,27 +759,72 @@ def main():
                                     # 컨테이너에 담당 캐리어가 존재하는가?
                                     carrier_exist = False
 
-                                    for sc in flag_containers:
-                                        # 범위안에 컨테이너가 존재하는가?
-                                        if s.pos.inRangeTo(sc, 3):
-                                            containter_exist = True
-                                            carrier_pickup = sc.id
-                                            # 그 컨테이너에 담당된 캐리어가 존재하는가? 존재한다면 그게 배정돼선 안됨.
-                                            for c in remote_carriers:
-                                                if c.memory.pickup == sc.id:
-                                                    carrier_exist = True
-                                                    break
-                                        # 컨테이너가 존재하는가?
-                                        # 있으면 통과한다.
-                                        if containter_exist:
-                                            break
+                                    print('carrier_source 위치:', s.pos)
 
-                                        # 없을 시 소스에 담당된 캐리어가 존재하는지 확인한다.
-                                        else:
-                                            for c in remote_carriers:
-                                                if c.memory.source_num == source_num:
-                                                    carrier_exist = True
+                                    if len(flag_containers) > 0:
+                                        for sc in flag_containers:
+                                            # 범위안에 컨테이너가 존재하는가?
+                                            if s.pos.inRangeTo(sc, 3):
+                                                containter_exist = True
+                                                carrier_pickup = sc.id
+                                                # 그 컨테이너에 담당된 캐리어가 존재하는가? 존재한다면 그게 배정돼선 안됨.
+                                                for c in remote_carriers:
+                                                    if c.memory.pickup == sc.id:
+                                                        carrier_exist = True
+                                                        break
+                                            # 컨테이너가 존재하는가?
+                                            # 있으면 통과한다.
+                                            if containter_exist:
+                                                break
+
+                                            # 없을 시 소스에 담당된 캐리어가 존재하는지 확인한다.
+                                            else:
+                                                # 또한 컨테이너 건설한다.
+                                                no_container_sites = True
+                                                for gunseol in flag_constructions:
+                                                    if s.pos.inRangeTo(gunseol, 3):
+                                                        if gunseol.structureType == STRUCTURE_CONTAINER:
+                                                            no_container_sites = False
+                                                            break
+                                                # 건설중인 컨테이너가 없다? 자동으로 하나 건설한다.
+                                                if no_container_sites:
+                                                    # 찍을 위치정보. 소스에서 본진방향으로 세번째칸임.
+                                                    const_loc = s.pos.findPathTo(Game.rooms[nesto.room.name].controller)[3]
+                                                    # 찍을 좌표: 이게 제대로된 pos 함수
+                                                    constr_pos = RoomPosition(const_loc.x, const_loc.y
+                                                                              , Game.flags[flag].room.name)
+                                                    constr_pos.createConstructionSite(STRUCTURE_CONTAINER)
+
+                                                for c in remote_carriers:
+                                                    if c.memory.source_num == source_num:
+                                                        carrier_exist = True
+                                                        break
+
+                                    else:
+                                        print('flag_containers: 0')
+                                        # 컨테이너 자체가 없다? 만든다.
+                                        no_container_sites = True
+                                        # 우선 지금 존재하는 건설물중에 컨테이너가 존재하는지 확인.
+                                        for gunseol in flag_constructions:
+                                            if s.pos.inRangeTo(gunseol, 3):
+                                                if gunseol.structureType == STRUCTURE_CONTAINER:
+                                                    no_container_sites = False
                                                     break
+                                        # 건설중인 컨테이너가 없다? 자동으로 하나 건설한다.
+                                        if no_container_sites:
+                                            # 찍을 위치정보. 소스에서 본진방향으로 세번째칸임.
+                                            const_loc = s.pos.findPathTo(Game.rooms[nesto.room.name].controller)[3]
+                                            # 찍을 좌표: 이게 제대로된 pos 함수
+                                            constr_pos = RoomPosition(const_loc.x, const_loc.y
+                                                                      , Game.flags[flag].room.name)
+                                            constr_pos.createConstructionSite(STRUCTURE_CONTAINER)
+
+                                        # 그 후 담당 캐리어가 존재하는지 확인.
+                                        for c in remote_carriers:
+                                            if c.memory.source_num == source_num:
+                                                carrier_exist = True
+                                                break
+
                                     # 루프를 다 돌면 컨테이너가 존재하는지 먼져 확인한다.
                                     # 컨테이너가 있다? 그럼 캐리어가 존재하는지 확인한다.
                                     # 컨테이너가 없다? 그래도 캐리어가 존재하는지 확인한다.
@@ -784,6 +832,10 @@ def main():
                                     if containter_exist:
                                         if carrier_exist:
                                             continue
+
+                                # 배정된 캐리어가 없으면 이걸 생산해야 하니 돌리는 의미가 없다.
+                                if not carrier_exist:
+                                    break
 
                                     # 필요없을듯
                                     # # 소스번호가 배정됐다는 것은 설정이 끝났다는 소리.
@@ -795,34 +847,33 @@ def main():
                                     #     for c in remote_carriers:
                                     #         if c.memory.source_num == s.id:
 
-
-
-                                # se tie ne estas carrier_pickup, unue, vi povas trovi harvesters.
-                                if not Game.getObjectById(carrier_pickup):
-                                    # print('remote_harvesters', bool(remote_harvesters))
-                                    if bool(remote_harvesters):
-                                        # kaj asignu el havester-a container
-                                        carrier_pickup = remote_harvesters[0].memory.container
-                                # 건물도 없고 캐리어도 없다 - 건설을 해야함.
-                                if len(flag_containers) == 0 and len(remote_carriers) == 0:
-                                    carrier_pickup = None
-                                # 그게 아닌 경우는 컨테이너 번호를 찾아 매긴다.
-                                else:
-                                    # 컨테이너 하나씩 돌려서 캐리어 확인.
-                                    for ujo in flag_containers:
-                                        # 컨테이너에 배정된 크립이 없는가?
-                                        no_designation = True
-
-                                        for c in remote_carriers:
-                                            # 만일 캐리어의 carrier_pickup과 겹치는 컨테이너 아이디가 있으면
-                                            #  현재 존재하는거니 넘기는거. 한마디로 그 컨테이너 배정할필요가 없다.
-                                            if c.memory.pickup == ujo.id:
-                                                no_designation = False
-                                                break
-                                        # 배정이 안되있을 경우 - 얘 배정해야함.
-                                        if no_designation:
-                                            carrier_pickup = ujo.id
-                                            break
+                                # 위 코드에 의해 우선 필요없음
+                                # # se tie ne estas carrier_pickup, unue, vi povas trovi harvesters.
+                                # if not Game.getObjectById(carrier_pickup):
+                                #     # print('remote_harvesters', bool(remote_harvesters))
+                                #     if bool(remote_harvesters):
+                                #         # kaj asignu el havester-a container
+                                #         carrier_pickup = remote_harvesters[0].memory.container
+                                # # 건물도 없고 캐리어도 없다 - 건설을 해야함.
+                                # if len(flag_containers) == 0 and len(remote_carriers) == 0:
+                                #     carrier_pickup = None
+                                # # 그게 아닌 경우는 컨테이너 번호를 찾아 매긴다.
+                                # else:
+                                #     # 컨테이너 하나씩 돌려서 캐리어 확인.
+                                #     for ujo in flag_containers:
+                                #         # 컨테이너에 배정된 크립이 없는가?
+                                #         no_designation = True
+                                #
+                                #         for c in remote_carriers:
+                                #             # 만일 캐리어의 carrier_pickup과 겹치는 컨테이너 아이디가 있으면
+                                #             #  현재 존재하는거니 넘기는거. 한마디로 그 컨테이너 배정할필요가 없다.
+                                #             if c.memory.pickup == ujo.id:
+                                #                 no_designation = False
+                                #                 break
+                                #         # 배정이 안되있을 경우 - 얘 배정해야함.
+                                #         if no_designation:
+                                #             carrier_pickup = ujo.id
+                                #             break
 
                                 # 대충 해야하는일: 캐리어의 픽업위치에서 본진거리 확인. 그 후 거리만큼 추가.
                                 if Game.getObjectById(carrier_pickup):
@@ -867,16 +918,17 @@ def main():
                                         body.push(CARRY)
                                     print('body', body)
 
+                                    # WORK 파트가 있는가?
                                     if work_check > 0:
-                                        working = True
+                                        working_part = True
                                     else:
-                                        working = False
+                                        working_part = False
 
                                     spawning = spawn.createCreep(body, undefined,
                                                                  {'role': 'carrier',
                                                                   'assigned_room': spawn.pos.roomName,
-                                                                  'flag_name': flag, 'pickup': carrier_pickup
-                                                                     , 'work': working})
+                                                                  'flag_names': flag, 'pickup': carrier_pickup
+                                                                     , 'work': working_part, 'source_num': source_num})
                                     print('spawning', spawning)
                                     if spawning == 0:
                                         continue
@@ -894,15 +946,16 @@ def main():
                                                 body,
                                                 undefined,
                                                 {'role': 'carrier', 'assigned_room': spawn.pos.roomName,
-                                                 'flag_name': flag, 'pickup': carrier_pickup, 'work': working})
+                                                 'flag_names': flag, 'pickup': carrier_pickup, 'work': working_part
+                                                    , 'source_num': source_num})
                                         else:
                                             spawn.createCreep(
                                                 [WORK, WORK, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, MOVE,
                                                  MOVE, MOVE, MOVE, MOVE],
                                                 undefined,
                                                 {'role': 'carrier', 'assigned_room': spawn.pos.roomName,
-                                                 'flag_name': flag, 'pickup': carrier_pickup, 'frontier': True
-                                                    , 'work': True})
+                                                 'flag_names': flag, 'pickup': carrier_pickup, 'frontier': True
+                                                    , 'work': True, 'source_num': source_num})
                                         continue
                                 # 픽업이 존재하지 않는다는건 현재 해당 건물이 없다는 뜻이므로 새로 지어야 함.
                                 else:
@@ -911,14 +964,14 @@ def main():
                                          WORK, WORK, WORK, CARRY, CARRY],
                                         undefined,
                                         {'role': 'carrier', 'assigned_room': spawn.pos.roomName,
-                                         'flag_name': flag, 'frontier': True, 'work': True})
+                                         'flag_names': flag, 'frontier': True, 'work': True})
                                     if spawning == ERR_NOT_ENOUGH_RESOURCES:
                                         spawn.createCreep(
                                             [WORK, WORK, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, MOVE,
                                              MOVE, MOVE, MOVE, MOVE],
                                             undefined,
                                             {'role': 'carrier', 'assigned_room': spawn.pos.roomName,
-                                             'flag_name': flag, 'frontier': True, 'work': True})
+                                             'flag_names': flag, 'frontier': True, 'work': True})
                                     continue
 
                             if len(flag_containers) > len(remote_harvesters):
@@ -929,14 +982,14 @@ def main():
                                      MOVE, MOVE]
                                     , undefined,
                                     {'role': 'harvester', 'assigned_room': spawn.pos.roomName,
-                                     'size': 2, 'flag_name': flag})
+                                     'size': 2, 'flag_names': flag})
                                 # print('what happened:', regular_spawn)
                                 if regular_spawn == -6:
                                     spawn.createCreep([WORK, WORK, WORK, WORK, WORK,
                                                        CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE]
                                                       , undefined,
                                                       {'role': 'harvester', 'assigned_room': spawn.pos.roomName
-                                                          , 'flag_name': flag})
+                                                          , 'flag_names': flag})
                                     continue
 
                             elif len(remote_reservers) == 0 \
@@ -946,12 +999,12 @@ def main():
                                                                    , undefined,
                                                                    {'role': 'reserver',
                                                                     'assigned_room': spawn.pos.roomName
-                                                                       , 'flag_name': flag})
+                                                                       , 'flag_names': flag})
                                 if spawning_creep == ERR_NOT_ENOUGH_RESOURCES:
                                     spawning_creep = spawn.createCreep([MOVE, MOVE, CLAIM, CLAIM]
                                         , undefined,
                                         {'role': 'reserver', 'assigned_room': spawn.pos.roomName
-                                            , 'flag_name': flag})
+                                            , 'flag_names': flag})
 
                                 continue
 
