@@ -210,7 +210,7 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                 picker = random.randint(1, 2)
             # construction sites.
             elif len(constructions) > 0:
-                # for 1/5 chance going to phase 2.
+                # for 1/3 chance going to phase 2.
                 picker = random.randint(0, 4)
             else:
                 # 첫 가정문 관련.
@@ -395,8 +395,9 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                             creep.repair(repair)
 
                         creep.moveTo(Game.getObjectById(creep.memory.haul_target),
-                                     {'visualizePathStyle': {'stroke': '#ffffff'}, 'ignoreCreeps': True,
-                                      'reusePath': 40})
+                                     {'visualizePathStyle': {'stroke': '#ffffff'}, 'ignoreCreeps': True
+                                         # , 'reusePath': 40, 'ignore': constructions})
+                                      , 'reusePath': 40})
                     # if done, check if there's anything left. if there isn't then priority resets.
                     elif transfer_result == ERR_INVALID_TARGET:
 

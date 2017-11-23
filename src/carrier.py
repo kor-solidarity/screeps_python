@@ -105,10 +105,23 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                 creep.memory.laboro = 1
                 creep.memory.priority = 0
             elif result == ERR_NOT_ENOUGH_ENERGY:
-                if _.sum(creep.carry) > 0:
+                if _.sum(creep.carry) > creep.carryCapacity * .4:
                     creep.memory.laboro = 1
                     creep.memory.priority = 0
+                else:
+                    harvest = creep.harvest(Game.getObjectById(creep.memory.source_num))
+                    if harvest == ERR_NOT_IN_RANGE:
+                        creep.moveTo(Game.getObjectById(creep.memory.source_num)
+                                     , {'visualizePathStyle': {'stroke': '#ffffff'}, 'reusePath': 25})
+                    # 자원 캘수가 없으면 자원 채워질때까지 컨테이너 위치에서 대기탄다.
+                    elif harvest == ERR_NO_BODYPART:
+                        if creep.pos.inRangeTo(Game.getObjectById(creep.memory.pickup), 0):
+                            creep.moveTo(Game.getObjectById(creep.memory.pickup)
+                                         , {'visualizePathStyle': {'stroke': '#ffffff'}, 'reusePath': 25})
                 return
+            # 파괴되거나 하면 메모리 삭제.
+            elif result == ERR_INVALID_TARGET:
+                del creep.memory.pickup
             # other errors? just delete 'em
             else:
                 print(creep.name, 'grab_energy() ELSE ERROR:', result)
@@ -118,109 +131,26 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
         # no pickup target? then it's a start!
         else:
 
-            # 여기로 왔다는건 이제 막 스폰을 했거나 기존 컨테이너가 부셔졌다는 소리. 한마디로 not creep.memory.pickup == True
+            # 여기로 왔다는건 할당 컨테이너가 없다는 소리. 한마디로 not creep.memory.pickup == True
             # 수정:
             # 이게 뜨면 무조건 먼져 담당구역으로 간다. 간 후 담당 리소스를 확인한다.(이건 스폰 시 자동)
             # 그 후에 배정받은 픽업이 존재하는지 확인한다.
             # 배정받은 픽업이 존재하면 그걸로 끝. 없으면 건설담당인 셈. 자원 캔다.
 
-            # 우선 반대편에 컨테이너가 있는지 확인한다. 있으면 그걸로 배정. 동시에 크립의 배정도 따진다.
-            # 없을 경우 본진의 자원을 빼쓴다. 우선 스토리지 유무를 확인하고 거기에 에너지가 있으면 빼간다.
-            # 스토리지가 없을 경우 컨테이너를 확인한다.
-            # 다 없다? 그럼 자원캔다.....
+            # pickup이 없으니 자원캐러 간다.
+            harvest = harvest_stuff.harvest_energy(creep, creep.memory.source_num)
 
-            # no_remote == True == remote 컨테이너가 없다.
-            # 있으면 거깄는 컨테이너 지정하기 위해 검색.
-            if not creep.memory.no_remote and not creep.memory.build_target:
-                # all buildings in the remote room. made in case
-                try:
-                    if Game.flags[creep.memory.flag_name].room.name == creep.room.name:
-                        remote_structures = all_structures
-                        remote_construction_sites = constructions
-                    else:
-                        remote_structures = Game.flags[creep.memory.flag_name].room.find(FIND_STRUCTURES)
-                        remote_construction_sites = \
-                            Game.flags[creep.memory.flag_name].room.find(FIND_CONSTRUCTION_SITES)
-                except:
-                    print('no visual in the room {}!'.format(Game.flags[creep.memory.flag_name].room))
-                    return
+            if harvest == ERR_NOT_IN_RANGE:
+                creep.moveTo(Game.getObjectById(creep.memory.source_num)
+                             , {'visualizePathStyle': {'stroke': '#ffffff'}, 'reusePath': 25})
 
-                remote_containers = _.filter(remote_structures, lambda s: s.structureType == STRUCTURE_CONTAINER)
-                # 여기에 걸린다면 본진에서 자원을 빼야한단 소리.
-                if remote_construction_sites and len(remote_containers) == 0:
-                    creep.memory.no_remote = True
-                # 컨테이너가 있으면 그걸로 배정. 하나뿐 아니라 쪼개야 하는데 이건 나중에.
-                else:
-                    creep.memory.pickup = remote_containers[0].id
-                    return
-
-            # 컨테이너 확인용도.
-            if creep.memory.no_remote == False and creep.room.name == Game.flags[creep.memory.flag_name].room.name \
-                and len(_.filter(all_structures, lambda s: s.structureType == STRUCTURE_CONTAINER)) > 0:
-                # 사실상 위에꺼 복붙
-                remote_containers = _.filter(all_structures, lambda s: s.structureType == STRUCTURE_CONTAINER)
-                # 여기에 걸린다면 본진에서 자원을 빼야한단 소리.
-                if len(remote_containers) == 0:
-                    creep.memory.no_remote = True
-                # 컨테이너가 있으면 그걸로 배정. 하나뿐 아니라 쪼개야 하는데 이건 나중에.
-                else:
-                    creep.memory.pickup = remote_containers[0].id
-                    return
-
-            try:
-                # carrier_pickup == 첫 스폰 시 건설작업이 필요할 경우 자원 뽑아가는 위치
-                # there's no remote structures and no carrier_pickup
-                if creep.memory.no_remote and not creep.memory.carrier_pickup:
-                    # find any containers/links with any resources inside
-                    storages = all_structures.filter(lambda s:
-                                                     (s.structureType == STRUCTURE_CONTAINER
-                                                      and _.sum(s.store) >= creep.carryCapacity * .5)
-                                                     or (s.structureType == STRUCTURE_LINK
-                                                         and s.energy >= creep.carryCapacity * .5
-                                                         and not
-                                                         (s.pos.x < 5 or s.pos.x > 44 or s.pos.y < 5 or s.pos.y > 44)))
-                    carrier_pickup = miscellaneous.pick_pickup(creep, creeps, storages)
-                    if carrier_pickup == ERR_INVALID_TARGET:
-                        if not creep.memory.source_num:
-                            if not creep.room.name == Game.flags[creep.memory.flag_name].room.name:
-                                creep.moveTo(Game.flags[creep.memory.flag_name])
-                                return
-                            source = creep.pos.findClosestByRange(creep.room.find(FIND_SOURCES))
-
-                            creep.memory.source_num = source.id
-                        harvest_stuff.harvest_energy(creep, creep.memory.source_num)
-                    else:
-                        creep.memory.carrier_pickup = carrier_pickup
-
-                # 픽업이 정해졌지만 리모트 방에 없을 경우. 픽업으로 가서 뽑는다.
-                elif creep.memory.carrier_pickup and not creep.room.name == Game.flags[creep.memory.flag_name].room.name:
-                    result = harvest_stuff.grab_energy(creep, creep.memory.carrier_pickup, True)
-                    # print('result:', result)
-                    if result == ERR_NOT_IN_RANGE:
-                        creep.moveTo(Game.getObjectById(creep.memory.carrier_pickup),
-                                     {'visualizePathStyle': {'stroke': '#ffffff'}, 'reusePath': 25})
-                    elif result == 0:
-                        creep.say('건설현장으로!', True)
-                        # if _.sum(creep.carry) >= creep.carryCapacity * .5:
-                        creep.memory.laboro = 1
-                        creep.memory.priority = 1
-                    elif result == ERR_NOT_ENOUGH_ENERGY:
-                        del creep.memory.carrier_pickup
-                        return
-                    # other errors? just delete 'em
-                    else:
-                        print(creep.name, 'grab_energy() ELSE ERROR:', result)
-                        del creep.memory.carrier_pickup
-                    return
-                # 아직 공사작업을 해야 하는데 크립이 방 안에 있으면? 리소스로 간다.
-                elif creep.room.name == Game.flags[creep.memory.flag_name].room.name:
-                    if not creep.memory.source_num:
-                        source = creep.pos.findClosestByRange(creep.room.find(FIND_SOURCES))
-                        creep.memory.source_num = source.id
-                    harvest_stuff.harvest_energy(creep, creep.memory.source_num)
-            except:
-                print('no visual in the room where flag "{}" is located'.format(creep.memory.flag_name))
-                return
+            # 매 틱마다 픽업이 있는지 확인한다. 있으면 바로 등록.
+            # 같은 방일때만 확인한다.
+            if creep.room.name == Game.flags[creep.memory.flag_name].room.name:
+                for s in all_structures:
+                    if s.structureType == STRUCTURE_CONTAINER:
+                        if Game.getObjectById(creep.memory.source_num).pos.inRangeTo(s, 3):
+                            creep.memory.pickup = s.id
 
     # getting to work.
     elif creep.memory.laboro == 1:
@@ -265,7 +195,7 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                                     random_chance = 0
                                     break
                 else:
-                   random_chance = random.randint(0, 10)
+                    random_chance = random.randint(0, 10)
 
                 if random_chance != 0:
                     creep.say('🔄물류,염려말라!', True)
@@ -289,12 +219,11 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
             try:
                 # dont have a build_target and not in proper room - get there firsthand.
                 if Game.flags[creep.memory.flag_name].room.name != creep.room.name and not creep.memory.build_target:
-
                     # constructions = Game.flags[creep.memory.flag_name].room.find(FIND_CONSTRUCTION_SITES)
                     # print('?', constructions)
 
                     creep.moveTo(Game.flags[creep.memory.flag_name], {'visualizePathStyle': {'stroke': '#ffffff'}
-                                                                      , 'reusePath': 25})
+                        , 'reusePath': 25})
                     return
             except:
                 print('no visual in flag {}'.format(creep.memory.flag_name))
@@ -306,7 +235,6 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                 if not construction:
                     creep.memory.priority = 0
                     creep.memory.laboro = 0
-                    creep.memory.no_remote = False
                     return
                 creep.memory.build_target = construction.id
 
@@ -315,7 +243,7 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
             # print('build_result:', build_result)
             if build_result == ERR_NOT_IN_RANGE:
                 move_res = creep.moveTo(Game.getObjectById(creep.memory.build_target)
-                                        , {'visualizePathStyle': {'stroke': '#ffffff'},  'reusePath': 25, 'range': 3})
+                                        , {'visualizePathStyle': {'stroke': '#ffffff'}, 'reusePath': 25, 'range': 3})
                 # print('move_res:', move_res)
             # if there's nothing to build or something
             elif build_result == ERR_INVALID_TARGET:
@@ -323,13 +251,11 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                 if len(constructions) == 0:
                     creep.memory.priority = 0
                     creep.memory.laboro = 0
-                    creep.memory.no_remote = False
                     del creep.memory.build_target
                     return
                 # if there are more, return to priority 0 to decide what to do.
                 else:
                     creep.memory.priority = 0
-                    creep.memory.no_remote = False
                     del creep.memory.build_target
             elif build_result == ERR_NO_BODYPART:
                 creep.memory.priority = 2
@@ -345,8 +271,8 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                 home_structures = Game.rooms[creep.memory.assigned_room].find(FIND_STRUCTURES)
 
                 # find links outside the filter and containers
-                outside_links_and_containers = _.filter(home_structures, lambda s:
-                                                        s.structureType == STRUCTURE_CONTAINER
+                outside_links_and_containers = \
+                    _.filter(home_structures, lambda s: s.structureType == STRUCTURE_CONTAINER
                                                         or (s.structureType == STRUCTURE_LINK and
                                                             (s.pos.x < 5 or s.pos.x > 44
                                                              or s.pos.y < 5 or s.pos.y > 44)))
@@ -376,7 +302,7 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                     creep.repair(repair)
                 creep.moveTo(Game.getObjectById(creep.memory.haul_target)
                              , {'visualizePathStyle': {'stroke': '#ffffff'}
-                             , 'ignoreCreeps': True, 'reusePath': 40})
+                                 , 'ignoreCreeps': True, 'reusePath': 40})
 
                 return
                 # creep.moveTo(link_or_container, {'visualizePathStyle': {'stroke': '#ffffff'}, 'reusePath': 10})
@@ -393,7 +319,7 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
 
             repair_result = creep.repair(repair)
             try:
-                if not creep.pos.inRangeTo(Game.getObjectById(creep.memory.pickup), 3)\
+                if not creep.pos.inRangeTo(Game.getObjectById(creep.memory.pickup), 3) \
                         or _.sum(creep.carry) <= creep.carryCapacity * .35:
                     creep.memory.laboro = 0
                     creep.memory.priority = 0
