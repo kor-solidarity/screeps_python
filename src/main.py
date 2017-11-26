@@ -408,7 +408,7 @@ def main():
                 creep_harvesters = _.filter(creeps, lambda c: (c.memory.role == 'harvester'
                                                                and c.memory.assigned_room == spawn.pos.roomName
                                                                and not c.memory.flag_name
-                                                               and (c.spawning or c.ticksToLive > 100)))
+                                                               and (c.spawning or c.ticksToLive > 80)))
                 creep_upgraders = _.filter(creeps, lambda c: (c.memory.role == 'upgrader'
                                                               and c.memory.assigned_room == spawn.pos.roomName
                                                               and (c.spawning or c.ticksToLive > 100)))
@@ -563,8 +563,12 @@ def main():
 
                 plus = 0
                 if len(creep_upgraders) < 2:
+                    if nesto.room.controller.level == 8:
+                        prime_num = 6491
+                    else:
+                        prime_num = 49999
                     # some prime number.
-                    if Game.time % 6491 < 11:
+                    if Game.time % prime_num < 11:
                         plus = 1
                     if spawn.room.controller.ticksToDowngrade < 10000:
                         plus += 1
@@ -577,9 +581,9 @@ def main():
                     if spawn.room.controller.level < 5:
                         expected_reserve = 2500
                     else:
-                        expected_reserve = 7000
+                        expected_reserve = 5000
 
-                    # if there's no storage or storage has less than 6k energy
+                    # if there's no storage or storage has less than expected_reserve
                     if spawn.room.storage.store[RESOURCE_ENERGY] < expected_reserve or not spawn.room.storage:
                         proper_level = 1
                     # more than 30k
@@ -592,7 +596,7 @@ def main():
                             proper_level = 12
 
                     else:
-                        proper_level = 1
+                        proper_level = 0
                 elif spawn.room.energyCapacityAvailable <= 1000:
                     # 어차피 여기올쯤이면 소형애들만 생성됨.
                     proper_level = 4
@@ -754,7 +758,9 @@ def main():
                                     # 건설중인 컨테이너가 없다? 자동으로 하나 건설한다.
                                     if no_container_sites:
                                         # 찍을 위치정보. 소스에서 본진방향으로 세번째칸임.
-                                        const_loc = target_source.pos.findPathTo(Game.rooms[nesto.room.name].controller)[2]
+                                        const_loc = target_source.pos.findPathTo(Game.rooms[nesto.room.name].controller
+                                                                         , {'ignoreCreeps': True})[2]
+
                                         print('const_loc:', const_loc)
                                         print('const_loc.x {}, const_loc.y {}'.format(const_loc.x, const_loc.y))
                                         print('Game.flags[{}].room.name: {}'.format(flag, Game.flags[flag].room.name))
@@ -763,6 +769,23 @@ def main():
                                                                   , Game.flags[flag].room.name))
                                         print('constr_pos:', constr_pos)
                                         constr_pos.createConstructionSite(STRUCTURE_CONTAINER)
+
+                                        # RoomPosition 목록. 컨테이너 건설한 김에 길도 깐다.
+                                        constr_roads_pos = \
+                                            PathFinder.search(constr_pos, nesto.pos
+                                                              , {
+                                                                  'plainCost': 2
+                                                                  , 'swampCost': 2
+                                                                  , 'roomCallback': lambda: miscellaneous.roomCallback(creeps, Game.flags[flag].room.name, flag_structures, False, True)
+                                                                },).path
+                                        # 길 찾은 후 도로건설
+                                        for pos in constr_roads_pos:
+                                            # 방 밖까지 확인할 필요는 없음.
+                                            if pos.roomName != constr_pos.roomName:
+                                                break
+                                            pos.createConstructionSite(STRUCTURE_ROAD)
+
+
 
                                 # 대충 해야하는일: 캐리어의 픽업위치에서 본진거리 확인. 그 후 거리만큼 추가.
                                 if Game.getObjectById(carrier_pickup):
@@ -831,6 +854,8 @@ def main():
                                                 else:
                                                     for bodypart in carry_body_even:
                                                         body.push(bodypart)
+                                            for bodypart in work_body:
+                                                body.push(bodypart)
                                             spawn.createCreep(
                                                 body,
                                                 undefined,

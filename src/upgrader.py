@@ -37,6 +37,7 @@ def run_upgrader(creep, all_structures):
         return
     elif creep.ticksToLive < 30 and creep.room.storage:
         creep.say('TTL:' + creep.ticksToLive)
+        creep.moveTo(creep.room.controller, {'visualizePathStyle': {'stroke': '#ffffff'}})
         return
 
     # 혹시 딴짓하다 옆방으로 새는거에 대한 대비 - it really happened lol
@@ -60,17 +61,20 @@ def run_upgrader(creep, all_structures):
         # se vi jam havas pickup, ne bezonas sercxi por ujojn
         if creep.memory.pickup:
             result = harvest_stuff.grab_energy(creep, creep.memory.pickup, True)
+            # print('result', result)
             if result == ERR_NOT_IN_RANGE:
                 creep.moveTo(Game.getObjectById(creep.memory.pickup),
                              {'visualizePathStyle': {'stroke': '#ffffff'}, 'reusePath': 20})
             elif result == 0:
                 del creep.memory.pickup
                 creep.memory.laboro = 1
+            elif result == ERR_NOT_ENOUGH_ENERGY:
+                del creep.memory.pickup
             return
 
         # find containers that are full.
         full_containers = all_structures.filter(lambda s: ((s.structureType == STRUCTURE_STORAGE
-                                                            and s.store[RESOURCE_ENERGY] >- creep.carryCapacity * .5)
+                                                            and s.store[RESOURCE_ENERGY] >= creep.carryCapacity * .5)
                                                            or (s.structureType == STRUCTURE_CONTAINER
                                                                and s.store[RESOURCE_ENERGY] >= s.storeCapacity * .9)))
         # get energy from these firsthand

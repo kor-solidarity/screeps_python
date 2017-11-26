@@ -139,11 +139,14 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
 
             # pickup이 없으니 자원캐러 간다.
             harvest = harvest_stuff.harvest_energy(creep, creep.memory.source_num)
-
+            # print(creep.name, 'harvest', harvest)
             if harvest == ERR_NOT_IN_RANGE:
                 creep.moveTo(Game.getObjectById(creep.memory.source_num)
                              , {'visualizePathStyle': {'stroke': '#ffffff'}, 'reusePath': 25})
-
+            # 컨테이너 건설을 해야 하는데 일을 못하는 놈이면 죽어라.
+            elif harvest == ERR_NO_BODYPART:
+                creep.suicide()
+                return
             # 매 틱마다 픽업이 있는지 확인한다. 있으면 바로 등록.
             # 같은 방일때만 확인한다.
             if creep.room.name == Game.flags[creep.memory.flag_name].room.name:
@@ -320,7 +323,7 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
             repair_result = creep.repair(repair)
             try:
                 if not creep.pos.inRangeTo(Game.getObjectById(creep.memory.pickup), 3) \
-                        or _.sum(creep.carry) <= creep.carryCapacity * .35:
+                        or creep.carry.energy == 0:
                     creep.memory.laboro = 0
                     creep.memory.priority = 0
                     creep.say('🐜는 뚠뚠', True)

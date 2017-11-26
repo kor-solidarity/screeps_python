@@ -59,6 +59,7 @@ def harvest_energy(creep, source_num):
     elif harvested == ERR_INVALID_TARGET:
         del creep.memory.source_num
 
+    return harvested
 
 def grab_energy(creep, pickup, only_energy):
     """

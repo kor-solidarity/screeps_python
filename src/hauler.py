@@ -35,6 +35,10 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
     # print(creep.room.name)
 
     max_energy_in_storage = 500000
+    if creep.room.controller.level < 8:
+        terminal_capacity = 1000
+    else:
+        terminal_capacity = 10000
 
     # 혹시 딴짓하다 옆방으로 새는거에 대한 대비
     if not creep.memory.upgrade_target:
@@ -72,6 +76,7 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
         creep.say('🚛운송투쟁!', True)
         del creep.memory.to_storage
         del creep.memory.haul_target
+        del creep.memory.build_target
 
     elif _.sum(creep.carry) > creep.carryCapacity * .90 and creep.memory.laboro == 0:
         if creep.memory.dropped_target:
@@ -127,7 +132,6 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
         else:
             # only search if there's nothing to pick up.
             if not creep.memory.pickup:
-
                 # find any containers/links with any resources inside
                 storages = all_structures.filter(lambda s:
                                                  (s.structureType == STRUCTURE_CONTAINER
@@ -136,8 +140,11 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                                                      and s.energy >= creep.carryCapacity * .5
                                                      and not
                                                      (s.pos.x < 5 or s.pos.x > 44 or s.pos.y < 5 or s.pos.y > 44)))
+                                                 # or (s.structureType == STRUCTURE_TERMINAL
+                                                 #     and s.store.energy >= creep.carryCapacity * .5
+                                                 #     and s.store.energy > terminal_capacity))
 
-                pickup_id = miscellaneous.pick_pickup(creep, creeps, storages)
+                pickup_id = miscellaneous.pick_pickup(creep, creeps, storages, terminal_capacity)
                 # print('pickup_id:', pickup_id)
                 if pickup_id == ERR_INVALID_TARGET:
                     pass
@@ -205,17 +212,10 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
         # if their priority is not decided. gonna need to pick it firsthand.
         if creep.memory.priority == 0:
 
-            if creep.memory.build_target and Game.getObjectById(creep.memory.build_target):
-                # 건설할 거리가 지정돼있고 존재하면 50%확률로 건설실시.
-                picker = random.randint(1, 2)
-            # construction sites.
-            elif len(constructions) > 0:
+            if len(constructions) > 0:
                 # for 1/3 chance going to phase 2.
-                picker = random.randint(0, 4)
+                picker = random.randint(0, 3)
             else:
-                # 첫 가정문 관련.
-                if creep.memory.build_target:
-                    del creep.memory.build_target
                 # if the creep picked up the energy next to storage == from storage,
                 #  40% chance it's just gonna go for upgrade
                 if creep.pos.inRangeTo(creep.room.storage, 1):
@@ -235,10 +235,19 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                                                          or (s.structureType == STRUCTURE_STORAGE
                                                              and s.store[RESOURCE_ENERGY] < max_energy_in_storage)
                                                          or (s.structureType == STRUCTURE_TERMINAL
-                                                             and s.store[RESOURCE_ENERGY] < 25000))
-            if picker == 20:
-                creep.say('발전을 위해!', True)
-                creep.memory.priority = 4
+                                                             and s.store[RESOURCE_ENERGY] < terminal_capacity))
+
+            # 스토리지에서 자원을 캐고 현재 에너지가 90% 이상 찬 경우 발전에 보탠다.
+            if creep.room.storage and \
+                (creep.pos.inRangeTo(creep.room.storage, 1)
+                 and creep.room.energyAvailable > creep.room.energyCapacityAvailable * .9):
+                if random.randint(0, 2) == 0:
+                    creep.say('💎물류,염려말라!', True)
+                    creep.memory.priority = 1
+                else:
+                    creep.say('🔥 위대한 발전!', True)
+                    creep.memory.priority = 4
+
             elif len(structures) > 0 and (picker != 2 or not len(constructions) > 0):
                 creep.say('🔄물류,염려말라!', True)
                 creep.memory.priority = 1
@@ -322,11 +331,16 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                                 if structure.structureType != STRUCTURE_EXTENSION:
                                     # se la structure estas turo
                                     if structure.structureType == STRUCTURE_TOWER:
-                                        if structure.energy <= structure.energyCapacity * .95:
+                                        # 현재 세 경우가 필요함.
+                                        # 1. 70% 이상 찬 경우: 하나만 있으면 됨.
+                                        # 2. 35%-70% 찬 경우: 2.
+                                        # 3. 그 이하: 3
+                                        # 위의 역순으로 나열
+                                        if structure.energy < structure.energyCapacity * .3:
                                             # nur plusas 1 ĉar en ĉi tio stato ni bezonas 3 kripoj
                                             size_counter += 1
 
-                                        elif structure.energy <= structure.energyCapacity * .5:
+                                        elif structure.energy < structure.energyCapacity * .7:
                                             size_counter += 2
                                         else:
                                             size_counter += 3
@@ -411,7 +425,7 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                         try:
                             # ERR_INVALID_TARGET == nothing to store == look for storage with energy less than 5k
                             # first, look for terminal and check if energy is less than 5k
-                            if creep.room.terminal and creep.room.terminal.store[RESOURCE_ENERGY] <= 15000:
+                            if creep.room.terminal and creep.room.terminal.store[RESOURCE_ENERGY] <= terminal_capacity:
                                 creep.say('경제활성화!', True)
                                 creep.memory.haul_target = creep.room.terminal.id
                                 creep.moveTo(Game.getObjectById(creep.memory.haul_target),
@@ -446,42 +460,11 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                 closest_construction = creep.pos.findClosestByRange(constructions)
                 # 이 시점에서 안뜨면 건설할게 없는거임.
                 if not closest_construction:
-                    creep.say("지을게 없군 ", True)
+                    creep.say("지을게 없군 👏", True)
                     creep.memory.priority = 0
                     return
-
-            # for evenly distributing the construction sites by their capacities.
-            while not creep.memory.build_target and len(constructions) > 0:
-                # all sites occupied? break this whole thing.
-                if len(constructions) == 0:
-                    creep.memory.priority = 0
-                    creep.say('no 🏗', True)
-                    return
-
-                close_construction = creep.pos.findClosestByRange(constructions)
-
-                # amount of progress left.
-                progress_left = close_construction.progressTotal - close_construction.progress
-
-                # loop every creeps in the room
-                for kripo in creeps:
-                    # no build_target, nothing to worry. pass.
-                    if not kripo.memory.build_target:
-                        continue
-
-                    if kripo.memory.build_target == close_construction.id:
-                        progress_left -= kripo.carry[RESOURCE_ENERGY]
-                # if progress_left is 0 or less, this one is occupied. so get rid of it and pass.
-                if progress_left >= 0:
-                    index_construction = constructions.indexOf(close_construction)
-                    constructions.splice(index_construction, 1)
-                # else, assign it.
                 else:
-                    creep.memory.build_target = close_construction.id
-
-            # if there's no unoccupied sites to assign, just go to the closest_construction
-            if not creep.memory.build_target:
-                creep.memory.build_target = closest_construction.id
+                    creep.memory.build_target = closest_construction.id
 
             build_result = creep.build(Game.getObjectById(creep.memory.build_target))
 
@@ -518,7 +501,7 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
             upgrade_result = creep.upgradeController(Game.getObjectById(creep.memory.upgrade_target))
             if upgrade_result == ERR_NOT_IN_RANGE:
                 creep.moveTo(Game.getObjectById(creep.memory.upgrade_target)
-                             , {'visualizePathStyle': {'stroke': '#ffffff'}})
+                             , {'visualizePathStyle': {'stroke': '#ffffff'}, 'range': 3, 'reusePath': 10})
             # if having anything other than energy when not on priority 1 switch to 1
             if _.sum(creep.carry) != 0 and creep.carry[RESOURCE_ENERGY] == 0:
                 creep.memory.priority = 1
