@@ -132,7 +132,7 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
         else:
             # 이게 안뜬다는건 방이 비었다는 소리. 우선 가고본다.
             if not Game.flags[creep.memory.flag_name].room:
-                creep.moveTo(Game.flags[creep.memory.flag_name].room.name
+                creep.moveTo(Game.flags[creep.memory.flag_name]
                              , {'visualizePathStyle': {'stroke': '#ffffff'}, 'reusePath': 25})
                 return
 

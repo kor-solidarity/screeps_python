@@ -8,6 +8,7 @@ import soldier
 import re
 import random
 import miscellaneous
+import math
 
 # defs is a package which claims to export all constants and some JavaScript objects, but in reality does
 #  nothing. This is useful mainly when using an editor like PyCharm, so that it 'knows' that things like Object, Creep,
@@ -208,9 +209,10 @@ def main():
         if not repairs or len(repairs) == 0:
             repairs = []
 
+        extractor = None
         # extractors = _.filter(all_structures, lambda s: s.structureType == STRUCTURE_EXTRACTOR)
         for structure in all_structures:
-            if structure.structureType == STRUCTURE_EXTRACTOR:
+            if structure.structureType == STRUCTURE_EXTRACTOR and structure.my:
                 extractor = structure
                 break
 
@@ -423,20 +425,28 @@ def main():
                 # if number of close containers/links are less than that of sources.
                 harvest_carry_targets = []
 
-                sources = nesto.room.find(FIND_SOURCES)
+                room_sources = nesto.room.find(FIND_SOURCES)
+                # 소스를 따로 떼는 이유: 아래 합치는건 광부를 포함하는거지만 이 sources자체는 에너지 채취만 주관한다.
+                num_o_sources = len(room_sources)
+                for m in minerals:
+                    room_sources.push(m)
 
-                for structure in all_structures:
-                    if structure.structureType == STRUCTURE_CONTAINER or structure.structureType == STRUCTURE_LINK:
-                        for source in sources:
-                            if source.pos.inRangeTo(structure, 3):
-                                harvest_carry_targets.push(structure.id)
-                                break
-                    if len(harvest_carry_targets) >= len(sources):
-                        break
+                # 소스 주변에 자원채취용 컨테이너·링크가 얼마나 있는가 확인.
+                for rs in room_sources:
+                    for s in all_structures:
+                        if s.structureType == STRUCTURE_CONTAINER or s.structureType == STRUCTURE_LINK:
+                            # 세칸이내에 존재하는가?
+                            if rs.pos.inRangeTo(s, 3):
+                                # 실제 거리도 세칸 이내인가?
+                                if len(rs.pos.findPathTo(s, {'ignoreCreeps': True})) <= 3:
+                                    # 여기까지 들어가있으면 요건충족한거.
+                                    harvest_carry_targets.push(s.id)
+                                    break
 
-                if len(harvest_carry_targets) < len(sources):
-                    # and not spawn.pos.inRangeTo(2, hostile_creeps[0]):
-                    harvesters_bool = bool(len(creep_harvesters) < len(sources) * 2)
+                # print('harvest_carry_targets', harvest_carry_targets)
+                # print('sources', sources)
+                if len(harvest_carry_targets) < num_o_sources:
+                    harvesters_bool = bool(len(creep_harvesters) < num_o_sources * 2)
                 # if numbers of creep_harvesters are less than number of sources in the spawn's room.
                 else:
                     # to count the overall harvesting power. 3k or more == 2, else == 1
@@ -448,7 +458,7 @@ def main():
                         # 2 - real standards. suitable for 3k. 4500 not implmented yet.
                         harvester_points += harvester_creep.memory.size
 
-                    if harvester_points < len(sources) * 2:
+                    if harvester_points < num_o_sources * 2:
                         harvesters_bool = True
                     else:
                         harvesters_bool = False
@@ -457,7 +467,7 @@ def main():
                 if harvesters_bool:
                     # check if energy_source capacity is 4.5k(4k in case they update, not likely).
                     # if is, go for size 4500.
-                    if sources[0].energyCapacity > 4000:
+                    if room_sources[0].energyCapacity > 4000:
                         regular_spawn = spawn.createCreep(
                             [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK,
                              WORK, WORK,
@@ -495,7 +505,7 @@ def main():
                     if harvest_target.structureType == STRUCTURE_CONTAINER:
                         if _.sum(harvest_target.store) >= harvest_target.storeCapacity * .9:
                             plus += 1
-                        elif _.sum(harvest_target.store) <= harvest_target.storeCapacity * .4:
+                        elif _.sum(harvest_target.store) <= harvest_target.storeCapacity * .3:
                             plus -= 1
                     # 링크.
                     else:
@@ -506,9 +516,9 @@ def main():
 
                 # 건물이 아예 없을 시
                 if len(harvest_carry_targets) == 0:
-                    plus = -len(sources)
+                    plus = -num_o_sources
 
-                hauler_capacity = len(sources) + 1 + plus
+                hauler_capacity = num_o_sources + 1 + plus
                 # minimum number of haulers in the room is 1, max 4
                 if hauler_capacity <= 0:
                     hauler_capacity = 1
@@ -542,7 +552,8 @@ def main():
                     continue
 
                 # if there's an extractor, make a miner.
-                if len(extractor) > 0 and len(creep_miners) == 0:
+                if extractor and len(creep_miners) == 0:
+                    print('extractor', extractor)
                     # continue
                     if minerals[0].mineralAmount != 0 or minerals[0].ticksToRegeneration < 120:
                         # only one is needed
@@ -1039,7 +1050,7 @@ def main():
             cpu_total += cpu
         cpu_average = cpu_total / len(Memory.cpu_usage)
         print("{} total creeps, average cpu usage in the last {} ticks: {}, and current CPU bucket: {}"
-              .format(len(Game.creeps), len(Memory.cpu_usage), cpu_average, Game.cpu.bucket))
+              .format(len(Game.creeps), len(Memory.cpu_usage), round(cpu_average, 2), Game.cpu.bucket))
         Memory.tick_check = False
 
 
