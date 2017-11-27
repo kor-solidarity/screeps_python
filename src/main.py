@@ -558,6 +558,13 @@ def main():
                                  WORK, WORK, CARRY], undefined,
                                 {'role': 'miner', 'assigned_room': spawn.pos.roomName,
                                  'level': 5})
+                            if spawning_creep == ERR_NOT_ENOUGH_RESOURCES:
+                                spawning_creep = spawn.createCreep(
+                                    [MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK,
+                                     WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, CARRY, CARRY],
+                                    undefined,
+                                    {'role': 'miner', 'assigned_room': spawn.pos.roomName})
+
                             if spawning_creep == 0:
                                 continue
 
@@ -759,14 +766,14 @@ def main():
                                     if no_container_sites:
                                         # 찍을 위치정보. 소스에서 본진방향으로 세번째칸임.
                                         const_loc = target_source.pos.findPathTo(Game.rooms[nesto.room.name].controller
-                                                                         , {'ignoreCreeps': True})[2]
+                                                                                 , {'ignoreCreeps': True})[2]
 
                                         print('const_loc:', const_loc)
                                         print('const_loc.x {}, const_loc.y {}'.format(const_loc.x, const_loc.y))
                                         print('Game.flags[{}].room.name: {}'.format(flag, Game.flags[flag].room.name))
                                         # 찍을 좌표: 이게 제대로된 pos 함수
                                         constr_pos = __new__(RoomPosition(const_loc.x, const_loc.y
-                                                                  , Game.flags[flag].room.name))
+                                                                          , Game.flags[flag].room.name))
                                         print('constr_pos:', constr_pos)
                                         constr_pos.createConstructionSite(STRUCTURE_CONTAINER)
 
@@ -776,16 +783,17 @@ def main():
                                                               , {
                                                                   'plainCost': 2
                                                                   , 'swampCost': 2
-                                                                  , 'roomCallback': lambda: miscellaneous.roomCallback(creeps, Game.flags[flag].room.name, flag_structures, False, True)
-                                                                },).path
+                                                                  , 'roomCallback': lambda: miscellaneous.roomCallback(
+                                                        creeps, Game.flags[flag].room.name, flag_structures
+                                                        , flag_constructions, False,
+                                                        True)
+                                                              }, ).path
                                         # 길 찾은 후 도로건설
                                         for pos in constr_roads_pos:
                                             # 방 밖까지 확인할 필요는 없음.
                                             if pos.roomName != constr_pos.roomName:
                                                 break
                                             pos.createConstructionSite(STRUCTURE_ROAD)
-
-
 
                                 # 대충 해야하는일: 캐리어의 픽업위치에서 본진거리 확인. 그 후 거리만큼 추가.
                                 if Game.getObjectById(carrier_pickup):
@@ -794,7 +802,8 @@ def main():
                                     distance = len(path)
 
                                     if _.sum(Game.getObjectById(carrier_pickup).store) \
-                                            >= Game.getObjectById(carrier_pickup).storeCapacity * .8:
+                                            >= Game.getObjectById(carrier_pickup).storeCapacity * .8 \
+                                            or len(flag_constructions) > 0:
                                         work_chance = 1
                                     else:
                                         work_chance = random.randint(0, 1)
@@ -840,7 +849,8 @@ def main():
                                                                  {'role': 'carrier',
                                                                   'assigned_room': spawn.pos.roomName,
                                                                   'flag_name': flag, 'pickup': carrier_pickup
-                                                                     , 'work': working_part, 'source_num': carrier_source})
+                                                                     , 'work': working_part,
+                                                                  'source_num': carrier_source})
                                     print('spawning', spawning)
                                     if spawning == 0:
                                         continue
@@ -918,9 +928,10 @@ def main():
                                                                        , 'flag_name': flag})
                                 if spawning_creep == ERR_NOT_ENOUGH_RESOURCES:
                                     spawning_creep = spawn.createCreep([MOVE, MOVE, CLAIM, CLAIM]
-                                        , undefined,
-                                        {'role': 'reserver', 'assigned_room': spawn.pos.roomName
-                                            , 'flag_name': flag})
+                                                                       , undefined,
+                                                                       {'role': 'reserver',
+                                                                        'assigned_room': spawn.pos.roomName
+                                                                           , 'flag_name': flag})
 
                                 continue
 

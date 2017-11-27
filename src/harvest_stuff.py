@@ -55,9 +55,9 @@ def harvest_energy(creep, source_num):
         if _.sum(creep.carry) > 0:
             creep.say('🐜 SOURCES')
             creep.memory.laboro = 1
-    # 교체위한 임시용.
-    elif harvested == ERR_INVALID_TARGET:
-        del creep.memory.source_num
+    # 교체위한 임시용. NULLIFIED
+    # elif harvested == ERR_INVALID_TARGET:
+    #     del creep.memory.source_num
 
     return harvested
 
@@ -94,7 +94,7 @@ def grab_energy(creep, pickup, only_energy):
     # if there's something else popped up, you suck.
     except:
         print('ERROR HAS OCCURED!!!!!!!!!!!!!!!!!!!!')
-        print(creep.name, 'pickup obj:', Game.getObjectById(pickup))
+        print('{} the {}, pickup obj: {}'.format(creep.name, creep.memory.role, Game.getObjectById(pickup)))
         creep.say('ERROR!')
         return ERR_INVALID_TARGET
 

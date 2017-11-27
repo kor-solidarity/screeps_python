@@ -130,6 +130,11 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
 
         # no pickup target? then it's a start!
         else:
+            # 이게 안뜬다는건 방이 비었다는 소리. 우선 가고본다.
+            if not Game.flags[creep.memory.flag_name].room:
+                creep.moveTo(Game.flags[creep.memory.flag_name].room.name
+                             , {'visualizePathStyle': {'stroke': '#ffffff'}, 'reusePath': 25})
+                return
 
             # 여기로 왔다는건 할당 컨테이너가 없다는 소리. 한마디로 not creep.memory.pickup == True
             # 수정:
@@ -312,6 +317,7 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
             # if done, check if there's anything left. if there isn't then priority resets.
             elif transfer_result == ERR_INVALID_TARGET:
                 creep.memory.priority = 0
+                del creep.memory.haul_target
             elif transfer_result == 0:
                 # 이동 완료했는데 픽업도없고 그렇다고 일할수있는것도 아니면 죽어야함.
                 if not Game.getObjectById(creep.memory.pickup) and not creep.memory.work:

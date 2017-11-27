@@ -113,11 +113,12 @@ def pick_pickup(creep, creeps, storages, terminal_capacity=10000):
     return closest_storage
 
 
-def roomCallback(creeps, roomName, structures, ignoreRoads=False, ignoreCreeps=False):
+def roomCallback(creeps, roomName, structures, constructions=None, ignoreRoads=False, ignoreCreeps=False):
     """
     PathFinder 관련.
+    :param structures:
+    :param constructions:
     :param creeps: 모든 크립
-    :param target: 표적, 그니까 시작지점
     :param roomName:
     :param ignoreRoads:
     :param ignoreCreeps:
@@ -127,6 +128,10 @@ def roomCallback(creeps, roomName, structures, ignoreRoads=False, ignoreCreeps=F
 
     if not room:
         return
+
+    if len(constructions) > 0:
+        for c in constructions:
+            structures.push(c)
 
     costs = __new__(PathFinder.CostMatrix())
 
