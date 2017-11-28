@@ -198,7 +198,6 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                     if creep.memory.pickup:
                         for repair in repairs:
                             if Game.getObjectById(creep.memory.pickup).pos.inRangeTo(repair, 3):
-
                                 if repair.hits <= repair.hitsMax * .6:
                                     random_chance = 0
                                     break

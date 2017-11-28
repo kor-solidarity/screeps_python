@@ -813,9 +813,10 @@ def main():
                                         Game.getObjectById(carrier_pickup).pos, spawn.pos, {'ignoreCreeps': True})
                                     distance = len(path)
 
-                                    if _.sum(Game.getObjectById(carrier_pickup).store) \
-                                            >= Game.getObjectById(carrier_pickup).storeCapacity * .8 \
+                                    if Game.getObjectById(carrier_pickup).hits \
+                                            <= Game.getObjectById(carrier_pickup).hitsMax * .6 \
                                             or len(flag_constructions) > 0:
+
                                         work_chance = 1
                                     else:
                                         work_chance = random.randint(0, 1)
@@ -834,7 +835,7 @@ def main():
                                         else:
                                             for bodypart in carry_body_odd:
                                                 body.push(bodypart)
-                                        if work_chance == 0:
+                                        if work_chance == 1:
                                             work_check += 1
                                             if work_check == 1 or work_check == 4:
                                                 for bodypart in work_body:

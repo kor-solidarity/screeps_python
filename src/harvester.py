@@ -203,6 +203,12 @@ def run_harvester(creep, all_structures, constructions, creeps, dropped_all):
         else:
             creep.say('수확이다!🌾🌾', True)
         creep.memory.laboro = 1
+
+        # 혹여나 배정된 컨테이너가 너무 멀리 있으면 리셋 용도.
+        if Game.getObjectById(creep.memory.container):
+            if not Game.getObjectById(creep.memory.source_num).pos.inRangeTo(creep.memory.container, 3):
+                del creep.memory.pickup
+
         del creep.memory.pickup
 
     # harvesting job. if on harvest(laboro == 0) and carrying energy is smaller than carryCapacity
