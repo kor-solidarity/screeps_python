@@ -269,6 +269,15 @@ def run_harvester(creep, all_structures, constructions, creeps, dropped_all):
             elif result == ERR_FULL:
                 creep.say('차면 찬대로!', True)
                 creep.memory.laboro = 0
+            # 본인의 소스 담당 크립중에 3천짜리용 크립이 존재하는지 확인. 있으면 자살한다. 이때는 굳이 있어봐야 공간낭비.
+            elif result == 0 and creep.memory.size == 1:
+                print('{} the {}: 0'.format(creep.name, creep.memory.role))
+                for c in creeps:
+                    if c.memory.role == 'harvester' and c.memory.size > 1 and c.ticksToLive > 200:
+                        print('creep check?: {}'.format(c.name))
+                        if c.memory.source_num == creep.memory.source_num:
+                            creep.suicide()
+
         else:
             # if there's no storage to go to, technically do the hauler's job(transfer and building).
             # below is exact copy.

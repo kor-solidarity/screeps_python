@@ -211,20 +211,13 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
 
         # if their priority is not decided. gonna need to pick it firsthand.
         if creep.memory.priority == 0:
+
             # 40% 이상 채우지 않으면 건설은 없다. 건설보다 운송이 더 시급하기 때문.
-            if len(constructions) > 0 and creep.room.energyCapacity >= creep.room.energyCapacityAvailable * .4:
+            if len(constructions) > 0 and creep.room.energyAvailable >= creep.room.energyCapacityAvailable * .4:
                 # for 1/3 chance going to phase 2.
-                picker = random.randint(0, 3)
+                picker = random.randint(0, 2)
             else:
-                # if the creep picked up the energy next to storage == from storage,
-                #  40% chance it's just gonna go for upgrade
-                if creep.pos.inRangeTo(creep.room.storage, 1):
-                    if creep.room.energyCapacity > creep.room.energyCapacityAvailable * .8:
-                        chance = random.randint(0, 10)
-                        if chance >= 3:
-                            picker = 20
-                else:
-                    picker = 0
+                picker = 0
             # defining structures to fill the energy on. originally above of this spot but replaced for cpu eff.
             # towers only fills 80% since it's gonna repair here and there all the time.
             structures = all_structures.filter(lambda s: ((s.structureType == STRUCTURE_SPAWN

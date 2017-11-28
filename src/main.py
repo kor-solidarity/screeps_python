@@ -291,6 +291,8 @@ def main():
                 scout.run_scout(creep)
             elif creep.memory.role == 'reserver':
                 upgrader.run_reserver(creep)
+            elif creep.memory.role == 'demolition':
+                soldier.demolition(creep, all_structures)
 
         # 멀티자원방 관련 스크립트
         if Game.time % structure_renew_count == 1 or not Memory.rooms:
@@ -396,7 +398,6 @@ def main():
 
                 # check all flags with same name with the spawn.
                 for name in Object.keys(flags):
-
                     # 방이름 + -rm + 아무글자(없어도됨)
                     regex = spawn.room.name + r'-rm.*'
                     if re.match(regex, name, re.IGNORECASE):
@@ -428,8 +429,8 @@ def main():
                 room_sources = nesto.room.find(FIND_SOURCES)
                 # 소스를 따로 떼는 이유: 아래 합치는건 광부를 포함하는거지만 이 sources자체는 에너지 채취만 주관한다.
                 num_o_sources = len(room_sources)
-                for m in minerals:
-                    room_sources.push(m)
+                if extractor and extractor.cooldown == 0:
+                    room_sources.push(extractor)
 
                 # 소스 주변에 자원채취용 컨테이너·링크가 얼마나 있는가 확인.
                 for rs in room_sources:
@@ -553,7 +554,7 @@ def main():
 
                 # if there's an extractor, make a miner.
                 if extractor and len(creep_miners) == 0:
-                    print('extractor', extractor)
+                    # print('extractor', extractor)
                     # continue
                     if minerals[0].mineralAmount != 0 or minerals[0].ticksToRegeneration < 120:
                         # only one is needed
@@ -597,9 +598,9 @@ def main():
                 elif spawn.room.controller.level > 2 and spawn.room.storage:
 
                     if spawn.room.controller.level < 5:
-                        expected_reserve = 2500
+                        expected_reserve = 2000
                     else:
-                        expected_reserve = 5000
+                        expected_reserve = 3000
 
                     # if there's no storage or storage has less than expected_reserve
                     if spawn.room.storage.store[RESOURCE_ENERGY] < expected_reserve or not spawn.room.storage:
@@ -855,6 +856,23 @@ def main():
                                         working_part = True
                                     else:
                                         working_part = False
+                                    # 크기가 50을 넘기면? 50에 맞춰야함.
+                                    if len(body) > 50:
+                                        # WORK가 있을경우
+                                        if working_part:
+                                            body = [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE,
+                                                    MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, CARRY, CARRY,
+                                                    CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY,
+                                                    CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY,
+                                                    CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY,
+                                                    CARRY]
+                                        else:
+                                            body = [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE,
+                                                    MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, CARRY, CARRY, CARRY, CARRY,
+                                                    CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY,
+                                                    CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY,
+                                                    CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY,
+                                                    CARRY, CARRY]
 
                                     spawning = spawn.createCreep(body, undefined,
                                                                  {'role': 'carrier',
@@ -866,6 +884,10 @@ def main():
                                     if spawning == 0:
                                         continue
                                     elif spawning == ERR_NOT_ENOUGH_RESOURCES:
+                                        # 캐리어가 전혀 없을때까지 우선 자원을 모아본다.
+                                        if len(remote_carriers) > 0:
+                                            continue
+
                                         if work_chance == 0:
                                             body = []
                                             for i in range(int(distance / 6)):
@@ -911,7 +933,7 @@ def main():
                                                 , 'source_num': carrier_source})
                                     continue
 
-                            if len(flag_containers) > len(remote_harvesters):
+                            elif len(flag_containers) > len(remote_harvesters):
                                 # perfect for 3000 cap
                                 regular_spawn = spawn.createCreep(
                                     [WORK, WORK, WORK, WORK, WORK, WORK,
@@ -943,6 +965,60 @@ def main():
                                                                        {'role': 'reserver',
                                                                         'assigned_room': spawn.pos.roomName
                                                                            , 'flag_name': flag})
+
+                                continue
+                            # 아래 철거반 확인용도.
+                            regex_dem = r'.*-dem.*'
+                            dem_bool = False
+                            dem_flag = None
+                            # 여기까지 다 건설이 완료됐으면 철거반이 필요한지 확인해본다.
+                            for fn in Object.keys(flags):
+
+                                # 로딩안되면 시야에 없단소리. 건너뛴다.
+                                if Game.flags[fn].room:
+                                    # -dem : 철거지역. 이게 들어가면 이 방에 있는 모든 벽이나 잡건물 다 부수겠다는 소리.
+                                    # print("Game.flags[flag].name {} | fn {}".format(Game.flags[flag].name, fn))
+                                    if Game.flags[flag].room.name == Game.flags[fn].room.name \
+                                            and re.match(regex_dem, fn, re.IGNORECASE):
+                                        # print('flagname {}'.format(fn))
+                                        # print('chkpt')
+                                        # 여기 걸리면 컨테이너도 박살낼지 결정. 근데 쓸일없을듯.
+                                        regex_dem_container = r'.*-dema.*'
+                                        demo_container = 0
+                                        if re.match(regex_dem_container, fn, re.IGNORECASE):
+                                            demo_container = 1
+                                        dem_bool = True
+                                        dem_flag = fn
+                                        break
+
+                            if dem_bool:
+                                remote_dem = _.filter(creeps, lambda c: c.memory.role == 'demolition'
+                                                                           and c.memory.flag_name == dem_flag)
+                                dem_num = len(remote_dem)
+                            else:
+                                dem_num = 0
+
+                            if dem_bool and dem_num == 0:
+                                if spawn.room.controller.level < 7:
+                                    body = [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK,
+                                            WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK]
+                                else:
+                                    body = [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE,
+                                            MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, WORK,
+                                            WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK,
+                                            WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK,
+                                            WORK, WORK]
+                                spawning_creep = spawn.createCreep(body, undefined, {'role': 'demolition',
+                                                                                     'assigned_room': spawn.pos.roomName
+                                                                                     , 'demo_container': demo_container
+                                                                                     , 'flag_name': dem_flag})
+                                if spawning_creep == ERR_NOT_ENOUGH_RESOURCES:
+                                    body = [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK,
+                                            WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK]
+                                    spawn.createCreep(body, undefined, {'role': 'demolition',
+                                                                        'assigned_room': spawn.pos.roomName
+                                                                        , 'demo_container': demo_container
+                                                                        , 'flag_name': dem_flag})
 
                                 continue
 

@@ -91,4 +91,70 @@ def defender(creep, hostile_creeps):
     # hostile_creeps
     return
 
-# def run_defender(creep, creeps, )
+def demolition(creep, structures):
+    """
+    건물 철거반. 도로와 컨테이너 빼고 다 부순다. 컨테이너는 메모리 유무.
+    :param creep:
+    :param structures:
+    :return:
+    """
+
+    try:
+        if Game.flags[creep.memory.flag_name].room.name != creep.room.name:
+            creep.moveTo(Game.flags[creep.memory.flag_name], {'visualizePathStyle': {'stroke': '#ffffff'},
+                                                                  'reusePath': 50})
+            return
+    except:
+        # 방안에 있으면 상관없음. 깃발을 임의로 지울경우에 해당.
+        if creep.room.name == creep.memory.assigned_room:
+            pass
+        else:
+            print('no visual for flag "{}"'.format(creep.memory.flag_name))
+            return
+
+    # 도착하면 가장 가까이 있는 건물 파괴한다.
+    if not creep.memory.target:
+        # array = 0
+        # 도로와 컨테이너는 제외
+
+        # 컨테이너 포함할 경우.
+        if creep.memory.demo_container:
+            dem_structures = structures.filter(lambda s: (s.structureType == STRUCTURE_TOWER
+                                                         or s.structureType == STRUCTURE_EXTENSION
+                                                         or s.structureType == STRUCTURE_LINK
+                                                         or s.structureType == STRUCTURE_LAB
+                                                         or s.structureType == STRUCTURE_CONTAINER
+                                                         or s.structureType == STRUCTURE_STORAGE
+                                                         or s.structureType == STRUCTURE_WALL
+                                                         or s.structureType == STRUCTURE_RAMPART))
+        else:
+            dem_structures = structures.filter(lambda s: (s.structureType == STRUCTURE_TOWER
+                                                          or s.structureType == STRUCTURE_EXTENSION
+                                                          or s.structureType == STRUCTURE_LINK
+                                                          or s.structureType == STRUCTURE_LAB
+                                                          or s.structureType == STRUCTURE_STORAGE
+                                                          or s.structureType == STRUCTURE_WALL
+                                                          or s.structureType == STRUCTURE_RAMPART))
+        print(JSON.stringify(dem_structures))
+        print()
+        creep.memory.target = creep.pos.findClosestByRange(dem_structures).id
+
+        target = Game.getObjectById(creep.memory.target)
+        # 타겟이 없다: 일 다 끝났으니 깃발 빼고 자살좀.
+        if not target:
+            Game.flags[creep.memory.flag_name].remove()
+            creep.suicide()
+            return
+
+    target = Game.getObjectById(creep.memory.target)
+
+    dismantle = creep.dismantle(target)
+    creep.say(dismantle)
+    if dismantle == ERR_NOT_IN_RANGE:
+        creep.moveTo(target, {'visualizePathStyle': {'stroke': '#c0c0c0'}, 'reusePath': 50})
+    elif dismantle == 0:
+    # if dismantle == 0:
+        if Game.time % 3 == 0:
+            creep.say('철거중 💣💣', True)
+    elif dismantle == ERR_INVALID_TARGET:
+        del creep.memory.target

@@ -9,6 +9,7 @@ import urllib.request
 import base64
 import os
 import shutil
+import time
 
 transcrypt_arguments = ['-n', '-b', '-p', '.none']
 
@@ -284,7 +285,7 @@ def main():
     install_env(config)
     build(config)
     upload(config)
-
+    print('완료시간: {}'.format(time.ctime()))
 
 if __name__ == "__main__":
     main()
