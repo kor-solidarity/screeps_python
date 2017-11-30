@@ -61,6 +61,7 @@ def harvest_energy(creep, source_num):
 
     return harvested
 
+
 def grab_energy(creep, pickup, only_energy):
     """
     grabbing energy from local storages(container, storage, etc.)
@@ -81,12 +82,12 @@ def grab_energy(creep, pickup, only_energy):
     try:
         # print(pickup, 'type:', Game.getObjectById(pickup).structureType)
         if Game.getObjectById(pickup).structureType != STRUCTURE_LINK:
-            if _.sum(Game.getObjectById(pickup).store) < (creep.carryCapacity - _.sum(creep.carry)) * .5:
+            if _.sum(Game.getObjectById(pickup).store) <= (creep.carryCapacity - _.sum(creep.carry)) * .4:
                 del pickup
                 # print('checkpoint?')
                 return ERR_NOT_ENOUGH_ENERGY
         else:
-            if Game.getObjectById(pickup).energy < (creep.carryCapacity - _.sum(creep.carry)) * .5:
+            if Game.getObjectById(pickup).energy <= (creep.carryCapacity - _.sum(creep.carry)) * .4:
                 del pickup
                 # print('checkpoint??')
                 return ERR_NOT_ENOUGH_ENERGY
@@ -94,7 +95,8 @@ def grab_energy(creep, pickup, only_energy):
     # if there's something else popped up, you suck.
     except:
         print('ERROR HAS OCCURED!!!!!!!!!!!!!!!!!!!!')
-        print('{} the {}, pickup obj: {}'.format(creep.name, creep.memory.role, Game.getObjectById(pickup)))
+        print('{} the {} in room {}, pickup obj: {}'.format(creep.name, creep.memory.role
+                                                            , creep.room.name, Game.getObjectById(pickup)))
         creep.say('ERROR!')
         return ERR_INVALID_TARGET
 

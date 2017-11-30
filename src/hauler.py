@@ -139,10 +139,10 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                                                  or (s.structureType == STRUCTURE_LINK
                                                      and s.energy >= creep.carryCapacity * .5
                                                      and not
-                                                     (s.pos.x < 5 or s.pos.x > 44 or s.pos.y < 5 or s.pos.y > 44)))
-                                                 # or (s.structureType == STRUCTURE_TERMINAL
-                                                 #     and s.store.energy >= creep.carryCapacity * .5
-                                                 #     and s.store.energy > terminal_capacity))
+                                                     (s.pos.x < 5 or s.pos.x > 44 or s.pos.y < 5 or s.pos.y > 44))
+                                                 or (s.structureType == STRUCTURE_TERMINAL
+                                                     and s.store.energy >= creep.carryCapacity * .5
+                                                     and s.store.energy > terminal_capacity + creep.carryCapacity))
 
                 pickup_id = miscellaneous.pick_pickup(creep, creeps, storages, terminal_capacity)
                 # print('pickup_id:', pickup_id)
@@ -181,7 +181,8 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                     return
                 # other errors? just delete 'em
                 else:
-                    print(creep.name, 'grab_energy() ELSE ERROR:', result)
+                    print('{} the {} in  {} - grab_energy() ELSE ERROR: {}'
+                          .format(creep.name, creep.memory.role, creep.room.name, result))
                     del creep.memory.pickup
 
             else:
@@ -292,8 +293,8 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                 if not creep.memory.haul_target:
 
                     structures = all_structures.filter(lambda s: ((s.structureType == STRUCTURE_SPAWN
-                                                                   or s.structureType == STRUCTURE_EXTENSION)
-                                                                   # or s.structureType == STRUCTURE_NUKER)
+                                                                   or s.structureType == STRUCTURE_EXTENSION
+                                                                   or s.structureType == STRUCTURE_NUKER)
                                                                   and s.energy < s.energyCapacity)
                                                        or (s.structureType == STRUCTURE_TOWER
                                                            and s.energy < s.energyCapacity * 0.8))

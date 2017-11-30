@@ -67,11 +67,11 @@ def run_links(link, my_structures):
     if not (link.pos.x < 5 or link.pos.x > 44 or link.pos.y < 5 or link.pos.y > 44):
         return
 
-    if link.cooldown == 0 and link.energy >= 100:
+    if link.cooldown == 0 and link.energy >= 140:
         # links with any energy left in storage and inside the boundaries
         inside_links = my_structures.filter(lambda s: s.structureType == STRUCTURE_LINK
                                             and not (s.pos.x < 5 or s.pos.x > 44 or s.pos.y < 5 or s.pos.y > 44)
-                                            and s.energy < s.energyCapacity * .9)
+                                            and s.energy < s.energyCapacity - 100)
 
         if len(inside_links) > 0:
             # 내부(테두리 5칸 이상 이내)에 있는 링크 중 무작위 하나를 고르고 거기에 보낸다.

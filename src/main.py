@@ -506,7 +506,7 @@ def main():
                     if harvest_target.structureType == STRUCTURE_CONTAINER:
                         if _.sum(harvest_target.store) >= harvest_target.storeCapacity * .9:
                             plus += 1
-                        elif _.sum(harvest_target.store) <= harvest_target.storeCapacity * .3:
+                        elif _.sum(harvest_target.store) <= harvest_target.storeCapacity * .27:
                             plus -= 1
                     # 링크.
                     else:
@@ -850,7 +850,7 @@ def main():
                                         if distance % 6 <= 2:
                                             body.push(MOVE)
                                         body.push(CARRY)
-                                    print('body', body)
+                                    print('body({}) {}'.format(len(body), body))
 
                                     # WORK 파트가 있는가?
                                     if work_check > 0:
@@ -885,28 +885,30 @@ def main():
                                     if spawning == 0:
                                         continue
                                     elif spawning == ERR_NOT_ENOUGH_RESOURCES:
-                                        # 캐리어가 전혀 없을때까지 우선 자원을 모아본다.
-                                        if len(remote_carriers) > 0:
-                                            continue
 
-                                        if work_chance == 0:
-                                            body = []
-                                            for i in range(int(distance / 6)):
-                                                if i % 2 == 1:
-                                                    for bodypart in carry_body_odd:
-                                                        body.push(bodypart)
-                                                else:
-                                                    for bodypart in carry_body_even:
-                                                        body.push(bodypart)
+                                        body = []
+                                        # 자원이 부족하니 한단계 낮추고 시작해본다
+                                        for i in range(int(distance / 7)):
+                                            if i % 2 == 1:
+                                                for bodypart in carry_body_odd:
+                                                    body.push(bodypart)
+                                            else:
+                                                for bodypart in carry_body_even:
+                                                    body.push(bodypart)
+                                        if work_chance == 1:
                                             for bodypart in work_body:
                                                 body.push(bodypart)
-                                            spawn.createCreep(
-                                                body,
-                                                undefined,
-                                                {'role': 'carrier', 'assigned_room': spawn.pos.roomName,
-                                                 'flag_name': flag, 'pickup': carrier_pickup, 'work': working_part
-                                                    , 'source_num': carrier_source})
-                                        else:
+
+                                        print('2nd body({}) {}'.format(len(body), body))
+                                        spawning = spawn.createCreep(
+                                                                    body,
+                                                                    undefined,
+                                                                    {'role': 'carrier', 'assigned_room': spawn.pos.roomName,
+                                                                     'flag_name': flag, 'pickup': carrier_pickup, 'work': working_part
+                                                                        , 'source_num': carrier_source})
+
+                                        print('spawning', spawning)
+                                        if spawning == ERR_NOT_ENOUGH_ENERGY:
                                             spawn.createCreep(
                                                 [WORK, WORK, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, MOVE,
                                                  MOVE, MOVE, MOVE, MOVE],
