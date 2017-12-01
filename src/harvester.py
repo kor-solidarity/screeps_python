@@ -304,7 +304,7 @@ def run_harvester(creep, all_structures, constructions, creeps, dropped_all):
     return
 
 
-def run_miner(creep, all_structures, minerals):
+def run_miner(creep, all_structures):
     """
     for mining minerals.
     :param creep: The creep to run
@@ -329,10 +329,15 @@ def run_miner(creep, all_structures, minerals):
     # memory.mineral == mineral
     if not creep.memory.extractor or not creep.memory.mineral:
         try:
-            # minerals = creep.room.find(FIND_MINERALS)
-            extractors = all_structures.filter(lambda s: s.structureType == STRUCTURE_EXTRACTOR)
+            minerals = creep.room.find(FIND_MINERALS)
+            for s in all_structures:
+                if s.structureType == STRUCTURE_EXTRACTOR:
+                    creep.memory.extractor = s.id
+                    break
+
+            # extractors = all_structures.filter(lambda s: s.structureType == STRUCTURE_EXTRACTOR)
             # there's only one mineral per room anyway.
-            creep.memory.extractor = extractors[0].id
+            # creep.memory.extractor = extractors[0].id
             creep.memory.mineral = minerals[0].id
         except:
             creep.say("광물못캐!!", True)

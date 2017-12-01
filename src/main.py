@@ -188,7 +188,6 @@ def main():
 
         hostile_creeps = chambro.find(FIND_HOSTILE_CREEPS)
 
-        minerals = chambro.find(FIND_MINERALS)
 
         # 단계별 제곱근값
         square = 8
@@ -263,7 +262,7 @@ def main():
                 upgrader.run_upgrader(creep, all_structures)
 
             elif creep.memory.role == 'miner':
-                harvester.run_miner(creep, all_structures, minerals)
+                harvester.run_miner(creep, all_structures)
 
             elif creep.memory.role == 'hauler':
                 hauler.run_hauler(creep, all_structures, constructions,
@@ -499,21 +498,36 @@ def main():
                     continue
 
                 plus = 0
+                # 아래 새 시도를 위해 임시폐쇄
                 for harvest_container in harvest_carry_targets:
                     # Ĉar uzi getObjectById k.t.p estas tro longa.
                     harvest_target = Game.getObjectById(harvest_container)
                     # 컨테이너.
                     if harvest_target.structureType == STRUCTURE_CONTAINER:
-                        if _.sum(harvest_target.store) >= harvest_target.storeCapacity * .9:
+                        if _.sum(harvest_target.store) > harvest_target.storeCapacity * .9:
                             plus += 1
-                        elif _.sum(harvest_target.store) <= harvest_target.storeCapacity * .27:
+                        elif _.sum(harvest_target.store) <= harvest_target.storeCapacity * .3:
                             plus -= 1
                     # 링크.
                     else:
-                        if harvest_target.energy >= harvest_target.energyCapacity * .9:
+                        if harvest_target.energy == harvest_target.energyCapacity:
                             plus += 1
                         elif harvest_target.energy <= harvest_target.energyCapacity * .4:
                             plus -= 1
+
+                # container_total_cap = 0
+                # container_cap = 0
+                # for hc in harvest_carry_targets:
+                #     if hc.structureType == STRUCTURE_CONTAINER:
+                #         container_cap += _.sum(hc.store)
+                #         container_total_cap += hc.storeCapacity
+                #     else:
+                #         container_cap += hc.energy
+                #         # + 부분은 링크니 보정. 필요하긴 할라나?
+                #         container_total_cap += hc.energyCapacity + 200
+                #
+                # if container_cap > container_total_cap * .15:
+                #     plus = -2
 
                 # 건물이 아예 없을 시
                 if len(harvest_carry_targets) == 0:
@@ -530,17 +544,33 @@ def main():
                     # first hauler is always 250 sized. - 'balance' purpose(idk just made it up)
                     if spawn.room.energyAvailable >= spawn.room.energyCapacityAvailable * .85 \
                             and len(creep_haulers) != 0:
+                        # 800
+                        spawning_creep = spawn.createCreep(
+                            [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, CARRY,
+                             CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY,
+                             CARRY, CARRY],
+                            undefined, {'role': 'hauler', 'assigned_room': spawn.pos.roomName,
+                                        'level': 8})
+                        # 600
+                        if spawning_creep == -6:
+                            spawning_creep = spawn.createCreep(
+                                [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, CARRY, CARRY, CARRY,
+                                 CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY],
+                                undefined, {'role': 'hauler', 'assigned_room': spawn.pos.roomName,
+                                            'level': 8})
+
+                    else:
                         spawning_creep = spawn.createCreep(
                             [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, CARRY, CARRY, CARRY,
                              CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY],
                             undefined, {'role': 'hauler', 'assigned_room': spawn.pos.roomName,
                                         'level': 8})
-                    else:
-                        spawning_creep = spawn.createCreep([WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY,
-                                                            CARRY, CARRY, MOVE, MOVE, MOVE, MOVE, MOVE],
-                                                           undefined,
-                                                           {'role': 'hauler', 'assigned_room': spawn.pos.roomName,
-                                                            'level': 5})
+                        if spawning_creep == -6:
+                            spawning_creep = spawn.createCreep([WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY,
+                                                                CARRY, CARRY, MOVE, MOVE, MOVE, MOVE, MOVE],
+                                                               undefined,
+                                                               {'role': 'hauler', 'assigned_room': spawn.pos.roomName,
+                                                                'level': 5})
 
                     if spawning_creep == -6:
                         if spawn.createCreep([WORK, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE], undefined,
@@ -556,6 +586,7 @@ def main():
                 if extractor and len(creep_miners) == 0:
                     # print('extractor', extractor)
                     # continue
+                    minerals = chambro.find(FIND_MINERALS)
                     if minerals[0].mineralAmount != 0 or minerals[0].ticksToRegeneration < 120:
                         # only one is needed
                         if len(creep_miners) > 0:
@@ -828,6 +859,12 @@ def main():
 
                                     work_check = 0
                                     for i in range(int(distance / 6)):
+                                        # work 부분부터 넣어본다.
+                                        if work_chance == 1:
+                                            work_check += 1
+                                            if work_check == 1 or work_check == 4:
+                                                for bodypart in work_body:
+                                                    body.push(bodypart)
                                         # 이거부터 들어가야함
                                         if i % 2 == 0:
                                             for bodypart in carry_body_even:
@@ -835,11 +872,6 @@ def main():
                                         else:
                                             for bodypart in carry_body_odd:
                                                 body.push(bodypart)
-                                        if work_chance == 1:
-                                            work_check += 1
-                                            if work_check == 1 or work_check == 4:
-                                                for bodypart in work_body:
-                                                    body.push(bodypart)
                                     # 거리 나머지값 반영.
                                     if distance % 6 > 2:
                                         body.push(MOVE)
@@ -850,7 +882,7 @@ def main():
                                         if distance % 6 <= 2:
                                             body.push(MOVE)
                                         body.push(CARRY)
-                                    print('body({}) {}'.format(len(body), body))
+                                    print('body({}): {}'.format(len(body), body))
 
                                     # WORK 파트가 있는가?
                                     if work_check > 0:
@@ -859,10 +891,10 @@ def main():
                                         working_part = False
                                     # 크기가 50을 넘기면? 50에 맞춰야함.
                                     if len(body) > 50:
-                                        # WORK가 있을경우
+                                        # WORK 가 있을경우
                                         if working_part:
-                                            body = [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE,
-                                                    MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, CARRY, CARRY,
+                                            body = [WORK, WORK, WORK, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE,
+                                                    MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, CARRY, CARRY,
                                                     CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY,
                                                     CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY,
                                                     CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY,
@@ -887,7 +919,11 @@ def main():
                                     elif spawning == ERR_NOT_ENOUGH_RESOURCES:
 
                                         body = []
-                                        # 자원이 부족하니 한단계 낮추고 시작해본다
+
+                                        if work_chance == 1:
+                                            for bodypart in work_body:
+                                                body.push(bodypart)
+                                        # 15% 몸집을 줄여본다.
                                         for i in range(int(distance / 7)):
                                             if i % 2 == 1:
                                                 for bodypart in carry_body_odd:
@@ -895,20 +931,18 @@ def main():
                                             else:
                                                 for bodypart in carry_body_even:
                                                     body.push(bodypart)
-                                        if work_chance == 1:
-                                            for bodypart in work_body:
-                                                body.push(bodypart)
 
-                                        print('2nd body({}) {}'.format(len(body), body))
+                                        print('2nd body({}): {}'.format(len(body), body))
                                         spawning = spawn.createCreep(
-                                                                    body,
-                                                                    undefined,
-                                                                    {'role': 'carrier', 'assigned_room': spawn.pos.roomName,
-                                                                     'flag_name': flag, 'pickup': carrier_pickup, 'work': working_part
-                                                                        , 'source_num': carrier_source})
+                                            body,
+                                            undefined,
+                                            {'role': 'carrier', 'assigned_room': spawn.pos.roomName,
+                                             'flag_name': flag, 'pickup': carrier_pickup, 'work': working_part
+                                                , 'source_num': carrier_source})
 
-                                        print('spawning', spawning)
-                                        if spawning == ERR_NOT_ENOUGH_ENERGY:
+                                        print('spawning {}'.format(spawning))
+
+                                        if spawning == ERR_NOT_ENOUGH_RESOURCES:
                                             spawn.createCreep(
                                                 [WORK, WORK, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, MOVE,
                                                  MOVE, MOVE, MOVE, MOVE],
@@ -1030,9 +1064,10 @@ def main():
                 spawning_creep = Game.creeps[spawn.spawning.name]
                 spawn.room.visual.text(
                     '🛠 ' + spawning_creep.memory.role + ' '
-                    + str(int(
-                        ((spawn.spawning.needTime - spawn.spawning.remainingTime)
-                         / spawn.spawning.needTime) * 100)) + '%',
+                    + "{}/{}".format(spawn.spawning.remainingTime, spawn.spawning.needTime),
+                    # + str(int(
+                    #     ((spawn.spawning.needTime - spawn.spawning.remainingTime)
+                    #      / spawn.spawning.needTime) * 100)) + '%',
                     spawn.pos.x + 1,
                     spawn.pos.y,
                     {'align': 'left', 'opacity': 0.8}

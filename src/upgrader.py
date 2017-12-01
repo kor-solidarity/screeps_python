@@ -18,6 +18,7 @@ def run_upgrader(creep, all_structures):
     :param all_structures: creep.room.find(FIND_STRUCTURES)
     :return:
     """
+    # memory.pickup = 자원 가져올 대상.
     # upgrader = upgrades the room. UPGRADES ONLY
     vis_key = "visualizePathStyle"
     stroke_key = "stroke"
@@ -72,28 +73,33 @@ def run_upgrader(creep, all_structures):
                 del creep.memory.pickup
             return
 
+        # 먼져 스토리지 내 가져갈게 있나 확인부터함. 없으면 두번째 작업 실시.
         # find containers that are full.
-        full_containers = all_structures.filter(lambda s: ((s.structureType == STRUCTURE_STORAGE
-                                                            and s.store[RESOURCE_ENERGY] >= creep.carryCapacity * .5)
-                                                           or (s.structureType == STRUCTURE_CONTAINER
-                                                               and s.store[RESOURCE_ENERGY] >= s.storeCapacity * .9)))
-        # get energy from these firsthand
-        if len(full_containers) > 0:
+        # full_containers = all_structures.filter(lambda s: ((s.structureType == STRUCTURE_STORAGE
+        #                                                     and s.store[RESOURCE_ENERGY] >= creep.carryCapacity * .5)
+        #                                                    or (s.structureType == STRUCTURE_CONTAINER
+        #                                                        and s.store[RESOURCE_ENERGY] >= s.storeCapacity * .9)))
+        # get energy from storage firsthand
+        # if len(full_containers) > 0:
+        if creep.room.storage:
+            if creep.room.storage.store.energy >= creep.carryCapacity * .4:
 
-            if not creep.memory.pickup:
+                # if not creep.memory.pickup:
                 # randomly choose which storage to go to
-                random_storage_num = random.randint(0, len(full_containers) - 1)
-                storage = full_containers[random_storage_num]
-                creep.memory.pickup = storage['id']
+                # random_storage_num = random.randint(0, len(full_containers) - 1)
+                # storage = full_containers[random_storage_num]
+                # creep.memory.pickup = storage['id']
 
-            result = harvest_stuff.grab_energy(creep, creep.memory.pickup, True)
+                creep.memory.pickup = creep.room.storage.id
 
-            if result == ERR_NOT_IN_RANGE:
-                creep.moveTo(Game.getObjectById(creep.memory.pickup),
-                             {'visualizePathStyle': {'stroke': '#ffffff'}, 'reusePath': 20})
-            elif result == 0:
-                creep.memory.laboro = 1
-            return
+                result = harvest_stuff.grab_energy(creep, creep.memory.pickup, True)
+
+                if result == ERR_NOT_IN_RANGE:
+                    creep.moveTo(Game.getObjectById(creep.memory.pickup),
+                                 {'visualizePathStyle': {'stroke': '#ffffff'}, 'reusePath': 20})
+                elif result == 0:
+                    creep.memory.laboro = 1
+                return
 
         # find any storages with any energy inside
         storages = all_structures.filter(lambda s: ((s.structureType == STRUCTURE_STORAGE
@@ -101,9 +107,8 @@ def run_upgrader(creep, all_structures):
                                                     and s.store[RESOURCE_ENERGY] > 0)
                                                    or (s.structureType == STRUCTURE_LINK
                                                        and s.energy >= 150
-                                                       and not (
-            s.pos.x < 5 or s.pos.x > 44 or s.pos.y < 5 or s.pos.y > 44))
-                                         )
+                                                       and not (s.pos.x < 5 or s.pos.x > 44
+                                                                or s.pos.y < 5 or s.pos.y > 44)))
         try:  # if there's no storage, just pass
             if creep.room.storage.store[RESOURCE_ENERGY] >= creep.carryCapacity * .5:
                 storages.push(creep.room.storage)

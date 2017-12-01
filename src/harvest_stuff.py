@@ -82,12 +82,12 @@ def grab_energy(creep, pickup, only_energy):
     try:
         # print(pickup, 'type:', Game.getObjectById(pickup).structureType)
         if Game.getObjectById(pickup).structureType != STRUCTURE_LINK:
-            if _.sum(Game.getObjectById(pickup).store) <= (creep.carryCapacity - _.sum(creep.carry)) * .4:
+            if _.sum(Game.getObjectById(pickup).store) < (creep.carryCapacity - _.sum(creep.carry)) * .4:
                 del pickup
                 # print('checkpoint?')
                 return ERR_NOT_ENOUGH_ENERGY
         else:
-            if Game.getObjectById(pickup).energy <= (creep.carryCapacity - _.sum(creep.carry)) * .4:
+            if Game.getObjectById(pickup).energy < (creep.carryCapacity - _.sum(creep.carry)) * .4:
                 del pickup
                 # print('checkpoint??')
                 return ERR_NOT_ENOUGH_ENERGY
