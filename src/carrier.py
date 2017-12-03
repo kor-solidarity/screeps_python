@@ -345,4 +345,7 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                 creep.moveTo(repair, {'visualizePathStyle': {'stroke': '#ffffff'}})
             elif repair_result == ERR_INVALID_TARGET:
                 creep.memory.priority = 0
+            elif repair_result == ERR_NO_BODYPART:
+                creep.memory.priority = 2
+
         return
