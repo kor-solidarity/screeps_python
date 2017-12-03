@@ -151,3 +151,40 @@ def roomCallback(creeps, roomName, structures, constructions=None, ignoreRoads=F
             costs.set(creep.pos.x, creep.pos.y, 0xff)
 
     return costs
+
+
+def calc_size(distance, divisor=6, work_chance=False):
+    """
+    거리에 따른 멀티 운송크립의 BODY 크기를 구함. 메인에 늘어지는거 방지. 아직 미완성
+    :param distance:
+    :param divisor:
+    :param work_chance:
+    :return: body []
+    """
+
+    # 굳이 따로 둔 이유: 캐리 둘에 무브 하나.
+    carry_body_odd = [MOVE, CARRY, CARRY, CARRY]
+    carry_body_even = [MOVE, MOVE, CARRY, CARRY, CARRY]
+    work_body = [MOVE, WORK, WORK, MOVE, WORK, WORK]
+    body = []
+    work_check = 0
+
+    for i in range(int(distance / divisor)):
+        # work 부분부터 넣어본다.
+        if work_chance == 1:
+            work_check += 1
+            if work_check == 1 or work_check == 4:
+                for bodypart in work_body:
+                    body.push(bodypart)
+            # 본격적인 운송용 들어가야함
+            if i % 2 == 0:
+                for bodypart in carry_body_even:
+                    body.push(bodypart)
+            else:
+                for bodypart in carry_body_odd:
+                    body.push(bodypart)
+
+    # 거리 나머지값 반영.
+    if distance % 6 > 2:
+        body.push(MOVE)
+        body.push(CARRY)

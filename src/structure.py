@@ -65,7 +65,15 @@ def run_links(link, my_structures):
     """
     # 내부(테두리 5칸 이상 이내)에 있는 링크는 작동을 안한다.
     if not (link.pos.x < 5 or link.pos.x > 44 or link.pos.y < 5 or link.pos.y > 44):
+        if link.energy > 0:
+            link.room.visual.text(' 💎{}'.format(link.energy),
+                                  link.pos.x + 0, link.pos.y, {'align': 'left', 'opacity': 0.8, 'font': 0.4})
         return
+
+    if link.cooldown and link.energy:
+
+        link.room.visual.text(' 💎{}|{}'.format(link.energy, link.cooldown),
+                              link.pos.x + 0, link.pos.y, {'align': 'left', 'opacity': 0.8})
 
     if link.cooldown == 0 and link.energy >= 140:
         # links with any energy left in storage and inside the boundaries

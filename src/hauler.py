@@ -48,7 +48,9 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
     # in case it's gonna die soon. this noble act is only allowed if there's a storage in the room.
     if creep.ticksToLive < end_is_near and _.sum(creep.carry) != 0 and creep.room.storage:
         creep.say('endIsNear')
-        if creep.memory.pickup:
+        if creep.memory.haul_target:
+            del creep.memory.haul_target
+        elif creep.memory.pickup:
             del creep.memory.pickup
         for minerals in Object.keys(creep.carry):
             # print('minerals:', minerals)
@@ -61,7 +63,9 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                 break
         return
     elif creep.ticksToLive < end_is_near and creep.room.storage:
-        if creep.memory.pickup:
+        if creep.memory.haul_target:
+            del creep.memory.haul_target
+        elif creep.memory.pickup:
             del creep.memory.pickup
         creep.say('TTL:' + creep.ticksToLive)
         creep.moveTo(creep.room.controller,
@@ -134,13 +138,13 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                 # find any containers/links with any resources inside
                 storages = all_structures.filter(lambda s:
                                                  (s.structureType == STRUCTURE_CONTAINER
-                                                  and _.sum(s.store) >= creep.carryCapacity * .5)
+                                                  and _.sum(s.store) >= creep.carryCapacity * .45)
                                                  or (s.structureType == STRUCTURE_LINK
-                                                     and s.energy >= creep.carryCapacity * .5
+                                                     and s.energy >= creep.carryCapacity * .45
                                                      and not
                                                      (s.pos.x < 5 or s.pos.x > 44 or s.pos.y < 5 or s.pos.y > 44))
                                                  or (s.structureType == STRUCTURE_TERMINAL
-                                                     and s.store.energy >= creep.carryCapacity * .5
+                                                     and s.store.energy >= creep.carryCapacity * .45
                                                      and s.store.energy > terminal_capacity + creep.carryCapacity))
 
                 pickup_id = miscellaneous.pick_pickup(creep, creeps, storages, terminal_capacity)
@@ -167,8 +171,14 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                 # grabs any resources left in the storage if there are any.
                 result = harvest_stuff.grab_energy(creep, creep.memory.pickup, only_energy)
                 if result == ERR_NOT_IN_RANGE:
-                    creep.moveTo(Game.getObjectById(creep.memory.pickup),
+                    move_it = creep.moveTo(Game.getObjectById(creep.memory.pickup),
                                  {'visualizePathStyle': {'stroke': '#ffffff'}, 'reusePath': 25})
+
+                    if move_it == ERR_NO_PATH:
+                        for c in creeps:
+                            if creep.pos.inRangeTo(c, 1) and not c.name == creep.name:
+                                mv = creep.moveTo(c)
+                                break
                 elif result == 0:
                     creep.say('BEEP BEEP⛟', True)
                     # if _.sum(creep.carry) >= creep.carryCapacity * .5:
@@ -269,7 +279,15 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                 for resource in Object.keys(creep.carry):
                     storage_transfer = creep.transfer(creep.room.storage, resource)
                     if storage_transfer == ERR_NOT_IN_RANGE:
-                        creep.moveTo(creep.room.storage, {'visualizePathStyle': {'stroke': '#ffffff'}, 'reusePath': 20})
+                        move_it = creep.moveTo(creep.room.storage, {'visualizePathStyle': {'stroke': '#ffffff'}
+                                               , 'reusePath': 20})
+                        # 사각지대 안에 갇힐 경우 크립이 겹친거니 바로옆 크립 아무한테나 간다.
+                        # print('{} the {} moveit: {}'.format(creep.name, creep.memory.role, move_it))
+                        if move_it == ERR_NO_PATH:
+                            for c in creeps:
+                                if creep.pos.inRangeTo(c, 1) and not c.name == creep.name:
+                                    creep.moveTo(c)
+                                    break
                         break
                     elif storage_transfer == 0:
                         break
@@ -289,7 +307,7 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                         del creep.memory.haul_target
 
                 # haul_target == cela adreso por porti la energion.
-                if not creep.memory.haul_target:
+                if not creep.memory.haul_target and creep.carry.energy > 0:
 
                     structures = all_structures.filter(lambda s: ((s.structureType == STRUCTURE_SPAWN
                                                                    or s.structureType == STRUCTURE_EXTENSION
@@ -333,7 +351,7 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                                             # nur plusas 1 ĉar en ĉi tio stato ni bezonas 3 kripoj
                                             size_counter += 1
 
-                                        elif structure.energy < structure.energyCapacity * .7:
+                                        elif structure.energy < structure.energyCapacity * .65:
                                             size_counter += 2
                                         else:
                                             size_counter += 3
@@ -496,8 +514,14 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
 
         # priority 3: repair
         elif creep.memory.priority == 3:
-
+            # no repairs? GTFO
+            if not repair:
+                creep.memory.priority = 0
+                return
+            # print(repairs)
+            # print('repair {} , pos: {}'.format(repair, repair.pos))
             repair_result = creep.repair(repair)
+            # print('{} the {}: repair_result {}'.format(creep.name, creep.memory.role, repair_result))
             if repair_result == ERR_NOT_IN_RANGE:
                 creep.moveTo(repair, {'visualizePathStyle': {'stroke': '#ffffff'}, 'reusePath': 10, 'range': 3})
             elif repair_result == ERR_INVALID_TARGET:
@@ -515,7 +539,8 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                              , {'visualizePathStyle': {'stroke': '#ffffff'}, 'range': 3, 'reusePath': 10})
             # if having anything other than energy when not on priority 1 switch to 1
             # 운송크립은 발전에 심혈을 기울이면 안됨.
-            if creep.carry[RESOURCE_ENERGY] <= 0 or _.sum(creep.carry) <= creep.carryCapacity * .7:
+            if (creep.carry[RESOURCE_ENERGY] <= 0 or _.sum(creep.carry) <= creep.carryCapacity * .7) and \
+                            creep.room.controller.level > 3:
                 creep.memory.priority = 1
                 creep.say('복귀!', True)
                 del creep.memory.to_storage

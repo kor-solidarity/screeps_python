@@ -188,7 +188,6 @@ def main():
 
         hostile_creeps = chambro.find(FIND_HOSTILE_CREEPS)
 
-
         # 단계별 제곱근값
         square = 8
         # list of ALL repairs in the room.
@@ -200,10 +199,12 @@ def main():
                                                      or s.structureType == STRUCTURE_CONTAINER
                                                      or s.structureType == STRUCTURE_STORAGE)
                                                     and s.hits < s.hitsMax)
-                                                   or (s.structureType == STRUCTURE_WALL
+                                                   or ((s.structureType == STRUCTURE_WALL
                                                        and s.hits < int(square ** chambro.controller.level))
                                                    or (s.structureType == STRUCTURE_RAMPART
-                                                       and s.hits < int(square ** chambro.controller.level))))
+                                                       and s.hits < int(square ** chambro.controller.level))
+                                                       and chambro.controller.level > 1)
+                                                   ))
 
         if not repairs or len(repairs) == 0:
             repairs = []
@@ -211,6 +212,7 @@ def main():
         extractor = None
         # extractors = _.filter(all_structures, lambda s: s.structureType == STRUCTURE_EXTRACTOR)
         for structure in all_structures:
+            # print('structure.structureType: {}'.format(structure.structureType))
             if structure.structureType == STRUCTURE_EXTRACTOR and structure.my:
                 extractor = structure
                 break
@@ -628,10 +630,10 @@ def main():
                 # start making upgraders after there's a storage
                 elif spawn.room.controller.level > 2 and spawn.room.storage:
 
-                    if spawn.room.controller.level < 5:
-                        expected_reserve = 2000
-                    else:
-                        expected_reserve = 3000
+                    # if spawn.room.controller.level < 5:
+                    expected_reserve = 2000
+                    # else:
+                    #     expected_reserve = 3000
 
                     # if there's no storage or storage has less than expected_reserve
                     if spawn.room.storage.store[RESOURCE_ENERGY] < expected_reserve or not spawn.room.storage:
@@ -680,7 +682,7 @@ def main():
                 # REMOTE---------------------------------------------------------------------------
                 if len(flag_name) > 0:
                     for flag in flag_name:
-
+                        # print('flag {}'.format(flag))
                         # if seeing the room is False - need to be scouted
                         if not Game.flags[flag].room:
                             # look for scouts
@@ -893,12 +895,12 @@ def main():
                                     if len(body) > 50:
                                         # WORK 가 있을경우
                                         if working_part:
-                                            body = [WORK, WORK, WORK, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE,
-                                                    MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, CARRY, CARRY,
+                                            body = [WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, MOVE, MOVE, MOVE,
+                                                    MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE,
+                                                    MOVE, MOVE, MOVE, MOVE, MOVE, MOVE,
+                                                    CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY,
                                                     CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY,
-                                                    CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY,
-                                                    CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY,
-                                                    CARRY]
+                                                    CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY]
                                         else:
                                             body = [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE,
                                                     MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, CARRY, CARRY, CARRY, CARRY,
@@ -924,7 +926,11 @@ def main():
                                             for bodypart in work_body:
                                                 body.push(bodypart)
                                         # 15% 몸집을 줄여본다.
-                                        for i in range(int(distance / 7)):
+                                        if int(distance / 7) == 0:
+                                            distance = 1
+                                        else:
+                                            distance = int(distance / 7)
+                                        for i in range(distance):
                                             if i % 2 == 1:
                                                 for bodypart in carry_body_odd:
                                                     body.push(bodypart)
@@ -1030,7 +1036,7 @@ def main():
 
                             if dem_bool:
                                 remote_dem = _.filter(creeps, lambda c: c.memory.role == 'demolition'
-                                                                           and c.memory.flag_name == dem_flag)
+                                                                        and c.memory.flag_name == dem_flag)
                                 dem_num = len(remote_dem)
                             else:
                                 dem_num = 0
@@ -1047,15 +1053,15 @@ def main():
                                             WORK, WORK]
                                 spawning_creep = spawn.createCreep(body, undefined, {'role': 'demolition',
                                                                                      'assigned_room': spawn.pos.roomName
-                                                                                     , 'demo_container': demo_container
-                                                                                     , 'flag_name': dem_flag})
+                                    , 'demo_container': demo_container
+                                    , 'flag_name': dem_flag})
                                 if spawning_creep == ERR_NOT_ENOUGH_RESOURCES:
                                     body = [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK,
                                             WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK]
                                     spawn.createCreep(body, undefined, {'role': 'demolition',
                                                                         'assigned_room': spawn.pos.roomName
-                                                                        , 'demo_container': demo_container
-                                                                        , 'flag_name': dem_flag})
+                                        , 'demo_container': demo_container
+                                        , 'flag_name': dem_flag})
 
                                 continue
 
@@ -1064,7 +1070,7 @@ def main():
                 spawning_creep = Game.creeps[spawn.spawning.name]
                 spawn.room.visual.text(
                     '🛠 ' + spawning_creep.memory.role + ' '
-                    + "{}/{}".format(spawn.spawning.remainingTime, spawn.spawning.needTime),
+                    + "{}/{}".format(spawn.spawning.remainingTime - 1, spawn.spawning.needTime),
                     # + str(int(
                     #     ((spawn.spawning.needTime - spawn.spawning.remainingTime)
                     #      / spawn.spawning.needTime) * 100)) + '%',
@@ -1085,7 +1091,7 @@ def main():
                 for creep in creeps:
                     # 방 안에 있는 크립 중에 회복대상자들.
                     if 100 < creep.ticksToLive < 500 and creep.room.name == spawn.room.name \
-                            and (creep.memory.level >= level - 3 and not creep.memory.level <= 0):
+                            and creep.memory.level >= level:
                         if spawn.pos.isNearTo(creep):
                             # print(creep.ticksToLive)
                             result = spawn.renewCreep(creep)

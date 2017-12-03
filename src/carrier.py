@@ -172,7 +172,7 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
             # made for cases carriers dont have WORK
             creep_body_has_work = False
             for body in creep.body:
-                if body.type == 'work':
+                if body.type == WORK:
                     creep_body_has_work = True
                     break
 
