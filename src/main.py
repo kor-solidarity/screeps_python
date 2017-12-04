@@ -34,25 +34,16 @@ stuff you need now:
         1-1. after this the harvester won't leave anywhere else than areas close to them. distributor will carry 4 them 
         2. if theres no place to collect to they go and help up with upgrading.
         3. there are currently 5 harvesters. when python is made i only need 1 or 2(probably). 
-        size: 
-    spawn.createCreep([WORK,WORK,WORK,WORK,CARRY,CARRY,CARRY,CARRY,MOVE,MOVE,MOVE,MOVE], undefined, {'role': 'harvester'})
-    spawn.createCreep([WORK,WORK,WORK,CARRY,CARRY,CARRY,MOVE,MOVE,MOVE], undefined, {'role': 'harvester'}) - smaller
 
 - upgrader: 
-        1. upgrade and repair a bit. 2:1 ratio.
-        size:
-        ([WORK,WORK,WORK,WORK,CARRY,CARRY,CARRY,MOVE,MOVE,MOVE,MOVE], undefined, {'role': 'upgrader'})
-        ([WORK,WORK,CARRY,CARRY,MOVE,MOVE], undefined, {'role': 'upgrader'}) - smaller
+        1. upgrade. what else.
 - hauler:
         1. so... this guy does all the job carrying resources from one place to another. 
             harvester only collects to storage.
-        2. this i need to make it work -  carriers repair as they move to distribute. - 2:1 ratio with 1.  
-        size: 
-        ([WORK,CARRY,CARRY,CARRY,CARRY,MOVE,MOVE,MOVE,MOVE], undefined, {'role': 'hauler'})
-        ([WORK,CARRY,MOVE], undefined, {'role': 'hauler'}) - smaller. 
-- carrier:
-        1. same with hauler. but focused in remote mining.
+        2. this i need to make it work -  carriers repair as they move to distribute. 
         
+- carrier:
+        1. same with hauler. but focused in remotes        
         
 - fighter(melee):
         1. well.... fights off enemy and also attacks.
@@ -189,7 +180,9 @@ def main():
         hostile_creeps = chambro.find(FIND_HOSTILE_CREEPS)
 
         # 단계별 제곱근값
-        square = 8
+        square = chambro.controller.level
+        if square < 4:
+            square = 4
         # list of ALL repairs in the room.
         repairs = all_structures.filter(lambda s: (((s.structureType == STRUCTURE_ROAD
                                                      or s.structureType == STRUCTURE_TOWER
@@ -200,9 +193,9 @@ def main():
                                                      or s.structureType == STRUCTURE_STORAGE)
                                                     and s.hits < s.hitsMax)
                                                    or ((s.structureType == STRUCTURE_WALL
-                                                       and s.hits < int(square ** chambro.controller.level))
+                                                       and s.hits < int(square ** square))
                                                    or (s.structureType == STRUCTURE_RAMPART
-                                                       and s.hits < int(square ** chambro.controller.level))
+                                                       and s.hits < int(square ** square))
                                                        and chambro.controller.level > 1)
                                                    ))
 
@@ -500,7 +493,6 @@ def main():
                     continue
 
                 plus = 0
-                # 아래 새 시도를 위해 임시폐쇄
                 for harvest_container in harvest_carry_targets:
                     # Ĉar uzi getObjectById k.t.p estas tro longa.
                     harvest_target = Game.getObjectById(harvest_container)
@@ -517,20 +509,6 @@ def main():
                         elif harvest_target.energy <= harvest_target.energyCapacity * .4:
                             plus -= 1
 
-                # container_total_cap = 0
-                # container_cap = 0
-                # for hc in harvest_carry_targets:
-                #     if hc.structureType == STRUCTURE_CONTAINER:
-                #         container_cap += _.sum(hc.store)
-                #         container_total_cap += hc.storeCapacity
-                #     else:
-                #         container_cap += hc.energy
-                #         # + 부분은 링크니 보정. 필요하긴 할라나?
-                #         container_total_cap += hc.energyCapacity + 200
-                #
-                # if container_cap > container_total_cap * .15:
-                #     plus = -2
-
                 # 건물이 아예 없을 시
                 if len(harvest_carry_targets) == 0:
                     plus = -num_o_sources
@@ -543,36 +521,30 @@ def main():
                     hauler_capacity = 4
 
                 if len(creep_haulers) < hauler_capacity:
-                    # first hauler is always 250 sized. - 'balance' purpose(idk just made it up)
-                    if spawn.room.energyAvailable >= spawn.room.energyCapacityAvailable * .85 \
-                            and len(creep_haulers) != 0:
-                        # 800
-                        spawning_creep = spawn.createCreep(
-                            [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, CARRY,
-                             CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY,
-                             CARRY, CARRY],
-                            undefined, {'role': 'hauler', 'assigned_room': spawn.pos.roomName,
-                                        'level': 8})
-                        # 600
-                        if spawning_creep == -6:
-                            spawning_creep = spawn.createCreep(
-                                [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, CARRY, CARRY, CARRY,
-                                 CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY],
-                                undefined, {'role': 'hauler', 'assigned_room': spawn.pos.roomName,
-                                            'level': 8})
+                    # 순서는 무조건 아래와 같다. 무조건 덩치큰게 장땡.
+                    # 800
+                    spawning_creep = spawn.createCreep(
+                        [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, CARRY,
+                         CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY,
+                         CARRY, CARRY],
+                        undefined, {'role': 'hauler', 'assigned_room': spawn.pos.roomName,
+                                    'level': 8})
 
-                    else:
+                    if spawning_creep == -6:
+                        # 600
                         spawning_creep = spawn.createCreep(
                             [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, CARRY, CARRY, CARRY,
                              CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY],
                             undefined, {'role': 'hauler', 'assigned_room': spawn.pos.roomName,
                                         'level': 8})
-                        if spawning_creep == -6:
-                            spawning_creep = spawn.createCreep([WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY,
-                                                                CARRY, CARRY, MOVE, MOVE, MOVE, MOVE, MOVE],
-                                                               undefined,
-                                                               {'role': 'hauler', 'assigned_room': spawn.pos.roomName,
-                                                                'level': 5})
+
+                    if spawning_creep == -6:
+                        # 250
+                        spawning_creep = spawn.createCreep([WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY,
+                                                            CARRY, CARRY, MOVE, MOVE, MOVE, MOVE, MOVE],
+                                                           undefined,
+                                                           {'role': 'hauler', 'assigned_room': spawn.pos.roomName,
+                                                            'level': 5})
 
                     if spawning_creep == -6:
                         if spawn.createCreep([WORK, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE], undefined,
@@ -1089,9 +1061,8 @@ def main():
                 level = Game.spawns[nesto.name].room.controller.level
 
                 for creep in creeps:
-                    # 방 안에 있는 크립 중에 회복대상자들.
-                    if 100 < creep.ticksToLive < 500 and creep.room.name == spawn.room.name \
-                            and creep.memory.level >= level:
+                    # 방 안에 있는 크립 중에 회복대상자
+                    if 100 < creep.ticksToLive < 500 and creep.memory.level >= level:
                         if spawn.pos.isNearTo(creep):
                             # print(creep.ticksToLive)
                             result = spawn.renewCreep(creep)
@@ -1127,7 +1098,7 @@ def main():
                                 for repair_wall_rampart in repairs:
                                     if repair_wall_rampart.structureType == STRUCTURE_WALL \
                                             or repair_wall_rampart.structureType == STRUCTURE_RAMPART:
-                                        if repair_wall_rampart.hits < current_lvl ** (square - 4):
+                                        if repair_wall_rampart.hits < 250:
                                             repairs = [repair_wall_rampart]
                                             break
 
