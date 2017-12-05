@@ -170,11 +170,11 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
         if creep.memory.priority == 0:
             # print(creep.name)
             # made for cases carriers dont have WORK
-            creep_body_has_work = False
-            for body in creep.body:
-                if body.type == WORK:
-                    creep_body_has_work = True
-                    break
+            creep_body_has_work = creep.memory.work
+            # for body in creep.body:
+            #     if body.type == WORK:
+            #         creep_body_has_work = True
+            #         break
 
             try:
                 # construction sites. only find if creep is not in its flag location.
@@ -213,7 +213,7 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                     creep.memory.priority = 3
 
         if creep.memory.priority != 1:
-            if len(repairs) > 0:
+            if len(repairs) > 0 and creep.memory.work:
                 repair = creep.pos.findClosestByRange(repairs)
 
         # PRIORITY 1: construct
@@ -287,7 +287,7 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
             # if you're not in the assigned_room and no haul_target
             if creep.room.name != Game.rooms[creep.memory.assigned_room].name and not creep.memory.haul_target:
                 # at first it was to move to controller. but somehow keep getting an error, so let's try
-                if len(repairs) > 0:
+                if len(repairs) > 0 and creep.memory.work:
                     creep.repair(repair)
                 creep.moveTo(outside_links_and_containers[0],
                              {'visualizePathStyle': {'stroke': '#ffffff'}, 'ignoreCreeps': True, 'reusePath': 40})
@@ -305,7 +305,7 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
             # print(creep.name, 'transfer_result', transfer_result)
 
             if transfer_result == ERR_NOT_IN_RANGE:
-                if len(repairs) > 0:
+                if len(repairs) > 0 and creep.memory.work:
                     creep.repair(repair)
                 creep.moveTo(Game.getObjectById(creep.memory.haul_target)
                              , {'visualizePathStyle': {'stroke': '#ffffff'}
@@ -324,6 +324,9 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
 
         # 수리
         elif creep.memory.priority == 3:
+            if not creep.memory.work:
+                creep.memory.priority = 2
+                creep.say('운송만 하겠수다', True)
 
             repair_result = creep.repair(repair)
             try:

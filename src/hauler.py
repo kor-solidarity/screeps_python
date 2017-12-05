@@ -266,9 +266,6 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
         # debug purpose
         test_name = ''
 
-        if len(repairs) > 0:
-            repair = creep.pos.findClosestByRange(repairs)
-
         # priority 1: transfer
         if creep.memory.priority == 1:
             # if creep is assigned to store to storage
@@ -435,6 +432,7 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                         print('creep.memory.haul_target:', Game.getObjectById(creep.memory.haul_target))
                     if transfer_result == ERR_NOT_IN_RANGE:
                         if len(repairs) > 0:
+                            repair = creep.pos.findClosestByRange(repairs)
                             creep.repair(repair)
 
                         creep.moveTo(Game.getObjectById(creep.memory.haul_target),
@@ -514,8 +512,10 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
 
         # priority 3: repair
         elif creep.memory.priority == 3:
+            if len(repairs) > 0:
+                repair = creep.pos.findClosestByRange(repairs)
             # no repairs? GTFO
-            if not repair:
+            else:
                 creep.memory.priority = 0
                 return
             # print(repairs)
@@ -536,11 +536,11 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
             upgrade_result = creep.upgradeController(Game.getObjectById(creep.memory.upgrade_target))
             if upgrade_result == ERR_NOT_IN_RANGE:
                 creep.moveTo(Game.getObjectById(creep.memory.upgrade_target)
-                             , {'visualizePathStyle': {'stroke': '#ffffff'}, 'range': 3, 'reusePath': 10})
+                             , {'visualizePathStyle': {'stroke': '#ffffff'}, 'range': 3, 'reusePath': 20})
             # if having anything other than energy when not on priority 1 switch to 1
             # 운송크립은 발전에 심혈을 기울이면 안됨.
-            if (creep.carry[RESOURCE_ENERGY] <= 0 or _.sum(creep.carry) <= creep.carryCapacity * .7) and \
-                            creep.room.controller.level > 3:
+            if (creep.carry[RESOURCE_ENERGY] <= 0 or _.sum(creep.carry) <= creep.carryCapacity * .7) \
+                    and creep.room.controller.level > 3:
                 creep.memory.priority = 1
                 creep.say('복귀!', True)
                 del creep.memory.to_storage

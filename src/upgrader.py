@@ -27,18 +27,18 @@ def run_upgrader(creep, all_structures):
     if creep.ticksToLive < 30 and _.sum(creep.carry) != 0 and creep.room.storage:
         creep.say('endIsNear')
         for minerals in Object.keys(creep.carry):
-            print('minerals:', minerals)
+            # print('minerals:', minerals)
             transfer_minerals_result = creep.transfer(creep.room.storage, minerals)
-            print(transfer_minerals_result)
+            # print(transfer_minerals_result)
             if transfer_minerals_result == ERR_NOT_IN_RANGE:
-                creep.moveTo(creep.room.storage, {'visualizePathStyle': {'stroke': '#ffffff'}})
+                creep.moveTo(creep.room.storage, {'visualizePathStyle': {'stroke': '#ffffff'}, 'reusePath': 10})
                 break
             elif transfer_minerals_result == 0:
                 break
         return
     elif creep.ticksToLive < 30 and creep.room.storage:
         creep.say('TTL:' + creep.ticksToLive)
-        creep.moveTo(creep.room.controller, {'visualizePathStyle': {'stroke': '#ffffff'}})
+        creep.moveTo(creep.room.controller, {'visualizePathStyle': {'stroke': '#ffffff'}, 'reusePath': 10})
         return
 
     # 혹시 딴짓하다 옆방으로 새는거에 대한 대비 - it really happened lol
@@ -102,13 +102,12 @@ def run_upgrader(creep, all_structures):
                 return
 
         # find any storages with any energy inside
-        storages = all_structures.filter(lambda s: ((s.structureType == STRUCTURE_STORAGE
-                                                     or s.structureType == STRUCTURE_CONTAINER)
+        storages = all_structures.filter(lambda s: (s.structureType == STRUCTURE_CONTAINER
                                                     and s.store[RESOURCE_ENERGY] > 0)
-                                                   or (s.structureType == STRUCTURE_LINK
-                                                       and s.energy >= 150
-                                                       and not (s.pos.x < 5 or s.pos.x > 44
-                                                                or s.pos.y < 5 or s.pos.y > 44)))
+                                                    or (s.structureType == STRUCTURE_LINK
+                                                        and s.energy >= 150
+                                                        and not (s.pos.x < 5 or s.pos.x > 44
+                                                                 or s.pos.y < 5 or s.pos.y > 44)))
         try:  # if there's no storage, just pass
             if creep.room.storage.store[RESOURCE_ENERGY] >= creep.carryCapacity * .5:
                 storages.push(creep.room.storage)
@@ -148,9 +147,9 @@ def run_upgrader(creep, all_structures):
             creep.moveTo(Game.getObjectById(creep.memory.upgrade_target),
                          {vis_key: {stroke_key: '#FFFFFF'}, 'range': 3})
 
-        if _.sum(creep.carry) == 0:
-            creep.memory.laboro = 0
-            creep.say('🔄 수확하러갑세!', True)
+        # if _.sum(creep.carry) == 0:
+        #     creep.memory.laboro = 0
+        #     creep.say('🔄 수확하러갑세!', True)
 
 
 def run_reserver(creep):
@@ -163,15 +162,14 @@ def run_reserver(creep):
         # if creep is not in it's flag's room.
         if creep.room.name != Game.flags[creep.memory.flag_name].room.name:
             # go.
-            creep.moveTo(Game.flags[creep.memory.flag_name], {'visualizePathStyle': {'stroke': '#ffffff'}})
-            return
+            creep.moveTo(Game.flags[creep.memory.flag_name]
+                         , {'visualizePathStyle': {'stroke': '#ffffff'}, 'reusePath': 20})
         # if in.
         else:
             # reserve the room
             creep_action = creep.reserveController(creep.room.controller)
             if creep_action == ERR_NOT_IN_RANGE:
-                creep.moveTo(creep.room.controller, {'visualizePathStyle': {'stroke': '#ffffff'}})
-                return
+                creep.moveTo(creep.room.controller, {'visualizePathStyle': {'stroke': '#ffffff'}, 'reusePath': 20})
             elif creep_action == OK:
                 if Game.time % 2 == 0:
                     creep.say('🏴🏴🏴🏴🏴', True)
@@ -182,4 +180,4 @@ def run_reserver(creep):
 
     except:
         print("ERR!!!")
-        creep.moveTo(Game.flags[creep.memory.flag_name], {'visualizePathStyle': {'stroke': '#ffffff'}})
+        creep.moveTo(Game.flags[creep.memory.flag_name], {'visualizePathStyle': {'stroke': '#ffffff'}, 'reusePath': 20})

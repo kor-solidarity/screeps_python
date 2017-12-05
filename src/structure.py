@@ -11,7 +11,7 @@ __pragma__('noalias', 'type')
 __pragma__('noalias', 'update')
 
 
-def run_tower(tower, all_structures, creeps, hostile_creeps, repairs, square):
+def run_tower(tower, hostile_creeps, repairs, malsana_amikoj):
     """
 
     :param tower:
@@ -19,11 +19,11 @@ def run_tower(tower, all_structures, creeps, hostile_creeps, repairs, square):
     :param creeps: tower.room.find(FIND_MY_CREEPS)
     :param hostile_creeps: tower.room.find(FIND_HOSTILE_CREEPS)
     :param repairs: repair stuffs.
-    :param square: 제곱근값. 별건 아니고 건물확인차 쓰이는거임.
+    :param malsana_amikoj:
     :return:
     """
     # tower havas du laborojn.
-    # 1. serĉas por malamikoj kaj mortigi ĝin.
+    # 1. serĉas por malamikoj kaj morti ilin.
     # 2. heal creeps. and then 3
     # 3. se tie ne estas malamikojn, serĉas por konstruaĵoj kiu bezonas repari kaj repari ĝin.
 
@@ -31,8 +31,6 @@ def run_tower(tower, all_structures, creeps, hostile_creeps, repairs, square):
 
     if tower.energy < tower.energyCapacity * 0.25 and len(hostile_creeps) == 0:
         return
-
-    malsana_amikoj = _.filter(creeps, lambda c: c.hits < c.hitsMax)
 
     if len(hostile_creeps) > 0 and len(malsana_amikoj) > 0:
         flip = random.randint(0, 1)
@@ -48,7 +46,7 @@ def run_tower(tower, all_structures, creeps, hostile_creeps, repairs, square):
     elif len(malsana_amikoj) > 0:
         malsana_amiko = tower.pos.findClosestByRange(malsana_amikoj)
         tower.heal(malsana_amiko)
-    else:
+    elif Game.cpu.bucket > 2000:
         if tower.energy < tower.energyCapacity * 0.25:
             return
         else:

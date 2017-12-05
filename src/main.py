@@ -83,12 +83,26 @@ def main():
     Main game logic loop.
     """
 
+    print()
+    print('----- NEW TICK -----')
+    print()
+
+    # cpu counter
+    if not Memory.ticks:
+        Memory.ticks = 15
+    if not Memory.cpu_usage:
+        Memory.cpu_usage = []
+        # 아래는 나중에 추가로 넣을 수도 있는 사항. 아직은 넣지 않는다.
+        # Memory.cpu_usage.total = []
+        # Memory.cpu_usage.creep = []
+        # Memory.cpu_usage.buildings = []
+
     if not Memory.updateAlliance and Memory.updateAlliance != False:
         Memory.updateAlliance = True
 
     try:
-        # adding alliance
-        if Game.time % 1 == 0 and Memory.updateAlliance:
+        # adding alliance. um.... this code use 0.05 CPU o.O
+        if Game.time % 997 == 0 and Memory.updateAlliance:
             shard_name = Game.shard.name
             if shard_name == 'shard0':
                 hostUsername = 'kirk'
@@ -113,6 +127,7 @@ def main():
         print('Error in RawMemory.foreignSegment handling (alliance):', err)
 
     try:
+        waste = Game.cpu.getUsed()
         # deleting unused creep memory.
         for name in Object.keys(Memory.creeps):
             if not Game.creeps[name]:
@@ -132,6 +147,7 @@ def main():
                     continue
             except:
                 continue
+        print('time wasted for fun: {} cpu'.format(round(Game.cpu.getUsed() - waste, 2)))
     except:
         pass
 
@@ -141,7 +157,7 @@ def main():
         if Memory.debug:
             print(JSON.stringify(Memory.rooms))
 
-            # 각 방 이름.
+            # 각 방 이름. 방 통째로 삭제하는거 때문에 넣음.
             for rooms in Object.keys(Memory.rooms):
                 structure_list = Memory.rooms[rooms]
 
@@ -152,9 +168,6 @@ def main():
     if Memory.dropped_sources:
         del Memory.dropped_sources
 
-    # cpu limit warning. only works when losing cpu and you have a 10 cpu limit
-    if Game.cpu.bucket < 2000 and Game.cpu.limit < 20:
-        print('WARNING: Game.cpu.bucket == {}'.format(Game.cpu.bucket))
     # to count the number of creeps passed.
     passing_creep_counter = 0
 
@@ -162,6 +175,12 @@ def main():
     structure_renew_count = 200
     # JSON string to be put into memory
     for_json = ''
+
+    print('base setup time: {} cpu'.format(round(Game.cpu.getUsed(), 2)))
+
+    # cpu limit warning. only works when losing cpu and you have a 10 cpu limit
+    if Game.cpu.bucket < 2000 and Game.cpu.limit < 20:
+        print('WARNING: Game.cpu.bucket == {}'.format(Game.cpu.bucket))
 
     # run everything according to each rooms.
     for chambra_nomo in Object.keys(Game.rooms):
@@ -173,6 +192,8 @@ def main():
         all_structures = chambro.find(FIND_STRUCTURES)
 
         creeps = chambro.find(FIND_MY_CREEPS)
+
+        malsana_amikoj = _.filter(creeps, lambda c: c.hits < c.hitsMax)
 
         constructions = chambro.find(FIND_CONSTRUCTION_SITES)
         dropped_all = chambro.find(FIND_DROPPED_RESOURCES)
@@ -204,11 +225,12 @@ def main():
 
         extractor = None
         # extractors = _.filter(all_structures, lambda s: s.structureType == STRUCTURE_EXTRACTOR)
-        for structure in all_structures:
-            # print('structure.structureType: {}'.format(structure.structureType))
-            if structure.structureType == STRUCTURE_EXTRACTOR and structure.my:
-                extractor = structure
-                break
+        if my_structures:
+            for structure in my_structures:
+                # print('structure.structureType: {}'.format(structure.structureType))
+                if structure.structureType == STRUCTURE_EXTRACTOR:
+                    extractor = structure
+                    break
 
         # to filter out the allies.
         if len(hostile_creeps) > 0:
@@ -219,8 +241,12 @@ def main():
 
         spawns = chambro.find(FIND_MY_SPAWNS)
 
+        print("preparation time for room {}: {} cpu".format(chambro.name, round(Game.cpu.getUsed(), 2)))
+
         # Run each creeps
         for chambro_creep in creeps:
+            creep_cpu = Game.cpu.getUsed()
+
             creep = Game.creeps[chambro_creep.name]
 
             # 만일 생산중이면 그냥 통과
@@ -288,6 +314,10 @@ def main():
             elif creep.memory.role == 'demolition':
                 soldier.demolition(creep, all_structures)
 
+            creep_cpu_end = Game.cpu.getUsed() - creep_cpu
+
+            print('{} the {} used {} cpu'.format(creep.name, creep.memory.role, round(creep_cpu_end, 2)))
+
         # 멀티자원방 관련 스크립트
         if Game.time % structure_renew_count == 1 or not Memory.rooms:
             for name in Object.keys(Game.flags):
@@ -306,7 +336,7 @@ def main():
         counter = 10
         # Run each spawn every "counter" turns.
         for nesto in spawns:
-
+            spawn_cpu = Game.cpu.getUsed()
             # depict exactly which spawn it is.
             spawn = Game.spawns[nesto.name]
 
@@ -1067,6 +1097,10 @@ def main():
                             # print(creep.ticksToLive)
                             result = spawn.renewCreep(creep)
                             break
+
+            spawn_cpu_end = Game.cpu.getUsed() - spawn_cpu
+            print('spawn {} used {} cpu'.format(nesto.name, round(spawn_cpu_end, 2)))
+
         # 멀티방 건물정보 저장. 현재는 아무기능 안한다.
         if Game.time % structure_renew_count == 1:
             # 정규식으로 확인. -rm 으로 끝나는 깃발은 다 멀티자원방이기 때문에 그걸 확인한다.
@@ -1094,7 +1128,7 @@ def main():
                         elif building_name == STRUCTURE_TOWER:
                             # 수리작업을 할때 벽·방어막 체력 만 이하가 있으면 그걸 최우선으로 고친다.
                             # 적이 있을 시 수리 자체를 안하니 있으면 아예 무시.
-                            if len(hostile_creeps) == 0 and current_lvl > 4:
+                            if len(hostile_creeps) == 0 and current_lvl > 4 and Game.cpu.bucket > 2000:
                                 for repair_wall_rampart in repairs:
                                     if repair_wall_rampart.structureType == STRUCTURE_WALL \
                                             or repair_wall_rampart.structureType == STRUCTURE_RAMPART:
@@ -1104,9 +1138,9 @@ def main():
 
                             for tower in structure_list[building_name]:
                                 # sometimes these could die you know....
-                                if Game.getObjectById(tower):
-                                    building_action.run_tower(Game.getObjectById(tower), all_structures,
-                                                              creeps, hostile_creeps, repairs, square)
+                                the_tower = Game.getObjectById(tower)
+                                if the_tower:
+                                    building_action.run_tower(the_tower, hostile_creeps, repairs, malsana_amikoj)
                         elif building_name == STRUCTURE_LINK:
                             for link in structure_list[building_name]:
                                 if Game.getObjectById(link):
@@ -1117,17 +1151,17 @@ def main():
         print('passed creeps:', passing_creep_counter)
 
     # 스트럭쳐 목록 초기화 위한 작업. 마지막에 다 지워야 운용에 차질이 없음.
+    # 추후 정리해야 하는 사안일듯.
     if Game.time % structure_renew_count == 0:
         del Memory.rooms
 
-    # cpu counter
-    if not Memory.ticks:
-        Memory.ticks = 15
-    if not Memory.cpu_usage:
-        Memory.cpu_usage = [0]
+    # adding total cpu
+    # while len(Memory.cpu_usage.total) >= Memory.ticks:
     while len(Memory.cpu_usage) >= Memory.ticks:
         Memory.cpu_usage.splice(0, 1)
+        # Memory.cpu_usage.total.splice(0, 1)
     Memory.cpu_usage.push(round(Game.cpu.getUsed(), 2))
+    # Memory.cpu_usage.total.push(round(Game.cpu.getUsed(), 2))
 
     # there's a reason I made it this way...
     if not Memory.tick_check and Memory.tick_check != False:
