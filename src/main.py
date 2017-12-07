@@ -83,9 +83,9 @@ def main():
     Main game logic loop.
     """
 
-    print()
-    print('----- NEW TICK -----')
-    print()
+    # print()
+    # print('----- NEW TICK -----')
+    # print()
 
     # cpu counter
     if not Memory.ticks:
@@ -147,7 +147,7 @@ def main():
                     continue
             except:
                 continue
-        print('time wasted for fun: {} cpu'.format(round(Game.cpu.getUsed() - waste, 2)))
+        # print('time wasted for fun: {} cpu'.format(round(Game.cpu.getUsed() - waste, 2)))
     except:
         pass
 
@@ -176,7 +176,7 @@ def main():
     # JSON string to be put into memory
     for_json = ''
 
-    print('base setup time: {} cpu'.format(round(Game.cpu.getUsed(), 2)))
+    # print('base setup time: {} cpu'.format(round(Game.cpu.getUsed(), 2)))
 
     # cpu limit warning. only works when losing cpu and you have a 10 cpu limit
     if Game.cpu.bucket < 2000 and Game.cpu.limit < 20:
@@ -241,11 +241,11 @@ def main():
 
         spawns = chambro.find(FIND_MY_SPAWNS)
 
-        print("preparation time for room {}: {} cpu".format(chambro.name, round(Game.cpu.getUsed(), 2)))
+        # print("preparation time for room {}: {} cpu".format(chambro.name, round(Game.cpu.getUsed(), 2)))
 
         # Run each creeps
         for chambro_creep in creeps:
-            creep_cpu = Game.cpu.getUsed()
+            # creep_cpu = Game.cpu.getUsed()
 
             creep = Game.creeps[chambro_creep.name]
 
@@ -316,7 +316,7 @@ def main():
 
             creep_cpu_end = Game.cpu.getUsed() - creep_cpu
 
-            print('{} the {} used {} cpu'.format(creep.name, creep.memory.role, round(creep_cpu_end, 2)))
+            # print('{} the {} used {} cpu'.format(creep.name, creep.memory.role, round(creep_cpu_end, 2)))
 
         # 멀티자원방 관련 스크립트
         if Game.time % structure_renew_count == 1 or not Memory.rooms:
@@ -336,7 +336,7 @@ def main():
         counter = 10
         # Run each spawn every "counter" turns.
         for nesto in spawns:
-            spawn_cpu = Game.cpu.getUsed()
+            # spawn_cpu = Game.cpu.getUsed()
             # depict exactly which spawn it is.
             spawn = Game.spawns[nesto.name]
 
@@ -697,20 +697,11 @@ def main():
                                 # print('spawn_res:', spawn_res)
                                 break
                         else:
-                            # find creeps with assigned flag.
+                            # find creeps with assigned flag. find troops first.
                             remote_troops = _.filter(creeps, lambda c: c.memory.role == 'soldier'
                                                                        and c.memory.flag_name == flag
                                                                        and (c.spawning or (c.hits > c.hitsMax * .6
                                                                                            and c.ticksToLive > 100)))
-                            remote_carriers = _.filter(creeps, lambda c: c.memory.role == 'carrier'
-                                                                         and c.memory.flag_name == flag
-                                                                         and (c.spawning or c.ticksToLive > 100))
-                            # exclude creeps with less than 100 life ticks so the new guy can be replaced right away
-                            remote_harvesters = _.filter(creeps, lambda c: c.memory.role == 'harvester'
-                                                                           and c.memory.flag_name == flag
-                                                                           and (c.spawning or c.ticksToLive > 120))
-                            remote_reservers = _.filter(creeps, lambda c: c.memory.role == 'reserver'
-                                                                          and c.memory.flag_name == flag)
 
                             hostiles = Game.flags[flag].room.find(FIND_HOSTILE_CREEPS)
                             # to filter out the allies.
@@ -749,6 +740,17 @@ def main():
                             # 방 안에 적이 있으면 아예 생산을 하지 않는다! 정찰대와 방위병 빼고.
                             if len(hostiles) > 0:
                                 continue
+
+                            # find creeps with assigned flag.
+                            remote_carriers = _.filter(creeps, lambda c: c.memory.role == 'carrier'
+                                                                         and c.memory.flag_name == flag
+                                                                         and (c.spawning or c.ticksToLive > 100))
+                            # exclude creeps with less than 100 life ticks so the new guy can be replaced right away
+                            remote_harvesters = _.filter(creeps, lambda c: c.memory.role == 'harvester'
+                                                                           and c.memory.flag_name == flag
+                                                                           and (c.spawning or c.ticksToLive > 120))
+                            remote_reservers = _.filter(creeps, lambda c: c.memory.role == 'reserver'
+                                                                          and c.memory.flag_name == flag)
 
                             # resources in flag's room
                             # 멀티에 소스가 여럿일 경우 둘을 스폰할 필요가 있다.
@@ -1098,8 +1100,8 @@ def main():
                             result = spawn.renewCreep(creep)
                             break
 
-            spawn_cpu_end = Game.cpu.getUsed() - spawn_cpu
-            print('spawn {} used {} cpu'.format(nesto.name, round(spawn_cpu_end, 2)))
+            # spawn_cpu_end = Game.cpu.getUsed() - spawn_cpu
+            # print('spawn {} used {} cpu'.format(nesto.name, round(spawn_cpu_end, 2)))
 
         # 멀티방 건물정보 저장. 현재는 아무기능 안한다.
         if Game.time % structure_renew_count == 1:
