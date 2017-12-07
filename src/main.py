@@ -704,6 +704,7 @@ def main():
                                                                                            and c.ticksToLive > 100)))
 
                             hostiles = Game.flags[flag].room.find(FIND_HOSTILE_CREEPS)
+
                             # to filter out the allies.
                             if len(hostiles) > 0:
                                 hostiles = miscellaneous.filter_allies(hostiles)
@@ -761,6 +762,25 @@ def main():
                                                        lambda s: s.structureType == STRUCTURE_CONTAINER)
                             flag_constructions = Game.flags[flag].room.find(FIND_CONSTRUCTION_SITES)
 
+                            # 새 작업. - 만일 소스가 너무 가까워서 가운데에 컨테이너 하나 공동으로 놔도 되는 경우?
+                            # NUIILFIED. STILL NEED MORE EFFORT
+                            # # 만일 컨테이너 수가 소스보다 적은 경우
+                            # if len(flag_containers) < len(flag_energy_sources):
+                            #     # 먼져 소스중에 서로 5칸이내에 있는지 확인해본다.
+                            #     for es in flag_energy_sources:
+                            #         for es_a in flag_energy_sources:
+                            #             if es.pos.inRangeTo(es_a, 5) and not es_a == es:
+                            #                 # 있으면 이제 상호간의 실질 이동거리가 6칸 이내인지 확인해본다.
+                            #                 path = es.pos.findPathTo(es_a, {'ignoreCreeps': True})
+                            #                 if len(path) <= 6:
+                            #
+                            #                     # 조건에 맞으면
+                            #
+                            #     # if len(flag_containers) > 0:
+                            #     #     for s in flag_containers:
+                            #     #         if s.pos.inRangeTo(flag_energy_sources, 5)
+                            #     pass
+
                             # 캐리어가 소스 수만큼 있는가?
                             if len(flag_energy_sources) > len(remote_carriers):
                                 print('flag carrier?')
@@ -789,9 +809,7 @@ def main():
 
                                 # 에너지소스에 담당 컨테이너가 존재하는가?
                                 containter_exist = False
-
                                 print('carrier_source 위치:', target_source.pos)
-
                                 # loop all structures. I'm not gonna use filter. just loop it at once.
                                 for st in flag_structures:
                                     # 컨테이너만 따진다.
@@ -803,6 +821,7 @@ def main():
                                             break
                                 # 컨테이너가 존재하지 않는 경우.
                                 if not containter_exist:
+                                    # 건설장 존재여부. 없으면 참.
                                     no_container_sites = True
                                     # 건설장이 존재하는지 확인한다.
                                     for gunseol in flag_constructions:
