@@ -83,9 +83,9 @@ def main():
     Main game logic loop.
     """
 
-    # print()
-    # print('----- NEW TICK -----')
-    # print()
+    print()
+    print('----- NEW TICK -----')
+    print()
 
     # cpu counter
     if not Memory.ticks:
@@ -147,7 +147,7 @@ def main():
                     continue
             except:
                 continue
-        # print('time wasted for fun: {} cpu'.format(round(Game.cpu.getUsed() - waste, 2)))
+        print('time wasted for fun: {} cpu'.format(round(Game.cpu.getUsed() - waste, 2)))
     except:
         pass
 
@@ -176,7 +176,7 @@ def main():
     # JSON string to be put into memory
     for_json = ''
 
-    # print('base setup time: {} cpu'.format(round(Game.cpu.getUsed(), 2)))
+    print('base setup time: {} cpu'.format(round(Game.cpu.getUsed(), 2)))
 
     # cpu limit warning. only works when losing cpu and you have a 10 cpu limit
     if Game.cpu.bucket < 2000 and Game.cpu.limit < 20:
@@ -245,7 +245,7 @@ def main():
 
         # Run each creeps
         for chambro_creep in creeps:
-            # creep_cpu = Game.cpu.getUsed()
+            creep_cpu = Game.cpu.getUsed()
 
             creep = Game.creeps[chambro_creep.name]
 
@@ -316,7 +316,7 @@ def main():
 
             creep_cpu_end = Game.cpu.getUsed() - creep_cpu
 
-            # print('{} the {} used {} cpu'.format(creep.name, creep.memory.role, round(creep_cpu_end, 2)))
+            print('{} the {} used {} cpu'.format(creep.name, creep.memory.role, round(creep_cpu_end, 2)))
 
         # 멀티자원방 관련 스크립트
         if Game.time % structure_renew_count == 1 or not Memory.rooms:
@@ -336,7 +336,7 @@ def main():
         counter = 10
         # Run each spawn every "counter" turns.
         for nesto in spawns:
-            # spawn_cpu = Game.cpu.getUsed()
+            spawn_cpu = Game.cpu.getUsed()
             # depict exactly which spawn it is.
             spawn = Game.spawns[nesto.name]
 
@@ -370,6 +370,8 @@ def main():
 
                 if push_bool:
                     # find and add towers
+                    # 1. todo: 새 방식 제안: 메모리에 있는 방을 한번 돌려서 없으면 삭제.
+                    # 2. 동시에 방 안에 있는 스트럭쳐들 돌려서 메모리에 있는지 확인.
                     towers = _.filter(my_structures, {'structureType': STRUCTURE_TOWER})
                     if len(towers) > 0:
                         for tower in towers:
@@ -681,6 +683,8 @@ def main():
                                               {'role': 'upgrader', 'assigned_room': spawn.pos.roomName})
                     continue
 
+                print("이 시점까지 스폰 {} 소모량: {}, 이하 remote"
+                      .format(nesto.name, round(Game.cpu.getUsed() - spawn_cpu, 2)))
                 # REMOTE---------------------------------------------------------------------------
                 if len(flag_name) > 0:
                     for flag in flag_name:
@@ -1119,8 +1123,8 @@ def main():
                             result = spawn.renewCreep(creep)
                             break
 
-            # spawn_cpu_end = Game.cpu.getUsed() - spawn_cpu
-            # print('spawn {} used {} cpu'.format(nesto.name, round(spawn_cpu_end, 2)))
+            spawn_cpu_end = Game.cpu.getUsed() - spawn_cpu
+            print('spawn {} used {} cpu'.format(nesto.name, round(spawn_cpu_end, 2)))
 
         # 멀티방 건물정보 저장. 현재는 아무기능 안한다.
         if Game.time % structure_renew_count == 1:

@@ -214,7 +214,10 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
 
         if creep.memory.priority != 1:
             if len(repairs) > 0 and creep.memory.work:
+                # cccc = Game.cpu.getUsed()
                 repair = creep.pos.findClosestByRange(repairs)
+                # bbbb = Game.cpu.getUsed() - cccc
+                # print("repair = creep.pos.findClosestByRange(repairs) cost {} cpu".format(round(bbbb, 2)))
 
         # PRIORITY 1: construct
         if creep.memory.priority == 1:
