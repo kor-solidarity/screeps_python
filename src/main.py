@@ -182,9 +182,11 @@ def main():
     if Game.cpu.bucket < 2000 and Game.cpu.limit < 20:
         print('WARNING: Game.cpu.bucket == {}'.format(Game.cpu.bucket))
 
+    total_creep_cpu = 0
+    total_creep_cpu_num = 0
     # run everything according to each rooms.
     for chambra_nomo in Object.keys(Game.rooms):
-
+        chambro_cpu = Game.cpu.getUsed()
         chambro = Game.rooms[chambra_nomo]
 
         # ALL .find() functions are done in here. THERE SHOULD BE NONE INSIDE CREEP FUNCTIONS!
@@ -214,9 +216,9 @@ def main():
                                                      or s.structureType == STRUCTURE_STORAGE)
                                                     and s.hits < s.hitsMax)
                                                    or ((s.structureType == STRUCTURE_WALL
-                                                       and s.hits < int(square ** square))
-                                                   or (s.structureType == STRUCTURE_RAMPART
-                                                       and s.hits < int(square ** square))
+                                                        and s.hits < int(square ** square))
+                                                       or (s.structureType == STRUCTURE_RAMPART
+                                                           and s.hits < int(square ** square))
                                                        and chambro.controller.level > 1)
                                                    ))
 
@@ -241,10 +243,16 @@ def main():
 
         spawns = chambro.find(FIND_MY_SPAWNS)
 
-        # print("preparation time for room {}: {} cpu".format(chambro.name, round(Game.cpu.getUsed(), 2)))
+        print("preparation time for room {}: {} cpu".format(chambro.name, round(Game.cpu.getUsed() - chambro_cpu, 2)))
 
         # Run each creeps
         for chambro_creep in creeps:
+            # todo 각 크립들 소속된 방에 캐싱 실시한다.
+            # 안에 들어가야 하는 항목들: 소속방, 배정역할, ID
+            # 방 메모리 안에서 크립 떼고 그 안에서 role 별로 분류한다. 그 후 아이디를 넣고 삭제직전인지(TTL 100이하) 확인한다.
+            # 만약 소속된 방에 해당 크립의 아이디가 없다?
+            # if not Memory.rooms[creep.memory.room].creep.id[creep.id]:
+
             creep_cpu = Game.cpu.getUsed()
 
             creep = Game.creeps[chambro_creep.name]
@@ -258,7 +266,7 @@ def main():
             # but if a soldier/harvester.... nope. they're must-be-run creeps
             if creep.memory.role == 'soldier':
                 soldier.run_remote_defender(creep, creeps, hostile_creeps)
-                continue
+
             elif creep.memory.role == 'harvester':
                 harvester.run_harvester(creep, all_structures, constructions, creeps, dropped_all)
                 """
@@ -269,10 +277,9 @@ def main():
                 :param creeps: creep.room.find(FIND_MY_CREEPS)
                 :param dropped_all: creep.room.find(FIND_DROPPED_RESOURCES)
                 """
-                continue
 
             # run at (rate * 10)% rate at a time if bucket is less than 2k and ur on 10 cpu limit.
-            if Game.cpu.bucket < 2000:
+            if Game.cpu.bucket < 2000 and not (creep.memory.role == 'soldier' or creep.memory.role == 'harvester'):
                 rate = 2
                 if random.randint(0, rate) == 0:
                     # print('passed creep:', creep.name)
@@ -315,8 +322,11 @@ def main():
                 soldier.demolition(creep, all_structures)
 
             creep_cpu_end = Game.cpu.getUsed() - creep_cpu
-
-            print('{} the {} used {} cpu'.format(creep.name, creep.memory.role, round(creep_cpu_end, 2)))
+            # 총값확인용도
+            total_creep_cpu_num += 1
+            total_creep_cpu += creep_cpu_end
+            print('{} the {} of room {} used {} cpu'
+                  .format(creep.name, creep.memory.role, creep.room.name, round(creep_cpu_end, 2)))
 
         # 멀티자원방 관련 스크립트
         if Game.time % structure_renew_count == 1 or not Memory.rooms:
@@ -370,7 +380,7 @@ def main():
 
                 if push_bool:
                     # find and add towers
-                    # 1. todo: 새 방식 제안: 메모리에 있는 방을 한번 돌려서 없으면 삭제.
+                    # 1. todo 새 방식 제안: 메모리에 있는 방을 한번 돌려서 없으면 삭제.
                     # 2. 동시에 방 안에 있는 스트럭쳐들 돌려서 메모리에 있는지 확인.
                     towers = _.filter(my_structures, {'structureType': STRUCTURE_TOWER})
                     if len(towers) > 0:
@@ -434,6 +444,9 @@ def main():
                 creeps = Game.creeps
 
                 # need each number of creeps by type. now all divided by assigned room.
+                # assigned_room == 주 작업하는 방. remote에서 작업하는 애들이면 그쪽으로 보내야함.
+                # home_room == 원래 소속된 방. remote에서 일하는 애들에나 필요할듯.
+                # todo FIND 크립에서 필터링이 아니라 메모리에서 뽑아오게끔 개조요망. 이놈이 여태 cpu 잡아먹은 주범임.
                 creep_harvesters = _.filter(creeps, lambda c: (c.memory.role == 'harvester'
                                                                and c.memory.assigned_room == spawn.pos.roomName
                                                                and not c.memory.flag_name
@@ -731,14 +744,14 @@ def main():
                                         [TOUGH, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE,
                                          MOVE, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK,
                                          ATTACK, RANGED_ATTACK, HEAL],
-                                        undefined, {'role': 'soldier', 'assigned_room': spawn.pos.roomName
-                                            , 'flag_name': flag})
+                                        undefined, {'role': 'soldier', 'assigned_room': Game.flags[flag].room.name
+                                            , 'home_room': spawn.room.name, 'flag_name': flag})
                                     continue
                                 spawn_res = spawn.createCreep(
                                     [TOUGH, TOUGH, TOUGH, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, ATTACK, RANGED_ATTACK,
                                      HEAL],
-                                    undefined, {'role': 'soldier', 'assigned_room': spawn.pos.roomName
-                                        , 'flag_name': flag})
+                                    undefined, {'role': 'soldier', 'assigned_room': Game.flags[flag].room.name
+                                        , 'home_room': spawn.room.name, 'flag_name': flag})
                                 # if spawn_res == 0:
                                 continue
 
@@ -938,7 +951,8 @@ def main():
 
                                     spawning = spawn.createCreep(body, undefined,
                                                                  {'role': 'carrier',
-                                                                  'assigned_room': spawn.pos.roomName,
+                                                                  'assigned_room': Game.flags[flag].room.name,
+                                                                  'home_room': spawn.room.name,
                                                                   'flag_name': flag, 'pickup': carrier_pickup
                                                                      , 'work': working_part,
                                                                   'source_num': carrier_source})
@@ -969,9 +983,9 @@ def main():
                                         spawning = spawn.createCreep(
                                             body,
                                             undefined,
-                                            {'role': 'carrier', 'assigned_room': spawn.pos.roomName,
+                                            {'role': 'carrier', 'assigned_room': Game.flags[flag].room.name,
                                              'flag_name': flag, 'pickup': carrier_pickup, 'work': working_part
-                                                , 'source_num': carrier_source})
+                                                , 'home_room': spawn.room.name, 'source_num': carrier_source})
 
                                         print('spawning {}'.format(spawning))
 
@@ -980,8 +994,9 @@ def main():
                                                 [WORK, WORK, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, MOVE,
                                                  MOVE, MOVE, MOVE, MOVE],
                                                 undefined,
-                                                {'role': 'carrier', 'assigned_room': spawn.pos.roomName,
+                                                {'role': 'carrier', 'assigned_room': Game.flags[flag].room.name,
                                                  'flag_name': flag, 'pickup': carrier_pickup
+                                                    , 'home_room': spawn.room.name
                                                     , 'work': True, 'source_num': carrier_source})
                                         continue
                                 # 픽업이 존재하지 않는다는건 현재 해당 건물이 없다는 뜻이므로 새로 지어야 함.
@@ -990,16 +1005,16 @@ def main():
                                         [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, WORK,
                                          WORK, WORK, WORK, CARRY, CARRY],
                                         undefined,
-                                        {'role': 'carrier', 'assigned_room': spawn.pos.roomName,
-                                         'flag_name': flag, 'work': True
+                                        {'role': 'carrier', 'assigned_room': Game.flags[flag].room.name,
+                                         'flag_name': flag, 'work': True, 'home_room': spawn.room.name
                                             , 'source_num': carrier_source})
                                     if spawning == ERR_NOT_ENOUGH_RESOURCES:
                                         spawn.createCreep(
                                             [WORK, WORK, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, MOVE,
                                              MOVE, MOVE, MOVE, MOVE],
                                             undefined,
-                                            {'role': 'carrier', 'assigned_room': spawn.pos.roomName,
-                                             'flag_name': flag, 'work': True
+                                            {'role': 'carrier', 'assigned_room': Game.flags[flag].room.name,
+                                             'flag_name': flag, 'work': True, 'home_room': spawn.room.name
                                                 , 'source_num': carrier_source})
                                     continue
 
@@ -1010,15 +1025,16 @@ def main():
                                      CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE,
                                      MOVE, MOVE]
                                     , undefined,
-                                    {'role': 'harvester', 'assigned_room': spawn.pos.roomName,
+                                    {'role': 'harvester', 'assigned_room': Game.flags[flag].room.name,
+                                     'home_room': spawn.room.name,
                                      'size': 2, 'flag_name': flag})
                                 # print('what happened:', regular_spawn)
                                 if regular_spawn == -6:
                                     spawn.createCreep([WORK, WORK, WORK, WORK, WORK,
                                                        CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE]
                                                       , undefined,
-                                                      {'role': 'harvester', 'assigned_room': spawn.pos.roomName
-                                                          , 'flag_name': flag})
+                                                      {'role': 'harvester', 'assigned_room': Game.flags[flag].room.name
+                                                          , 'home_room': spawn.room.name, 'flag_name': flag})
                                     continue
 
                             elif len(remote_reservers) == 0 \
@@ -1026,14 +1042,14 @@ def main():
                                          or Game.flags[flag].room.controller.reservation.ticksToEnd < 1200):
                                 spawning_creep = spawn.createCreep([MOVE, MOVE, MOVE, MOVE, CLAIM, CLAIM, CLAIM, CLAIM]
                                                                    , undefined,
-                                                                   {'role': 'reserver',
-                                                                    'assigned_room': spawn.pos.roomName
+                                                                   {'role': 'reserver', 'home_room': spawn.room.name,
+                                                                    'assigned_room': Game.flags[flag].room.name
                                                                        , 'flag_name': flag})
                                 if spawning_creep == ERR_NOT_ENOUGH_RESOURCES:
                                     spawning_creep = spawn.createCreep([MOVE, MOVE, CLAIM, CLAIM]
                                                                        , undefined,
-                                                                       {'role': 'reserver',
-                                                                        'assigned_room': spawn.pos.roomName
+                                                                       {'role': 'reserver', 'home_room': spawn.room.name,
+                                                                        'assigned_room': Game.flags[flag].room.name
                                                                            , 'flag_name': flag})
 
                                 continue
@@ -1078,21 +1094,29 @@ def main():
                                             WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK,
                                             WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK,
                                             WORK, WORK]
-                                spawning_creep = spawn.createCreep(body, undefined, {'role': 'demolition',
-                                                                                     'assigned_room': spawn.pos.roomName
-                                    , 'demo_container': demo_container
-                                    , 'flag_name': dem_flag})
+                                spawning_creep = spawn.createCreep(body, undefined
+                                                                   , {'role': 'demolition',
+                                                                      'assigned_room': Game.flags[flag].room.name
+                                                                      , 'home_room': spawn.room.name
+                                                                      , 'demo_container': demo_container
+                                                                      , 'flag_name': dem_flag})
                                 if spawning_creep == ERR_NOT_ENOUGH_RESOURCES:
                                     body = [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK,
                                             WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK]
                                     spawn.createCreep(body, undefined, {'role': 'demolition',
-                                                                        'assigned_room': spawn.pos.roomName
-                                        , 'demo_container': demo_container
-                                        , 'flag_name': dem_flag})
+                                                                        'assigned_room': Game.flags[flag].room.name
+                                                                        , 'home_room': spawn.room.name
+                                                                        , 'demo_container': demo_container
+                                                                        , 'flag_name': dem_flag})
 
                                 continue
 
             elif spawn.spawning:
+                if spawn.pos.x > 44:
+                    align = 'right'
+                else:
+                    align = 'left'
+
                 # showing process of the spawning creep by %
                 spawning_creep = Game.creeps[spawn.spawning.name]
                 spawn.room.visual.text(
@@ -1103,7 +1127,7 @@ def main():
                     #      / spawn.spawning.needTime) * 100)) + '%',
                     spawn.pos.x + 1,
                     spawn.pos.y,
-                    {'align': 'left', 'opacity': 0.8}
+                    {'align': align, 'opacity': 0.8}
                 )
             else:
                 # 1/3 chance healing
@@ -1136,6 +1160,8 @@ def main():
 
         # loop for ALL STRUCTURES
         if Memory.rooms:
+            room_cpu = Game.cpu.getUsed()
+            room_cpu_num = 0
             for room_name in Object.keys(Memory.rooms):
                 # 방 이름이 똑같아야만 돈다.
                 if room_name == chambra_nomo:
@@ -1150,6 +1176,7 @@ def main():
                             # 재건 관련 지역
                             if Game.time % 47 == 0:
                                 pass
+                            continue
                         elif building_name == STRUCTURE_TOWER:
                             # 수리작업을 할때 벽·방어막 체력 만 이하가 있으면 그걸 최우선으로 고친다.
                             # 적이 있을 시 수리 자체를 안하니 있으면 아예 무시.
@@ -1165,20 +1192,33 @@ def main():
                                 # sometimes these could die you know....
                                 the_tower = Game.getObjectById(tower)
                                 if the_tower:
+                                    room_cpu_num += 1
                                     building_action.run_tower(the_tower, hostile_creeps, repairs, malsana_amikoj)
                         elif building_name == STRUCTURE_LINK:
                             for link in structure_list[building_name]:
                                 if Game.getObjectById(link):
+                                    room_cpu_num += 1
                                     building_action.run_links(Game.getObjectById(link), my_structures)
                     break
+
+            if room_cpu_num > 0:
+                end = Game.cpu.getUsed()
+                # print("end {} start {}".format(round(end, 2), round(room_cpu, 2)))
+                room_cpu_avg = (end - room_cpu) / room_cpu_num
+                print("{} structures ran in {} total with avg. {} cpu"
+                      .format(room_cpu_num, room_name, round(room_cpu_avg, 2)))
 
     if Game.cpu.bucket < 2000:
         print('passed creeps:', passing_creep_counter)
 
+    print("total of {} creeps run with avg. {} cpu usage each"
+          .format(total_creep_cpu_num, round(total_creep_cpu/total_creep_cpu_num, 2)))
+
     # 스트럭쳐 목록 초기화 위한 작업. 마지막에 다 지워야 운용에 차질이 없음.
     # 추후 정리해야 하는 사안일듯.
-    if Game.time % structure_renew_count == 0:
-        del Memory.rooms
+    # NULLIFIED
+    # if Game.time % structure_renew_count == 0:
+    #     del Memory.rooms
 
     # adding total cpu
     # while len(Memory.cpu_usage.total) >= Memory.ticks:

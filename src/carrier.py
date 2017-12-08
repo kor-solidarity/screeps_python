@@ -41,9 +41,13 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
         creep.memory.priority = 2
     elif _.sum(creep.carry) == 0 and creep.ticksToLive < end_is_near:
         creep.say('TTL: ' + creep.ticksToLive)
-        creep.moveTo(Game.rooms[creep.memory.assigned_room].controller,
+        creep.moveTo(Game.getObjectById(creep.memory.upgrade_target),
                      {'visualizePathStyle': {'stroke': '#ffffff'}, 'ignoreRoads': True, 'reusePath': 40})
         return
+    elif not creep.memory.upgrade_target:
+        creep.memory.upgrade_target = creep.room.controller['id']
+    elif not creep.memory.home_room:
+        creep.memory.home_room = creep.room.name
 
     if _.sum(creep.carry) == 0 and creep.memory.laboro != 0:
         creep.memory.laboro = 0
@@ -164,7 +168,7 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
     elif creep.memory.laboro == 1:
         # PRIORITY
         # 1. if there's something to construct, do that first.
-        # 2. else, carry energy or whatever to the nearest link of the assigned_room
+        # 2. else, carry energy or whatever to the nearest link of the home_room
         # 3. repair
 
         if creep.memory.priority == 0:
@@ -287,8 +291,8 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                                                             (s.pos.x < 5 or s.pos.x > 44
                                                              or s.pos.y < 5 or s.pos.y > 44)))
 
-            # if you're not in the assigned_room and no haul_target
-            if creep.room.name != Game.rooms[creep.memory.assigned_room].name and not creep.memory.haul_target:
+            # if you're not in the home_room and no haul_target
+            if creep.room.name != Game.rooms[creep.memory.home_room].name and not creep.memory.haul_target:
                 # at first it was to move to controller. but somehow keep getting an error, so let's try
                 if len(repairs) > 0 and creep.memory.work:
                     creep.repair(repair)

@@ -59,6 +59,7 @@ def run_upgrader(creep, all_structures):
 
     # when you have to harvest. laboro: 0 == HARVEST
     if creep.memory.laboro == 0:
+        # todo 현재 스토리지로 최우선적으로 가게끔 돼있는데 스토리지가 너무 멀면 어찌할거에 대한 대안이 없는 상태임.
         # se vi jam havas pickup, ne bezonas sercxi por ujojn
         if creep.memory.pickup:
             result = harvest_stuff.grab_energy(creep, creep.memory.pickup, True)
@@ -150,7 +151,7 @@ def run_upgrader(creep, all_structures):
         # if _.sum(creep.carry) == 0:
         #     creep.memory.laboro = 0
         #     creep.say('🔄 수확하러갑세!', True)
-
+    return
 
 def run_reserver(creep):
     """

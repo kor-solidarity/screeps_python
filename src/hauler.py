@@ -539,7 +539,7 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                              , {'visualizePathStyle': {'stroke': '#ffffff'}, 'range': 3, 'reusePath': 20})
             # if having anything other than energy when not on priority 1 switch to 1
             # 운송크립은 발전에 심혈을 기울이면 안됨.
-            if (creep.carry[RESOURCE_ENERGY] <= 0 or _.sum(creep.carry) <= creep.carryCapacity * .7) \
+            if (creep.carry[RESOURCE_ENERGY] <= 0 or _.sum(creep.carry) <= creep.carryCapacity * .75) \
                     and creep.room.controller.level > 3:
                 creep.memory.priority = 1
                 creep.say('복귀!', True)
