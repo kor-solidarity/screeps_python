@@ -40,9 +40,10 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
         creep.memory.laboro = 1
         creep.memory.priority = 2
     elif _.sum(creep.carry) == 0 and creep.ticksToLive < end_is_near:
-        creep.say('TTL: ' + creep.ticksToLive)
-        creep.moveTo(Game.getObjectById(creep.memory.upgrade_target),
-                     {'visualizePathStyle': {'stroke': '#ffffff'}, 'ignoreRoads': True, 'reusePath': 40})
+        creep.suicide()
+        # creep.say('TTL: ' + creep.ticksToLive)
+        # creep.moveTo(Game.getObjectById(creep.memory.upgrade_target),
+        #              {'visualizePathStyle': {'stroke': '#ffffff'}, 'ignoreRoads': True, 'reusePath': 40})
         return
     elif not creep.memory.upgrade_target:
         creep.memory.upgrade_target = creep.room.controller['id']
@@ -282,7 +283,7 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
             # fixed container/link target to move to.
             if not creep.memory.haul_target:
                 # all_structures in the home room
-                home_structures = Game.rooms[creep.memory.assigned_room].find(FIND_STRUCTURES)
+                home_structures = Game.rooms[creep.memory.home_room].find(FIND_STRUCTURES)
 
                 # find links outside the filter and containers
                 outside_links_and_containers = \

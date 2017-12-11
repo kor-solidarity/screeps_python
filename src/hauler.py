@@ -63,14 +63,15 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                 break
         return
     elif creep.ticksToLive < end_is_near and creep.room.storage:
-        if creep.memory.haul_target:
-            del creep.memory.haul_target
-        elif creep.memory.pickup:
-            del creep.memory.pickup
-        creep.say('TTL:' + creep.ticksToLive)
-        creep.moveTo(creep.room.controller,
-                     {'visualizePathStyle': {'stroke': '#ffffff'}, 'ignoreRoads': True, 'ignoreCreeps': True
-                         , 'reusePath': 40})
+        creep.suicide()
+        # if creep.memory.haul_target:
+        #     del creep.memory.haul_target
+        # elif creep.memory.pickup:
+        #     del creep.memory.pickup
+        # creep.say('TTL:' + creep.ticksToLive)
+        # creep.moveTo(creep.room.controller,
+        #              {'visualizePathStyle': {'stroke': '#ffffff'}, 'ignoreRoads': True, 'ignoreCreeps': True
+        #                  , 'reusePath': 40})
         return
 
     # if there's nothing to carry then get to harvesting.
@@ -135,6 +136,7 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
         else:
             # only search if there's nothing to pick up.
             if not creep.memory.pickup:
+
                 # find any containers/links with any resources inside
                 storages = all_structures.filter(lambda s:
                                                  (s.structureType == STRUCTURE_CONTAINER
@@ -268,6 +270,7 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
 
         # priority 1: transfer
         if creep.memory.priority == 1:
+
             # if creep is assigned to store to storage
             # all resources must be stored
             if creep.memory.to_storage:
@@ -306,12 +309,40 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                 # haul_target == cela adreso por porti la energion.
                 if not creep.memory.haul_target and creep.carry.energy > 0:
 
+                    # todo 업그레이더 전용 컨테이너가 존재할 경우 거기다가도 보내야함. 추가합시다.
+
                     structures = all_structures.filter(lambda s: ((s.structureType == STRUCTURE_SPAWN
                                                                    or s.structureType == STRUCTURE_EXTENSION
                                                                    or s.structureType == STRUCTURE_NUKER)
                                                                   and s.energy < s.energyCapacity)
                                                                  or (s.structureType == STRUCTURE_TOWER
                                                                      and s.energy < s.energyCapacity * 0.8))
+
+                    container = all_structures.filter(lambda s:
+                                                      s.structureType == STRUCTURE_CONTAINER
+                                                      and s.pos.inRangeTo(creep.room.controller, 6)
+                                                      and _.sum(s.store) < s.storeCapacity)
+                    # 업그레이드용 컨테이너가 보일 경우.
+                    if len(container) > 0:
+                        print('cont!!{}'.format(container))
+                        for ct in container:
+                            sources = creep.room.find(FIND_SOURCES)
+                            sources.push(creep.room.find(FIND_MINERALS)[0])
+
+                            for_upgrade = False
+                            # 컨테이너가 소스 옆에 있을 경우 대상이 아니니 삭제한다.
+                            for s in sources:
+                                # 크립거리가 세칸 이내인가? 맞으면 하비스터 용도니 넣지 않는다.
+                                if len(ct.pos.findPathTo(s, {'ignoreCreeps': True})) <= 3:
+                                    pass
+                                else:
+                                    # 세칸 이내가 아니면 업그레이드 용도 맞음. 고로 넣는다.
+                                    for_upgrade = True
+                                    break
+                            if for_upgrade:
+                                structures.push(ct)
+                                print('there\'s a container!')
+
 
                     portist_kripoj = _.filter(creeps, lambda c: c.memory.role == 'hauler')
 
@@ -357,6 +388,15 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                                         if structure.energy <= structure.energyCapacity * .999:
                                             # nur plusas 1 ĉar en ĉi tio stato ni bezonas 3 kripoj
                                             size_counter += 1
+                                        else:
+                                            size_counter += 3
+                                    # 업글용 컨테이너일 경우? 원리는 타워와 똑같다.
+                                    elif structure.structureType == STRUCTURE_CONTAINER:
+                                        if structure.energy < structure.energyCapacity * .5:
+                                            # nur plusas 1 ĉar en ĉi tio stato ni bezonas 3 kripoj
+                                            size_counter += 1
+                                        elif structure.energy < structure.energyCapacity * .85:
+                                            size_counter += 2
                                         else:
                                             size_counter += 3
                                     # aŭ estas nesto

@@ -8,7 +8,6 @@ import soldier
 import re
 import random
 import miscellaneous
-import math
 
 # defs is a package which claims to export all constants and some JavaScript objects, but in reality does
 #  nothing. This is useful mainly when using an editor like PyCharm, so that it 'knows' that things like Object, Creep,
@@ -83,9 +82,15 @@ def main():
     Main game logic loop.
     """
 
-    print()
-    print('----- NEW TICK -----')
-    print()
+
+    cpu_bucket_emergency = 1000
+    cpu_bucket_emergency_spawn_start = 2500
+    if not Memory.debug and not Memory.debug == False:
+        Memory.debug = False
+    interval = 50
+    if Memory.debug:
+        print()
+        print('----- NEW TICK -----')
 
     # cpu counter
     if not Memory.ticks:
@@ -147,23 +152,25 @@ def main():
                     continue
             except:
                 continue
-        print('time wasted for fun: {} cpu'.format(round(Game.cpu.getUsed() - waste, 2)))
+        if Memory.debug:
+            print('time wasted for fun: {} cpu'.format(round(Game.cpu.getUsed() - waste, 2)))
     except:
         pass
 
-    if not Memory.debug and not Memory.debug == False:
-        Memory.debug = True
-    try:
-        if Memory.debug:
-            print(JSON.stringify(Memory.rooms))
-
-            # 각 방 이름. 방 통째로 삭제하는거 때문에 넣음.
-            for rooms in Object.keys(Memory.rooms):
-                structure_list = Memory.rooms[rooms]
-
-            Memory.debug = False
-    except:
-        print('error in Memory.debug part')
+    # NULLIFIED
+    # if not Memory.debug and not Memory.debug == False:
+    #     Memory.debug = True
+    # try:
+    #     if Memory.debug:
+    #         print(JSON.stringify(Memory.rooms))
+    #
+    #         # 각 방 이름. 방 통째로 삭제하는거 때문에 넣음.
+    #         for rooms in Object.keys(Memory.rooms):
+    #             structure_list = Memory.rooms[rooms]
+    #
+    #         Memory.debug = False
+    # except:
+    #     print('error in Memory.debug part')
 
     if Memory.dropped_sources:
         del Memory.dropped_sources
@@ -176,14 +183,20 @@ def main():
     # JSON string to be put into memory
     for_json = ''
 
-    print('base setup time: {} cpu'.format(round(Game.cpu.getUsed(), 2)))
+    if Memory.debug:
+        # 0.05정도
+        print('base setup time: {} cpu'.format(round(Game.cpu.getUsed(), 2)))
 
     # cpu limit warning. only works when losing cpu and you have a 10 cpu limit
-    if Game.cpu.bucket < 2000 and Game.cpu.limit < 20:
+    if Game.cpu.bucket < cpu_bucket_emergency and Game.cpu.limit < 20:
         print('WARNING: Game.cpu.bucket == {}'.format(Game.cpu.bucket))
 
     total_creep_cpu = 0
     total_creep_cpu_num = 0
+
+    # total spawns ran
+    spawn_run_num = 0
+
     # run everything according to each rooms.
     for chambra_nomo in Object.keys(Game.rooms):
         chambro_cpu = Game.cpu.getUsed()
@@ -225,42 +238,43 @@ def main():
         if not repairs or len(repairs) == 0:
             repairs = []
 
-        extractor = None
-        # extractors = _.filter(all_structures, lambda s: s.structureType == STRUCTURE_EXTRACTOR)
-        if my_structures:
-            for structure in my_structures:
-                # print('structure.structureType: {}'.format(structure.structureType))
-                if structure.structureType == STRUCTURE_EXTRACTOR:
-                    extractor = structure
-                    break
+        my_structures = chambro.find(FIND_MY_STRUCTURES)
+
+        # ext_cpu = Game.cpu.getUsed()
+        # extractor = None
+        extractor = _.filter(my_structures, lambda s: s.structureType == STRUCTURE_EXTRACTOR)
+        # if my_structures:
+        #     for structure in my_structures:
+        #         # print('structure.structureType: {}'.format(structure.structureType))
+        #         if structure.structureType == STRUCTURE_EXTRACTOR:
+        #             extractor = structure
+        #             # print('ext?', extractor)
+        #             break
+
+        # print('ext cpu: {}'.format(round(Game.cpu.getUsed() - ext_cpu, 3)))
+
+        # print('room {} extr? {}'.format(chambra_nomo, extractor))
 
         # to filter out the allies.
         if len(hostile_creeps) > 0:
             hostile_creeps = miscellaneous.filter_allies(hostile_creeps)
 
         # my_structures = _.filter(all_structures, lambda s: s.my == True)
-        my_structures = chambro.find(FIND_MY_STRUCTURES)
 
         spawns = chambro.find(FIND_MY_SPAWNS)
 
-        print("preparation time for room {}: {} cpu".format(chambro.name, round(Game.cpu.getUsed() - chambro_cpu, 2)))
+        # print("preparation time for room {}: {} cpu".format(chambro.name, round(Game.cpu.getUsed() - chambro_cpu, 2)))
 
         # Run each creeps
         for chambro_creep in creeps:
-            # todo 각 크립들 소속된 방에 캐싱 실시한다.
-            # 안에 들어가야 하는 항목들: 소속방, 배정역할, ID
-            # 방 메모리 안에서 크립 떼고 그 안에서 role 별로 분류한다. 그 후 아이디를 넣고 삭제직전인지(TTL 100이하) 확인한다.
-            # 만약 소속된 방에 해당 크립의 아이디가 없다?
-            # if not Memory.rooms[creep.memory.room].creep.id[creep.id]:
-
             creep_cpu = Game.cpu.getUsed()
 
             creep = Game.creeps[chambro_creep.name]
-
             # 만일 생산중이면 그냥 통과
             if creep.spawning:
                 if not creep.memory.age and creep.memory.age != 0:
                     creep.memory.age = 0
+                # print("{} spawning speed : {} cpu".format(creep.name, round(Game.cpu.getUsed() - creep_cpu, 3)))
                 continue
 
             # but if a soldier/harvester.... nope. they're must-be-run creeps
@@ -277,20 +291,6 @@ def main():
                 :param creeps: creep.room.find(FIND_MY_CREEPS)
                 :param dropped_all: creep.room.find(FIND_DROPPED_RESOURCES)
                 """
-
-            # run at (rate * 10)% rate at a time if bucket is less than 2k and ur on 10 cpu limit.
-            if Game.cpu.bucket < 2000 and not (creep.memory.role == 'soldier' or creep.memory.role == 'harvester'):
-                rate = 2
-                if random.randint(0, rate) == 0:
-                    # print('passed creep:', creep.name)
-                    passing_creep_counter += 1
-                    continue
-
-            if creep.memory.role == 'upgrader':
-                upgrader.run_upgrader(creep, all_structures)
-
-            elif creep.memory.role == 'miner':
-                harvester.run_miner(creep, all_structures)
 
             elif creep.memory.role == 'hauler':
                 hauler.run_hauler(creep, all_structures, constructions,
@@ -314,6 +314,20 @@ def main():
                 :param dropped_all: creep.room.find(FIND_DROPPED_RESOURCES)
                 :return:
                 """
+
+            # run at (rate * 10)% rate at a time if bucket is less than 2k and ur on 10 cpu limit.
+            if Game.cpu.bucket < cpu_bucket_emergency and not (creep.memory.role == 'soldier' or creep.memory.role == 'harvester'):
+                rate = 2
+                if random.randint(0, rate) == 0:
+                    # print('passed creep:', creep.name)
+                    passing_creep_counter += 1
+                    continue
+
+            if creep.memory.role == 'upgrader':
+                upgrader.run_upgrader(creep, creeps, all_structures)
+
+            elif creep.memory.role == 'miner':
+                harvester.run_miner(creep, all_structures)
             elif creep.memory.role == 'scout':
                 scout.run_scout(creep)
             elif creep.memory.role == 'reserver':
@@ -321,12 +335,14 @@ def main():
             elif creep.memory.role == 'demolition':
                 soldier.demolition(creep, all_structures)
 
+            # print('{} apswning: {}'.format(creep.name, creep.spawning))
             creep_cpu_end = Game.cpu.getUsed() - creep_cpu
             # 총값확인용도
             total_creep_cpu_num += 1
             total_creep_cpu += creep_cpu_end
-            print('{} the {} of room {} used {} cpu'
-                  .format(creep.name, creep.memory.role, creep.room.name, round(creep_cpu_end, 2)))
+            # if Memory.debug:
+            #     print('{} the {} of room {} used {} cpu'
+            #           .format(creep.name, creep.memory.role, creep.room.name, round(creep_cpu_end, 2)))
 
         # 멀티자원방 관련 스크립트
         if Game.time % structure_renew_count == 1 or not Memory.rooms:
@@ -344,8 +360,10 @@ def main():
 
         divider = -1
         counter = 10
+        room_spawn_cpu = Game.cpu.getUsed()
         # Run each spawn every "counter" turns.
         for nesto in spawns:
+
             spawn_cpu = Game.cpu.getUsed()
             # depict exactly which spawn it is.
             spawn = Game.spawns[nesto.name]
@@ -413,12 +431,53 @@ def main():
 
                     room_names.append(spawn.room.name)
 
+            if Memory.debug or Game.time % interval == 0 or Memory.tick_check:
+                print('방 루프에서 스폰 준비 : {} cpu'.format(round(Game.cpu.getUsed() - spawn_cpu, 2)))
+
             # if spawn is not spawning, try and make one i guess.
             # spawning priority: harvester > hauler > upgrader > melee > etc.
             # checks every 10 + len(Game.spawns) ticks
             if not spawn.spawning and Game.time % counter == divider:
+
+                # print('inside spawning check')
+                spawn_chk_cpu = Game.cpu.getUsed()
+
+                # if spawn_run_num == 0:
+                #     # 첫 가동 스폰만 발동한다.
+                #     spawn_run_num += 1
+                #
+                #     # todo 각 크립들 소속된 방에 캐싱 실시한다.
+                #     # 안에 들어가야 하는 항목들: 소속방, ID
+                #
+                #     # 크립목록 초기화(전체)
+                #     for rm in Object.keys(Memory.rooms):
+                #         del Memory.rooms[rm].creeps
+                #     print('****************CHECK')
+                #     # 초기화된 크립 생성(이름별로 호출)
+                #     all_creeps = Game.creeps
+                #     print(JSON.stringify(all_creeps))
+                #     for key in Object.keys(all_creeps):
+                #         c = Game.creeps[key]
+                #         print('??????')
+                #         # 방 생성
+                #         if not Memory.rooms[c.memory.assigned_room]:
+                #             print('no room.')
+                #             Memory.rooms[c.memory.assigned_room] = []
+                #         # 크립 목록 생성
+                #         if not Memory.rooms[c.memory.assigned_room].creeps:
+                #             print("no creep")
+                #             Memory.rooms[c.memory.assigned_room].creeps = []
+                #         # if not Memory.rooms[c.memory.assigned_room].creeps[c.id]:
+                #         #     creep_info = {creep.id: '1'}
+                #         print('pushing id, assigned room: {}'.format(creep.memory.assigned_room))
+                #
+                #         # array_of_creeps = []
+                #         # array_of_creeps.push(c.id)
+                #         # (Memory.rooms[creep.memory.assigned_room].creeps).push(c.id)
+                #     print('WTF')
+
                 hostile_around = False
-                # 적이 주변에 있으면 생산 안한다. 추후 수정해야함.
+                # 적이 스폰 주변에 있으면 생산 안한다. 추후 수정해야함.
 
                 if hostile_creeps:
                     for enemy in hostile_creeps:
@@ -427,18 +486,23 @@ def main():
                             break
                 if hostile_around:
                     continue
-
+                # print('until hostile check {} cpu'.format(round(Game.cpu.getUsed() - spawn_chk_cpu, 2)))
                 # ALL flags.
                 flags = Game.flags
                 flag_name = []
 
                 # check all flags with same name with the spawn.
                 for name in Object.keys(flags):
+                    flag_cpu = Game.cpu.getUsed()
                     # 방이름 + -rm + 아무글자(없어도됨)
                     regex = spawn.room.name + r'-rm.*'
-                    if re.match(regex, name, re.IGNORECASE):
+                    if name.includes(spawn.room.name) and name.includes("-rm"):
+                    # if re.match(regex, name, re.IGNORECASE):
                         # if there is, get it's flag's name out.
-                        flag_name.push(flags[name].name)
+                        flag_name.append(flags[name].name)
+                #     print('one flag loop cpu {}'.format(round(Game.cpu.getUsed() - flag_cpu, 2)))
+                # print('flag names: {}'.format(flag_name))
+                # print('cpu before the loop: {}'.format(round(Game.cpu.getUsed() - spawn_chk_cpu, 2)))
 
                 # ALL creeps you have
                 creeps = Game.creeps
@@ -451,15 +515,43 @@ def main():
                                                                and c.memory.assigned_room == spawn.pos.roomName
                                                                and not c.memory.flag_name
                                                                and (c.spawning or c.ticksToLive > 80)))
-                creep_upgraders = _.filter(creeps, lambda c: (c.memory.role == 'upgrader'
-                                                              and c.memory.assigned_room == spawn.pos.roomName
-                                                              and (c.spawning or c.ticksToLive > 100)))
                 creep_haulers = _.filter(creeps, lambda c: (c.memory.role == 'hauler'
                                                             and c.memory.assigned_room == spawn.pos.roomName
                                                             and (c.spawning or c.ticksToLive > 100)))
                 creep_miners = _.filter(creeps, lambda c: (c.memory.role == 'miner'
                                                            and c.memory.assigned_room == spawn.pos.roomName
                                                            and (c.spawning or c.ticksToLive > 150)))
+                # cpu 비상시 고려 자체를 안한다.
+                if Game.cpu.bucket > cpu_bucket_emergency + cpu_bucket_emergency_spawn_start:
+                    creep_upgraders = _.filter(creeps, lambda c: (c.memory.role == 'upgrader'
+                                                                  and c.memory.assigned_room == spawn.pos.roomName
+                                                                  and (c.spawning or c.ticksToLive > 100)))
+                # loop_cpu = Game.cpu.getUsed()
+                # creep_harvesters = 0
+                # creep_upgraders = 0
+                # creep_haulers = 0
+                # creep_miners = 0
+                #
+                # for cn in Object.keys(creeps):
+                #     c = Game.creeps[cn]
+                #
+                #     if c.memory.role == 'harvester' and c.memory.assigned_room == spawn.pos.roomName\
+                #                                                and not c.memory.flag_name\
+                #                                                and (c.spawning or c.ticksToLive > 80):
+                #         creep_harvesters += 1
+                #     elif c.memory.role == 'upgrader' and c.memory.assigned_room == spawn.pos.roomName\
+                #                                               and (c.spawning or c.ticksToLive > 100):
+                #         creep_upgraders += 1
+                #     elif c.memory.role == 'hauler' and c.memory.assigned_room == spawn.pos.roomName\
+                #                                             and (c.spawning or c.ticksToLive > 100):
+                #         creep_haulers += 1
+                #     elif c.memory.role == 'miner' and c.memory.assigned_room == spawn.pos.roomName\
+                #                                            and (c.spawning or c.ticksToLive > 150):
+                #         creep_miners += 1
+                #
+                # print('loop creep!')
+                # print('loop cpu {}'.format(round(Game.cpu.getUsed() - loop_cpu, 2)))
+                # print("inner filter time {}".format(round(Game.cpu.getUsed() - spawn_cpu, 2)))
 
                 # ﷽
                 # if number of close containers/links are less than that of sources.
@@ -470,7 +562,7 @@ def main():
                 num_o_sources = len(room_sources)
                 if extractor and extractor.cooldown == 0:
                     room_sources.push(extractor)
-
+                # print('ext at room {}: {}'.format(chambra_nomo, extractor))
                 # 소스 주변에 자원채취용 컨테이너·링크가 얼마나 있는가 확인.
                 for rs in room_sources:
                     for s in all_structures:
@@ -564,7 +656,7 @@ def main():
                     hauler_capacity = 1
                 elif hauler_capacity > 4:
                     hauler_capacity = 4
-
+                # hauler_capacity = 5
                 if len(creep_haulers) < hauler_capacity:
                     # 순서는 무조건 아래와 같다. 무조건 덩치큰게 장땡.
                     # 800
@@ -601,6 +693,8 @@ def main():
 
                     continue
 
+                # print('익스트랙터 {} 광부 {}'.format(extractor, creep_miners))
+
                 # if there's an extractor, make a miner.
                 if extractor and len(creep_miners) == 0:
                     # print('extractor', extractor)
@@ -630,74 +724,77 @@ def main():
                             if spawning_creep == 0:
                                 continue
 
-                plus = 0
-                if len(creep_upgraders) < 2:
-                    if nesto.room.controller.level == 8:
-                        prime_num = 6491
-                    else:
-                        prime_num = 49999
-                    # some prime number.
-                    if Game.time % prime_num < 11:
-                        plus = 1
-                    if spawn.room.controller.ticksToDowngrade < 10000:
-                        plus += 1
+                # 업그레이더는 버켓 비상 근접시부터 생산 고려 자체를 안한다.
+                if Game.cpu.bucket > cpu_bucket_emergency + cpu_bucket_emergency_spawn_start:
+                    plus = 0
+                    if len(creep_upgraders) < 2:
+                        if nesto.room.controller.level == 8:
+                            prime_num = 6491
+                        else:
+                            prime_num = 49999
+                        # some prime number.
+                        if Game.time % prime_num < 11:
+                            plus = 1
+                        if spawn.room.controller.ticksToDowngrade < 10000:
+                            plus += 1
 
-                if spawn.room.controller.level == 8:
-                    proper_level = 0
-                # start making upgraders after there's a storage
-                elif spawn.room.controller.level > 2 and spawn.room.storage:
+                    if spawn.room.controller.level == 8:
+                        proper_level = 0
+                    # start making upgraders after there's a storage
+                    elif spawn.room.controller.level > 2 and spawn.room.storage:
 
-                    # if spawn.room.controller.level < 5:
-                    expected_reserve = 2000
-                    # else:
-                    #     expected_reserve = 3000
+                        # if spawn.room.controller.level < 5:
+                        expected_reserve = 3000
+                        # else:
+                        #     expected_reserve = 3000
 
-                    # if there's no storage or storage has less than expected_reserve
-                    if spawn.room.storage.store[RESOURCE_ENERGY] < expected_reserve or not spawn.room.storage:
-                        proper_level = 1
-                    # more than 30k
-                    elif spawn.room.storage.store[RESOURCE_ENERGY] >= expected_reserve:
-                        proper_level = 1
-                        # extra upgrader every expected_reserve
-                        proper_level += int(spawn.room.storage.store[RESOURCE_ENERGY] / expected_reserve)
-                        # max upgraders: 12
-                        if proper_level > 12:
-                            proper_level = 12
+                        # if there's no storage or storage has less than expected_reserve
+                        if spawn.room.storage.store[RESOURCE_ENERGY] < expected_reserve or not spawn.room.storage:
+                            proper_level = 1
+                        # more than 30k
+                        elif spawn.room.storage.store[RESOURCE_ENERGY] >= expected_reserve:
+                            proper_level = 1
+                            # extra upgrader every expected_reserve
+                            proper_level += int(spawn.room.storage.store[RESOURCE_ENERGY] / expected_reserve)
+                            # max upgraders: 12
+                            if proper_level > 12:
+                                proper_level = 12
 
+                        else:
+                            proper_level = 0
+                    elif spawn.room.energyCapacityAvailable <= 1000:
+                        # 어차피 여기올쯤이면 소형애들만 생성됨.
+                        proper_level = 4
                     else:
                         proper_level = 0
-                elif spawn.room.energyCapacityAvailable <= 1000:
-                    # 어차피 여기올쯤이면 소형애들만 생성됨.
-                    proper_level = 4
-                else:
-                    proper_level = 0
 
-                if len(creep_upgraders) < proper_level + plus \
-                        and not (Game.cpu.bucket < 2000):
-                    if spawn.room.controller.level != 8:
-                        big = spawn.createCreep(
-                            [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK,
-                             WORK, WORK,
-                             WORK,
-                             WORK, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY], undefined,
-                            {'role': 'upgrader', 'assigned_room': spawn.pos.roomName, 'level': 5})
-                    else:
-                        big = -6
-                    if big == -6:
-                        small = spawn.createCreep(
-                            [WORK, WORK, WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY,
-                             CARRY, CARRY, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE], undefined,
-                            {'role': 'upgrader', 'assigned_room': spawn.pos.roomName, 'level': 3})
-                        if small == -6:
-                            little = spawn.createCreep([WORK, WORK, WORK, CARRY, MOVE, MOVE], undefined,
-                                                       {'role': 'upgrader', 'assigned_room': spawn.pos.roomName})
-                        if little == -6:
-                            spawn.createCreep([WORK, WORK, CARRY, CARRY, MOVE, MOVE], undefined,
-                                              {'role': 'upgrader', 'assigned_room': spawn.pos.roomName})
-                    continue
+                    if len(creep_upgraders) < proper_level + plus:
+                        if spawn.room.controller.level != 8:
+                            big = spawn.createCreep(
+                                [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK,
+                                 WORK, WORK,
+                                 WORK,
+                                 WORK, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY], undefined,
+                                {'role': 'upgrader', 'assigned_room': spawn.pos.roomName, 'level': 5})
+                        else:
+                            big = -6
+                        if big == -6:
+                            small = spawn.createCreep(
+                                [WORK, WORK, WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY,
+                                 CARRY, CARRY, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE], undefined,
+                                {'role': 'upgrader', 'assigned_room': spawn.pos.roomName, 'level': 3})
+                            if small == -6:
+                                little = spawn.createCreep([WORK, WORK, WORK, CARRY, MOVE, MOVE], undefined,
+                                                           {'role': 'upgrader', 'assigned_room': spawn.pos.roomName})
+                            if little == -6:
+                                spawn.createCreep([WORK, WORK, CARRY, CARRY, MOVE, MOVE], undefined,
+                                                  {'role': 'upgrader', 'assigned_room': spawn.pos.roomName})
+                        continue
 
-                print("이 시점까지 스폰 {} 소모량: {}, 이하 remote"
-                      .format(nesto.name, round(Game.cpu.getUsed() - spawn_cpu, 2)))
+                if Memory.debug or Game.time % interval == 0 or Memory.tick_check:
+                    print("이 시점까지 스폰 {} 소모량: {}, 이하 remote"
+                          .format(nesto.name, round(Game.cpu.getUsed() - spawn_cpu, 2)))
+
                 # REMOTE---------------------------------------------------------------------------
                 if len(flag_name) > 0:
                     for flag in flag_name:
@@ -988,7 +1085,7 @@ def main():
                                                 , 'home_room': spawn.room.name, 'source_num': carrier_source})
 
                                         print('spawning {}'.format(spawning))
-
+                                        # todo 과연 이 부분이 필요할까? 너무 크립의 효율이 떨어져 버리는듯.
                                         if spawning == ERR_NOT_ENOUGH_RESOURCES:
                                             spawn.createCreep(
                                                 [WORK, WORK, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, MOVE,
@@ -1053,63 +1150,67 @@ def main():
                                                                            , 'flag_name': flag})
 
                                 continue
-                            # 아래 철거반 확인용도.
-                            regex_dem = r'.*-dem.*'
-                            dem_bool = False
-                            dem_flag = None
-                            # 여기까지 다 건설이 완료됐으면 철거반이 필요한지 확인해본다.
-                            for fn in Object.keys(flags):
 
-                                # 로딩안되면 시야에 없단소리. 건너뛴다.
-                                if Game.flags[fn].room:
-                                    # -dem : 철거지역. 이게 들어가면 이 방에 있는 모든 벽이나 잡건물 다 부수겠다는 소리.
-                                    # print("Game.flags[flag].name {} | fn {}".format(Game.flags[flag].name, fn))
-                                    if Game.flags[flag].room.name == Game.flags[fn].room.name \
-                                            and re.match(regex_dem, fn, re.IGNORECASE):
-                                        # print('flagname {}'.format(fn))
-                                        # print('chkpt')
-                                        # 여기 걸리면 컨테이너도 박살낼지 결정. 근데 쓸일없을듯.
-                                        regex_dem_container = r'.*-dema.*'
-                                        demo_container = 0
-                                        if re.match(regex_dem_container, fn, re.IGNORECASE):
-                                            demo_container = 1
-                                        dem_bool = True
-                                        dem_flag = fn
-                                        break
+                            if Game.cpu.bucket > cpu_bucket_emergency + cpu_bucket_emergency_spawn_start:
+                                # 아래 철거반 확인용도.
+                                regex_dem = '-dem'
+                                dem_bool = False
+                                dem_flag = None
+                                # 여기까지 다 건설이 완료됐으면 철거반이 필요한지 확인해본다.
+                                for fn in Object.keys(flags):
 
-                            if dem_bool:
-                                remote_dem = _.filter(creeps, lambda c: c.memory.role == 'demolition'
-                                                                        and c.memory.flag_name == dem_flag)
-                                dem_num = len(remote_dem)
-                            else:
-                                dem_num = 0
+                                    # 로딩안되면 시야에 없단소리. 건너뛴다.
+                                    if Game.flags[fn].room:
+                                        # -dem : 철거지역. 이게 들어가면 이 방에 있는 모든 벽이나 잡건물 다 부수겠다는 소리.
+                                        # print("Game.flags[flag].name {} | fn {}".format(Game.flags[flag].name, fn))
+                                        if Game.flags[flag].room.name == Game.flags[fn].room.name \
+                                                and fn.includes(regex_dem):
+                                                # and re.match(regex_dem, fn, re.IGNORECASE):
+                                            # print('flagname {}'.format(fn))
+                                            # print('chkpt')
+                                            # 여기 걸리면 컨테이너도 박살낼지 결정. 근데 쓸일없을듯.
+                                            regex_dem_container = '-dema'
+                                            demo_container = 0
+                                            # if re.match(regex_dem_container, fn, re.IGNORECASE):
+                                            if fn.includes(regex_dem_container):
+                                                demo_container = 1
+                                            dem_bool = True
+                                            dem_flag = fn
+                                            break
 
-                            if dem_bool and dem_num == 0:
-                                if spawn.room.controller.level < 7:
-                                    body = [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK,
-                                            WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK]
+                                if dem_bool:
+                                    remote_dem = _.filter(creeps, lambda c: c.memory.role == 'demolition'
+                                                                            and c.memory.flag_name == dem_flag)
+                                    dem_num = len(remote_dem)
                                 else:
-                                    body = [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE,
-                                            MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, WORK,
-                                            WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK,
-                                            WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK,
-                                            WORK, WORK]
-                                spawning_creep = spawn.createCreep(body, undefined
-                                                                   , {'role': 'demolition',
-                                                                      'assigned_room': Game.flags[flag].room.name
-                                                                      , 'home_room': spawn.room.name
-                                                                      , 'demo_container': demo_container
-                                                                      , 'flag_name': dem_flag})
-                                if spawning_creep == ERR_NOT_ENOUGH_RESOURCES:
-                                    body = [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK,
-                                            WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK]
-                                    spawn.createCreep(body, undefined, {'role': 'demolition',
-                                                                        'assigned_room': Game.flags[flag].room.name
-                                                                        , 'home_room': spawn.room.name
-                                                                        , 'demo_container': demo_container
-                                                                        , 'flag_name': dem_flag})
+                                    dem_num = 0
 
-                                continue
+                                if dem_bool and dem_num == 0:
+                                    if spawn.room.controller.level < 7:
+                                        body = [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK,
+                                                WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK]
+                                    else:
+                                        body = [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE,
+                                                MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, WORK,
+                                                WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK,
+                                                WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK,
+                                                WORK, WORK]
+                                    spawning_creep = spawn.createCreep(body, undefined
+                                                                       , {'role': 'demolition',
+                                                                          'assigned_room': Game.flags[flag].room.name
+                                                                          , 'home_room': spawn.room.name
+                                                                          , 'demo_container': demo_container
+                                                                          , 'flag_name': dem_flag})
+                                    if spawning_creep == ERR_NOT_ENOUGH_RESOURCES:
+                                        body = [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK,
+                                                WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK]
+                                        spawn.createCreep(body, undefined, {'role': 'demolition',
+                                                                            'assigned_room': Game.flags[flag].room.name
+                                                                            , 'home_room': spawn.room.name
+                                                                            , 'demo_container': demo_container
+                                                                            , 'flag_name': dem_flag})
+
+                                    continue
 
             elif spawn.spawning:
                 if spawn.pos.x > 44:
@@ -1148,7 +1249,8 @@ def main():
                             break
 
             spawn_cpu_end = Game.cpu.getUsed() - spawn_cpu
-            print('spawn {} used {} cpu'.format(nesto.name, round(spawn_cpu_end, 2)))
+            if Memory.debug or Game.time % interval == 0 or Memory.tick_check:
+                print('spawn {} used {} cpu'.format(nesto.name, round(spawn_cpu_end, 2)))
 
         # 멀티방 건물정보 저장. 현재는 아무기능 안한다.
         if Game.time % structure_renew_count == 1:
@@ -1180,7 +1282,7 @@ def main():
                         elif building_name == STRUCTURE_TOWER:
                             # 수리작업을 할때 벽·방어막 체력 만 이하가 있으면 그걸 최우선으로 고친다.
                             # 적이 있을 시 수리 자체를 안하니 있으면 아예 무시.
-                            if len(hostile_creeps) == 0 and current_lvl > 4 and Game.cpu.bucket > 2000:
+                            if len(hostile_creeps) == 0 and current_lvl > 4 and Game.cpu.bucket > cpu_bucket_emergency:
                                 for repair_wall_rampart in repairs:
                                     if repair_wall_rampart.structureType == STRUCTURE_WALL \
                                             or repair_wall_rampart.structureType == STRUCTURE_RAMPART:
@@ -1201,18 +1303,19 @@ def main():
                                     building_action.run_links(Game.getObjectById(link), my_structures)
                     break
 
-            if room_cpu_num > 0:
+            if room_cpu_num > 0 and (Memory.debug or Game.time % interval == 0 or Memory.tick_check):
                 end = Game.cpu.getUsed()
                 # print("end {} start {}".format(round(end, 2), round(room_cpu, 2)))
                 room_cpu_avg = (end - room_cpu) / room_cpu_num
-                print("{} structures ran in {} total with avg. {} cpu"
-                      .format(room_cpu_num, room_name, round(room_cpu_avg, 2)))
+                print("{} structures ran in {} total with avg. {} cpu, tot. {} cpu"
+                      .format(room_cpu_num, room_name, round(room_cpu_avg, 2), round(end - room_cpu, 2)))
 
-    if Game.cpu.bucket < 2000:
+    if Game.cpu.bucket < cpu_bucket_emergency:
         print('passed creeps:', passing_creep_counter)
 
-    print("total of {} creeps run with avg. {} cpu usage each"
-          .format(total_creep_cpu_num, round(total_creep_cpu/total_creep_cpu_num, 2)))
+    if Memory.debug or Game.time % interval == 0 or Memory.tick_check:
+        print("total of {} creeps run with avg. {} cpu, tot. {} cpu"
+              .format(total_creep_cpu_num, round(total_creep_cpu/total_creep_cpu_num, 2), round(total_creep_cpu, 2)))
 
     # 스트럭쳐 목록 초기화 위한 작업. 마지막에 다 지워야 운용에 차질이 없음.
     # 추후 정리해야 하는 사안일듯.
@@ -1220,6 +1323,7 @@ def main():
     # if Game.time % structure_renew_count == 0:
     #     del Memory.rooms
 
+    # todo 스폰을 위한 크립 캐시화.
     # adding total cpu
     # while len(Memory.cpu_usage.total) >= Memory.ticks:
     while len(Memory.cpu_usage) >= Memory.ticks:
@@ -1232,7 +1336,7 @@ def main():
     if not Memory.tick_check and Memory.tick_check != False:
         Memory.tick_check = False
 
-    interval = 50
+
 
     if Game.time % interval == 0 or Memory.tick_check:
         cpu_total = 0

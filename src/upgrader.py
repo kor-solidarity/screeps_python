@@ -1,6 +1,7 @@
 from defs import *
 import harvest_stuff
 import random
+import miscellaneous
 
 __pragma__('noalias', 'name')
 __pragma__('noalias', 'undefined')
@@ -12,9 +13,10 @@ __pragma__('noalias', 'type')
 __pragma__('noalias', 'update')
 
 
-def run_upgrader(creep, all_structures):
+def run_upgrader(creep, creeps, all_structures):
     """
     :param creep:
+    :param creeps:
     :param all_structures: creep.room.find(FIND_STRUCTURES)
     :return:
     """
@@ -37,8 +39,9 @@ def run_upgrader(creep, all_structures):
                 break
         return
     elif creep.ticksToLive < 30 and creep.room.storage:
-        creep.say('TTL:' + creep.ticksToLive)
-        creep.moveTo(creep.room.controller, {'visualizePathStyle': {'stroke': '#ffffff'}, 'reusePath': 10})
+        creep.suicide()
+        # creep.say('TTL:' + creep.ticksToLive)
+        # creep.moveTo(creep.room.controller, {'visualizePathStyle': {'stroke': '#ffffff'}, 'reusePath': 10})
         return
 
     # 혹시 딴짓하다 옆방으로 새는거에 대한 대비 - it really happened lol
@@ -70,7 +73,7 @@ def run_upgrader(creep, all_structures):
             elif result == 0:
                 del creep.memory.pickup
                 creep.memory.laboro = 1
-            elif result == ERR_NOT_ENOUGH_ENERGY:
+            elif result == ERR_NOT_ENOUGH_ENERGY or result == ERR_INVALID_TARGET:
                 del creep.memory.pickup
             return
 
@@ -82,62 +85,85 @@ def run_upgrader(creep, all_structures):
         #                                                        and s.store[RESOURCE_ENERGY] >= s.storeCapacity * .9)))
         # get energy from storage firsthand
         # if len(full_containers) > 0:
-        if creep.room.storage:
-            if creep.room.storage.store.energy >= creep.carryCapacity * .4:
+        # todo 스토리지를 중심으로 짜지 말고 컨트롤러에 가장 가까이 있는 컨테이너 또는 스토리지로 변환!
 
-                # if not creep.memory.pickup:
-                # randomly choose which storage to go to
-                # random_storage_num = random.randint(0, len(full_containers) - 1)
-                # storage = full_containers[random_storage_num]
-                # creep.memory.pickup = storage['id']
+        if not creep.memory.pickup:
+            # find any storages with any energy inside
+            containers_or_links = all_structures.filter(lambda s: (s.structureType == STRUCTURE_CONTAINER
+                                                        and s.store[RESOURCE_ENERGY] > 0)
+                                                        or (s.structureType == STRUCTURE_LINK
+                                                            and s.energy >= 150
+                                                            and not (s.pos.x < 5 or s.pos.x > 44
+                                                                     or s.pos.y < 5 or s.pos.y > 44)))
+            # 가장 가까운곳에서 빼오는거임. 원래 스토리지가 최우선이었는데 바뀜.
+            pickup_id = miscellaneous.pick_pickup(creep, creeps, containers_or_links, 10000, True)
 
-                creep.memory.pickup = creep.room.storage.id
+            if pickup_id == ERR_INVALID_TARGET:
+                pass
+            else:
+                creep.memory.pickup =pickup_id
 
-                result = harvest_stuff.grab_energy(creep, creep.memory.pickup, True)
-
-                if result == ERR_NOT_IN_RANGE:
-                    creep.moveTo(Game.getObjectById(creep.memory.pickup),
-                                 {'visualizePathStyle': {'stroke': '#ffffff'}, 'reusePath': 20})
-                elif result == 0:
-                    creep.memory.laboro = 1
-                return
-
-        # find any storages with any energy inside
-        storages = all_structures.filter(lambda s: (s.structureType == STRUCTURE_CONTAINER
-                                                    and s.store[RESOURCE_ENERGY] > 0)
-                                                    or (s.structureType == STRUCTURE_LINK
-                                                        and s.energy >= 150
-                                                        and not (s.pos.x < 5 or s.pos.x > 44
-                                                                 or s.pos.y < 5 or s.pos.y > 44)))
-        try:  # if there's no storage, just pass
-            if creep.room.storage.store[RESOURCE_ENERGY] >= creep.carryCapacity * .5:
-                storages.push(creep.room.storage)
-        except:
-            pass
-        # if there are any storages to harvest from, go get it.
-        if len(storages) > 0:
-            if not creep.memory.pickup:
-                # pick storage firsthand if there are any
-                if creep.room.storage and creep.room.storage.store[RESOURCE_ENERGY] > creep.carryCapacity * .8:
-                    creep.memory.pickup = creep.room.storage.id
-                else:
-                    # randomly choose which storage to go to
-                    random_storage_num = random.randint(0, len(storages) - 1)
-                    storage = storages[random_storage_num]
-                    creep.memory.pickup = storage['id']
-
-            result = harvest_stuff.grab_energy(creep, creep.memory.pickup, True)
-            if result == ERR_NOT_IN_RANGE:
-                creep.moveTo(Game.getObjectById(creep.memory.pickup),
-                             {'visualizePathStyle': {'stroke': '#ffffff'}, 'reusePath': 20})
-            elif result == 0:
-                del creep.memory.pickup
-                creep.memory.laboro = 1
-        # if not, manually harvest
-        else:
+        if not creep.memory.pickup:
             if not creep.memory.source_num:
                 creep.memory.source_num = creep.pos.findClosestByRange(creep.room.find(FIND_SOURCES)).id
             harvest_stuff.harvest_energy(creep, creep.memory.source_num)
+
+        # if creep.room.storage and creep.room.storage.pos.inRangeTo(creep.room.controller, 8):
+        #     if creep.room.storage.store.energy >= creep.carryCapacity * .4:
+        #
+        #         # if not creep.memory.pickup:
+        #         # randomly choose which storage to go to
+        #         # random_storage_num = random.randint(0, len(full_containers) - 1)
+        #         # storage = full_containers[random_storage_num]
+        #         # creep.memory.pickup = storage['id']
+        #
+        #         creep.memory.pickup = creep.room.storage.id
+        #
+        #         result = harvest_stuff.grab_energy(creep, creep.memory.pickup, True)
+        #
+        #         if result == ERR_NOT_IN_RANGE:
+        #             creep.moveTo(Game.getObjectById(creep.memory.pickup),
+        #                          {'visualizePathStyle': {'stroke': '#ffffff'}, 'reusePath': 20})
+        #         elif result == 0:
+        #             creep.memory.laboro = 1
+        #
+        # else:
+        #     # find any storages with any energy inside
+        #     containers_or_links = all_structures.filter(lambda s: (s.structureType == STRUCTURE_CONTAINER
+        #                                                 and s.store[RESOURCE_ENERGY] > 0)
+        #                                                 or (s.structureType == STRUCTURE_LINK
+        #                                                     and s.energy >= 150
+        #                                                     and not (s.pos.x < 5 or s.pos.x > 44
+        #                                                              or s.pos.y < 5 or s.pos.y > 44)))
+        #     try:  # if there's no storage, just pass
+        #         if creep.room.storage.store[RESOURCE_ENERGY] >= creep.carryCapacity * .5:
+        #             containers_or_links.push(creep.room.storage)
+        #     except:
+        #         pass
+        #     # if there are any storages to harvest from, go get it.
+        #     if len(containers_or_links) > 0:
+        #         if not creep.memory.pickup:
+        #             # pick storage firsthand if there are any
+        #             if creep.room.storage and creep.room.storage.store[RESOURCE_ENERGY] > creep.carryCapacity * .8:
+        #                 creep.memory.pickup = creep.room.storage.id
+        #             else:
+        #                 # randomly choose which storage to go to
+        #                 random_storage_num = random.randint(0, len(containers_or_links) - 1)
+        #                 storage = containers_or_links[random_storage_num]
+        #                 creep.memory.pickup = storage['id']
+        #
+        #         result = harvest_stuff.grab_energy(creep, creep.memory.pickup, True)
+        #         if result == ERR_NOT_IN_RANGE:
+        #             creep.moveTo(Game.getObjectById(creep.memory.pickup),
+        #                          {'visualizePathStyle': {'stroke': '#ffffff'}, 'reusePath': 20})
+        #         elif result == 0:
+        #             del creep.memory.pickup
+        #             creep.memory.laboro = 1
+        #     # if not, manually harvest
+        #     else:
+        #         if not creep.memory.source_num:
+        #             creep.memory.source_num = creep.pos.findClosestByRange(creep.room.find(FIND_SOURCES)).id
+        #         harvest_stuff.harvest_energy(creep, creep.memory.source_num)
 
     # laboro: 1 == UPGRADE
     elif creep.memory.laboro == 1:

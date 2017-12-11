@@ -366,7 +366,18 @@ def run_miner(creep, all_structures):
 
     # mine
     if creep.memory.laboro == 0:
+        # 바로옆이 아니면 우선 다가간다.
+        if not creep.pos.isNearTo(Game.getObjectById(creep.memory.mineral)):
+            creep.moveTo(Game.getObjectById(creep.memory.mineral), {'visualizePathStyle':
+                                                                    {'stroke': '#0000FF', 'opacity': .25},
+                                                                    'ignoreCreeps': True, 'reusePath': 40})
+            return
+        # 쿨다운이 존재하면 어차피 못캐니 통과합시다.
+        elif Game.getObjectById(creep.memory.extractor).cooldown:
+            return
+
         mine_result = creep.harvest(Game.getObjectById(creep.memory.mineral))
+        # 위 기능들로 인해 이제 의미없는 작업이 된듯..?
         # se ne estas en atingopovo(reach), iru.
         if mine_result == ERR_NOT_IN_RANGE\
                 or mine_result == ERR_NOT_ENOUGH_ENERGY:
@@ -374,8 +385,7 @@ def run_miner(creep, all_structures):
                                                                     {'stroke': '#0000FF', 'opacity': .25},
                                                                     'ignoreCreeps': True, 'reusePath': 40})
         # if mined successfully or cooldown in effect
-        elif mine_result == 0\
-                or mine_result == ERR_TIRED:
+        elif mine_result == 0:
             pass
         else:
             print('mine error:', mine_result)

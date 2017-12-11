@@ -36,21 +36,26 @@ def filter_allies(hostile_creeps):
     return hostile_creeps
 
 
-def pick_pickup(creep, creeps, storages, terminal_capacity=10000):
+def pick_pickup(creep, creeps, storages, terminal_capacity=10000, upgrade=False):
     """
-    designate pickup memory by targeted haulers
+    designate pickup memory by targeted haulers/upgraders
     :param terminal_capacity:
     :param creep: 크립본인
     :param creeps: 방안에 모든 크립
     :param storages: 대상 자원.
+    :param upgrade: 이걸 찾는 대상이 컨트롤러 업글하는애인가?
     :return storage: closest storage with energy left
     """
+    # print("{} the {} upgrade: {}".format(creep.name, creep.memory.role, upgrade))
     # storage with closest.... yeah
+
+    if upgrade and creep.room.storage:
+        storages.push(creep.room.storage)
     closest_storage = creep.pos.findClosestByRange(storages)
 
     # creeps.
     portist_kripoj = creeps
-    # print('storages', storages)
+    # todo 만일 컨테이너가 컨트롤러 주변에 있는 경우 업그레이더가 쓰는 거니 건들지 말아야함.
     # will filter for leftover energy,
     # tldr - if theres already a creep going for it, dont go unless there's some for you.
     while not creep.memory.pickup or len(storages) > 0:
@@ -68,9 +73,33 @@ def pick_pickup(creep, creeps, storages, terminal_capacity=10000):
         # if storage is a link, which only holds energy
         if loop_storage.structureType == STRUCTURE_LINK:
             stored_energy = loop_storage.energy
+        # 컨트롤러 근처에 있는 컨테이너는 수확에서 제외한다. 다만 업글중이 아닐때만!
+        elif not upgrade and loop_storage.structureType == STRUCTURE_CONTAINER \
+                and loop_storage.pos.inRangeTo(loop_storage.room.controller, 6):
+            if loop_storage.pos.inRangeTo(loop_storage.room.controller, 6):
+                sources = loop_storage.room.find(FIND_SOURCES)
+                sources.push(loop_storage.room.find(FIND_MINERALS)[0])
+                # 컨테이너가 소스 옆에 있을 경우 삭제한다. 둘이 있을 경우 좀 골때린데...
+                for s in sources:
+                    # if s.pos.inRangeTo(loop_storage, 3):
+                    # 직접거리도 세칸 이내인가? 맞으면 그걸 없앤다.
+                    if len(loop_storage.pos.findPathTo(s, {'ignoreCreeps': True})) <= 3:
+                        loop_index = storages.indexOf(loop_storage)
+                        # storages.remove(loop_storage)
+                        storages.splice(loop_index, 1)
+                        loop_storage = creep.pos.findClosestByRange(storages)
+                        if upgrade:
+                            stored_energy = loop_storage.store[RESOURCE_ENERGY]
+                        else:
+                            stored_energy = _.sum(loop_storage.store)
+                        break
+
         # else == container or storage.
         else:
-            stored_energy = _.sum(loop_storage.store)
+            if upgrade:
+                stored_energy = loop_storage.store[RESOURCE_ENERGY]
+            else:
+                stored_energy = _.sum(loop_storage.store)
 
         for kripo in portist_kripoj:
             # if hauler dont have pickup, pass

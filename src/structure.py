@@ -46,7 +46,7 @@ def run_tower(tower, hostile_creeps, repairs, malsana_amikoj):
     elif len(malsana_amikoj) > 0:
         malsana_amiko = tower.pos.findClosestByRange(malsana_amikoj)
         tower.heal(malsana_amiko)
-    elif Game.cpu.bucket > 2000:
+    else:
         if tower.energy < tower.energyCapacity * 0.25:
             return
         else:
