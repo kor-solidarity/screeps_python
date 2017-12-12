@@ -13,7 +13,7 @@ __pragma__('noalias', 'type')
 __pragma__('noalias', 'update')
 
 
-def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repairs):
+def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repairs, terminal_capacity):
     """
     :param creep:
     :param all_structures: creep.room.find(FIND_STRUCTURES)
@@ -21,6 +21,7 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
     :param creeps: creep.room.find(FIND_MY_CREEPS)
     :param dropped_all: creep.room.find(FIND_DROPPED_RESOURCES)
     :param repairs: look at main.
+    :param terminal_capacity: 방 안의 터미널 내 에너지 최소값.
     :return:
     """
 
@@ -31,14 +32,21 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
 
     # IMPORTANT: when hauler does a certain work, they must finish them before doing anything else!
 
-    # print('****', creep.name)
-    # print(creep.room.name)
+    """
+    haul_target == 운송 목적지.
+    repair_target == 수리 목표.
+    upgrade_target == 업그레이드 목표
+    build_target == 건설 목표
+    dropped_target == 근처에 떨어져있는 리소스
+    pickup == 에너지 빼갈 대상.
+    to_storage == 스토리지로 운송할 것인가?(불리언)
+    """
+
+    # 운송업 외 다른일은 지극히 제한적으로만 써야한다.
+    # 주의! 1 == 100%
+    outer_work_perc = .7
 
     max_energy_in_storage = 500000
-    if creep.room.controller.level < 8:
-        terminal_capacity = 1000
-    else:
-        terminal_capacity = 10000
 
     # 혹시 딴짓하다 옆방으로 새는거에 대한 대비
     if not creep.memory.upgrade_target:
@@ -82,6 +90,7 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
         del creep.memory.to_storage
         del creep.memory.haul_target
         del creep.memory.build_target
+        del creep.memory.repair_target
 
     elif _.sum(creep.carry) > creep.carryCapacity * .90 and creep.memory.laboro == 0:
         if creep.memory.dropped_target:
@@ -144,13 +153,9 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                                                  or (s.structureType == STRUCTURE_LINK
                                                      and s.energy >= creep.carryCapacity * .45
                                                      and not
-                                                     (s.pos.x < 5 or s.pos.x > 44 or s.pos.y < 5 or s.pos.y > 44))
-                                                 or (s.structureType == STRUCTURE_TERMINAL
-                                                     and s.store.energy >= creep.carryCapacity * .45
-                                                     and s.store.energy > terminal_capacity + creep.carryCapacity))
-
+                                                     (s.pos.x < 5 or s.pos.x > 44 or s.pos.y < 5 or s.pos.y > 44)))
+                # 위 목록 중에서 가장 가까이 있는 컨테이너를 뽑아간다. 만약 뽑아갈 대상이 없을 시 터미널, 스토리지를 각각 찾는다.
                 pickup_id = miscellaneous.pick_pickup(creep, creeps, storages, terminal_capacity)
-                # print('pickup_id:', pickup_id)
                 if pickup_id == ERR_INVALID_TARGET:
                     pass
                 else:
@@ -246,12 +251,16 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
             if creep.room.storage and \
                     (creep.pos.inRangeTo(creep.room.storage, 1)
                      and creep.room.energyAvailable > creep.room.energyCapacityAvailable * .9):
-                if random.randint(0, 2) == 0:
+                chance = random.randint(0, 2)
+                if chance == 0:
                     creep.say('💎물류,염려말라!', True)
                     creep.memory.priority = 1
-                else:
+                elif chance == 1:
                     creep.say('🔥 위대한 발전!', True)
                     creep.memory.priority = 4
+                elif chance == 2:
+                    creep.say('☭ 세상을 고치자!', True)
+                    creep.memory.priority = 3
 
             elif len(structures) > 0 and (picker != 2 or not len(constructions) > 0):
                 creep.say('🔄물류,염려말라!', True)
@@ -310,7 +319,6 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                 if not creep.memory.haul_target and creep.carry.energy > 0:
 
                     # todo 업그레이더 전용 컨테이너가 존재할 경우 거기다가도 보내야함. 추가합시다.
-
                     structures = all_structures.filter(lambda s: ((s.structureType == STRUCTURE_SPAWN
                                                                    or s.structureType == STRUCTURE_EXTENSION
                                                                    or s.structureType == STRUCTURE_NUKER)
@@ -342,7 +350,6 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                             if for_upgrade:
                                 structures.push(ct)
                                 print('there\'s a container!')
-
 
                     portist_kripoj = _.filter(creeps, lambda c: c.memory.role == 'hauler')
 
@@ -501,7 +508,8 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                                 return
                             elif creep.room.storage \
                                     and creep.room.storage.store[RESOURCE_ENERGY] < max_energy_in_storage:
-                                creep.say('📦📦📦📦📦')
+                                creep.say('📦 저장합시다', True)
+                                # creep
                                 creep.memory.to_storage = True
                                 return
                             else:
@@ -552,23 +560,28 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
 
         # priority 3: repair
         elif creep.memory.priority == 3:
-            if len(repairs) > 0:
-                repair = creep.pos.findClosestByRange(repairs)
-            # no repairs? GTFO
-            else:
-                creep.memory.priority = 0
-                return
-            # print(repairs)
-            # print('repair {} , pos: {}'.format(repair, repair.pos))
+            if creep.memory.repair_target:
+                repair = Game.getObjectById(creep.memory.repair_target)
+                if repair.hits == repair.hitsMax:
+                    del creep.memory.repair_target
+
+            if not creep.memory.repair_target:
+                if len(repairs) > 0:
+                    creep.memory.repair_target = creep.pos.findClosestByRange(repairs).id
+                    repair = Game.getObjectById(creep.memory.repair_target)
+                # no repairs? GTFO
+                else:
+                    creep.memory.priority = 0
+                    return
+
             repair_result = creep.repair(repair)
             # print('{} the {}: repair_result {}'.format(creep.name, creep.memory.role, repair_result))
             if repair_result == ERR_NOT_IN_RANGE:
                 creep.moveTo(repair, {'visualizePathStyle': {'stroke': '#ffffff'}, 'reusePath': 10, 'range': 3})
             elif repair_result == ERR_INVALID_TARGET:
-                creep.memory.priority = 0
-
-            # if having anything other than energy when not on priority 1 switch to 1
-            if _.sum(creep.carry) != 0 and creep.carry[RESOURCE_ENERGY] == 0:
+                del creep.memory.repair_target
+            # 어쨌건 운송이 주다.
+            if _.sum(creep.carry) < creep.carryCapacity * outer_work_perc or creep.carry[RESOURCE_ENERGY] == 0:
                 creep.memory.priority = 1
 
         # priority 4: upgrade the controller
@@ -576,10 +589,10 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
             upgrade_result = creep.upgradeController(Game.getObjectById(creep.memory.upgrade_target))
             if upgrade_result == ERR_NOT_IN_RANGE:
                 creep.moveTo(Game.getObjectById(creep.memory.upgrade_target)
-                             , {'visualizePathStyle': {'stroke': '#ffffff'}, 'range': 3, 'reusePath': 20})
+                             , {'visualizePathStyle': {'stroke': '#ffffff'}, 'range': 3, 'reusePath': 10})
             # if having anything other than energy when not on priority 1 switch to 1
             # 운송크립은 발전에 심혈을 기울이면 안됨.
-            if (creep.carry[RESOURCE_ENERGY] <= 0 or _.sum(creep.carry) <= creep.carryCapacity * .75) \
+            if (creep.carry[RESOURCE_ENERGY] <= 0 or _.sum(creep.carry) <= creep.carryCapacity * outer_work_perc) \
                     and creep.room.controller.level > 3:
                 creep.memory.priority = 1
                 creep.say('복귀!', True)

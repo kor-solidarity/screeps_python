@@ -82,7 +82,6 @@ def main():
     Main game logic loop.
     """
 
-
     cpu_bucket_emergency = 1000
     cpu_bucket_emergency_spawn_start = 2500
     if not Memory.debug and not Memory.debug == False:
@@ -219,6 +218,13 @@ def main():
         square = chambro.controller.level
         if square < 4:
             square = 4
+
+        # 방 안의 터미널 내 에너지 최소값.
+        if chambro.terminal and chambro.controller.level < 8:
+            terminal_capacity = 1000
+        else:
+            terminal_capacity = 10000
+
         # list of ALL repairs in the room.
         repairs = all_structures.filter(lambda s: (((s.structureType == STRUCTURE_ROAD
                                                      or s.structureType == STRUCTURE_TOWER
@@ -294,7 +300,7 @@ def main():
 
             elif creep.memory.role == 'hauler':
                 hauler.run_hauler(creep, all_structures, constructions,
-                                  creeps, dropped_all, repairs)
+                                  creeps, dropped_all, repairs, terminal_capacity)
                 """
                 :param creep:
                 :param all_structures: creep.room.find(FIND_STRUCTURES)
@@ -656,18 +662,35 @@ def main():
                     hauler_capacity = 1
                 elif hauler_capacity > 4:
                     hauler_capacity = 4
-                # hauler_capacity = 5
+
+                if spawn.room.terminal:
+                    if spawn.room.terminal.store.energy > terminal_capacity + 10000:
+                        hauler_capacity += 1
+
                 if len(creep_haulers) < hauler_capacity:
                     # 순서는 무조건 아래와 같다. 무조건 덩치큰게 장땡.
-                    # 800
-                    spawning_creep = spawn.createCreep(
-                        [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, CARRY,
-                         CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY,
-                         CARRY, CARRY],
-                        undefined, {'role': 'hauler', 'assigned_room': spawn.pos.roomName,
-                                    'level': 8})
+                    # 1200
+                    if len(creep_haulers) >= 2:
+                        spawning_creep = spawn.createCreep(
+                            [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK,
+                             WORK, WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY,
+                             CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY,
+                             CARRY, CARRY],
+                            undefined, {'role': 'hauler', 'assigned_room': spawn.pos.roomName,
+                                        'level': 8})
+                    else:
+                        spawning_creep = ERR_NOT_ENOUGH_ENERGY
 
-                    if spawning_creep == -6:
+                    # 800
+                    if spawning_creep == ERR_NOT_ENOUGH_ENERGY:
+                        spawning_creep = spawn.createCreep(
+                            [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, CARRY,
+                             CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY,
+                             CARRY, CARRY],
+                            undefined, {'role': 'hauler', 'assigned_room': spawn.pos.roomName,
+                                        'level': 8})
+
+                    if spawning_creep == ERR_NOT_ENOUGH_ENERGY:
                         # 600
                         spawning_creep = spawn.createCreep(
                             [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, CARRY, CARRY, CARRY,
@@ -675,7 +698,7 @@ def main():
                             undefined, {'role': 'hauler', 'assigned_room': spawn.pos.roomName,
                                         'level': 8})
 
-                    if spawning_creep == -6:
+                    if spawning_creep == ERR_NOT_ENOUGH_ENERGY:
                         # 250
                         spawning_creep = spawn.createCreep([WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY,
                                                             CARRY, CARRY, MOVE, MOVE, MOVE, MOVE, MOVE],
@@ -683,7 +706,7 @@ def main():
                                                            {'role': 'hauler', 'assigned_room': spawn.pos.roomName,
                                                             'level': 5})
 
-                    if spawning_creep == -6:
+                    if spawning_creep == ERR_NOT_ENOUGH_ENERGY:
                         if spawn.createCreep([WORK, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE], undefined,
                                              {'role': 'hauler', 'assigned_room': spawn.pos.roomName,
                                               'level': 2}) == -6:
@@ -771,10 +794,9 @@ def main():
                     if len(creep_upgraders) < proper_level + plus:
                         if spawn.room.controller.level != 8:
                             big = spawn.createCreep(
-                                [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK,
-                                 WORK, WORK,
-                                 WORK,
-                                 WORK, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY], undefined,
+                                [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK,
+                                 WORK, WORK, WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY]
+                                , undefined,
                                 {'role': 'upgrader', 'assigned_room': spawn.pos.roomName, 'level': 5})
                         else:
                             big = -6
@@ -789,7 +811,6 @@ def main():
                             if little == -6:
                                 spawn.createCreep([WORK, WORK, CARRY, CARRY, MOVE, MOVE], undefined,
                                                   {'role': 'upgrader', 'assigned_room': spawn.pos.roomName})
-                        continue
 
                 if Memory.debug or Game.time % interval == 0 or Memory.tick_check:
                     print("이 시점까지 스폰 {} 소모량: {}, 이하 remote"
@@ -1085,16 +1106,16 @@ def main():
                                                 , 'home_room': spawn.room.name, 'source_num': carrier_source})
 
                                         print('spawning {}'.format(spawning))
-                                        # todo 과연 이 부분이 필요할까? 너무 크립의 효율이 떨어져 버리는듯.
-                                        if spawning == ERR_NOT_ENOUGH_RESOURCES:
-                                            spawn.createCreep(
-                                                [WORK, WORK, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, MOVE,
-                                                 MOVE, MOVE, MOVE, MOVE],
-                                                undefined,
-                                                {'role': 'carrier', 'assigned_room': Game.flags[flag].room.name,
-                                                 'flag_name': flag, 'pickup': carrier_pickup
-                                                    , 'home_room': spawn.room.name
-                                                    , 'work': True, 'source_num': carrier_source})
+                                        # 과연 이 부분이 필요할까? 너무 크립의 효율이 떨어져 버리는듯.
+                                        # if spawning == ERR_NOT_ENOUGH_RESOURCES:
+                                        #     spawn.createCreep(
+                                        #         [WORK, WORK, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, MOVE,
+                                        #          MOVE, MOVE, MOVE, MOVE],
+                                        #         undefined,
+                                        #         {'role': 'carrier', 'assigned_room': Game.flags[flag].room.name,
+                                        #          'flag_name': flag, 'pickup': carrier_pickup
+                                        #             , 'home_room': spawn.room.name
+                                        #             , 'work': True, 'source_num': carrier_source})
                                         continue
                                 # 픽업이 존재하지 않는다는건 현재 해당 건물이 없다는 뜻이므로 새로 지어야 함.
                                 else:
@@ -1284,11 +1305,11 @@ def main():
                             # 적이 있을 시 수리 자체를 안하니 있으면 아예 무시.
                             if len(hostile_creeps) == 0 and current_lvl > 4 and Game.cpu.bucket > cpu_bucket_emergency:
                                 for repair_wall_rampart in repairs:
-                                    if repair_wall_rampart.structureType == STRUCTURE_WALL \
-                                            or repair_wall_rampart.structureType == STRUCTURE_RAMPART:
-                                        if repair_wall_rampart.hits < 250:
-                                            repairs = [repair_wall_rampart]
-                                            break
+                                    if (repair_wall_rampart.structureType == STRUCTURE_WALL
+                                            or repair_wall_rampart.structureType == STRUCTURE_RAMPART) \
+                                            and repair_wall_rampart.hits < 300:
+                                        repairs = [repair_wall_rampart]
+                                        break
 
                             for tower in structure_list[building_name]:
                                 # sometimes these could die you know....
@@ -1335,7 +1356,6 @@ def main():
     # there's a reason I made it this way...
     if not Memory.tick_check and Memory.tick_check != False:
         Memory.tick_check = False
-
 
 
     if Game.time % interval == 0 or Memory.tick_check:

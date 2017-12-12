@@ -1,3 +1,4 @@
+import random
 from defs import *
 
 __pragma__('noalias', 'name')
@@ -51,11 +52,10 @@ def pick_pickup(creep, creeps, storages, terminal_capacity=10000, upgrade=False)
 
     if upgrade and creep.room.storage:
         storages.push(creep.room.storage)
-    closest_storage = creep.pos.findClosestByRange(storages)
+    # closest_storage = creep.pos.findClosestByRange(storages)
 
     # creeps.
     portist_kripoj = creeps
-    # todo 만일 컨테이너가 컨트롤러 주변에 있는 경우 업그레이더가 쓰는 거니 건들지 말아야함.
     # will filter for leftover energy,
     # tldr - if theres already a creep going for it, dont go unless there's some for you.
     while not creep.memory.pickup or len(storages) > 0:
@@ -64,6 +64,15 @@ def pick_pickup(creep, creeps, storages, terminal_capacity=10000, upgrade=False)
         if len(storages) == 0:
             break
 
+        # no_full_container = True
+        # if not upgrade:
+        #     for s in storages:
+        #         if s.structureType == STRUCTURE_CONTAINER and _.sum(s.store) > s.storeCapacity * .85:
+        #             if random.randint(0, 1):
+        #                 loop_storage = s
+        #                 no_full_container = False
+        #                 break
+        # if no_full_container:
         # to distinguish storage var. with storages inside while loop.
         loop_storage = creep.pos.findClosestByRange(storages)
 
@@ -73,7 +82,7 @@ def pick_pickup(creep, creeps, storages, terminal_capacity=10000, upgrade=False)
         # if storage is a link, which only holds energy
         if loop_storage.structureType == STRUCTURE_LINK:
             stored_energy = loop_storage.energy
-        # 컨트롤러 근처에 있는 컨테이너는 수확에서 제외한다. 다만 업글중이 아닐때만!
+        # 컨트롤러 근처에 있는 컨테이너는 수확에서 제외한다. 다만 업그레이더가 아닐때만!
         elif not upgrade and loop_storage.structureType == STRUCTURE_CONTAINER \
                 and loop_storage.pos.inRangeTo(loop_storage.room.controller, 6):
             if loop_storage.pos.inRangeTo(loop_storage.room.controller, 6):
@@ -124,22 +133,14 @@ def pick_pickup(creep, creeps, storages, terminal_capacity=10000, upgrade=False)
             # storages.remove(loop_storage)
             storages.splice(index, 1)
 
-    # needs extra maintenance
-    # if all storages are occupied or empty, check for storage,
-    # and just get to the closest one if storage is missing too.
-    if not creep.memory.pickup:
-        if creep.room.terminal and \
-                        creep.room.terminal.store[RESOURCE_ENERGY] >= terminal_capacity + creep.carryCapacity:
-            return creep.room.terminal.id
-        elif creep.room.storage and creep.room.storage.store[RESOURCE_ENERGY] >= creep.carryCapacity * .5:
-            return creep.room.storage.id
-        else:
-            if not closest_storage:
-                return ERR_INVALID_TARGET
-            return closest_storage.id
-            # creep.memory.pickup = closest_storage.id
-
-    return closest_storage
+    # 여기까지 왔다면 현재 남은 빼갈 자원이 없다는거임. 그럼 터미널 스토리지를 각각 확인해서 거기 빈게있으면 빼간다.
+    if creep.room.terminal and creep.room.terminal.store[RESOURCE_ENERGY] >= terminal_capacity + creep.carryCapacity:
+        return creep.room.terminal.id
+    elif creep.room.storage and creep.room.storage.store[RESOURCE_ENERGY] >= creep.carryCapacity * .5:
+        return creep.room.storage.id
+    else:
+        # 그거마저 없으면 그냥 에러.
+        return ERR_INVALID_TARGET
 
 
 def roomCallback(creeps, roomName, structures, constructions=None, ignoreRoads=False, ignoreCreeps=False):
@@ -190,7 +191,7 @@ def calc_size(distance, divisor=6, work_chance=False):
     :param work_chance:
     :return: body []
     """
-
+    # todo 이거 현재 리모트 허울러 쪽에 있는건데 여기로 함수화 시킵시다.
     # 굳이 따로 둔 이유: 캐리 둘에 무브 하나.
     carry_body_odd = [MOVE, CARRY, CARRY, CARRY]
     carry_body_even = [MOVE, MOVE, CARRY, CARRY, CARRY]

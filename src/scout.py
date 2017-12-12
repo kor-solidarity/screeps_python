@@ -18,6 +18,6 @@ def run_scout(creep):
     """
 
     creep.moveTo(Game.flags[creep.memory.flag_name],
-                 {'visualizePathStyle': {'stroke': '#ffffff'}, 'reusePath': 10,
+                 {'visualizePathStyle': {'stroke': '#ffffff'}, 'reusePath': 20,
                   'maxOps': 1000})
 

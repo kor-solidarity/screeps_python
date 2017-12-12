@@ -70,7 +70,7 @@ def run_links(link, my_structures):
     if not (link.pos.x < 5 or link.pos.x > 44 or link.pos.y < 5 or link.pos.y > 44):
         if link.energy > 0:
             link.room.visual.text(' 💎{}'.format(link.energy),
-                                  link.pos.x + 0, link.pos.y, {'align': align, 'opacity': 0.8, 'font': 0.4})
+                                  link.pos.x + 0, link.pos.y, {'align': align, 'opacity': 0.8, 'font': 0.45})
         return
 
     if link.cooldown and link.energy:

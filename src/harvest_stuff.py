@@ -28,13 +28,10 @@ def harvest_energy(creep, source_num):
     # DELETE ALL THIS AND MOVE THEM TO CREEPS.
     # THIS FUNC. MUST WORK ONLY ON HARVESTING
     if _.sum(creep.carry) == creep.carryCapacity:
-        # print('creep.carry.energy >= creep.carryCapacity')
-        # print('creep.memory.role:', creep.memory.role)
         creep.memory.laboro = 1
         if creep.memory.role == 'harvester':
             creep.say('民衆民主主義萬世!', True)
         else:
-            # print('hauler')
             creep.say('일꾼생산해라좀', True)
         return 0
 
@@ -55,9 +52,6 @@ def harvest_energy(creep, source_num):
         if _.sum(creep.carry) > 0:
             creep.say('🐜 SOURCES')
             creep.memory.laboro = 1
-    # 교체위한 임시용. NULLIFIED
-    # elif harvested == ERR_INVALID_TARGET:
-    #     del creep.memory.source_num
 
     return harvested
 
@@ -71,12 +65,6 @@ def grab_energy(creep, pickup, only_energy):
     :return: any creep.withdraw return codes
     """
     # we will make new script for some stuff.
-    
-    # NULLIFIED
-    # pickup = pickup targetted to pick up.
-    # get to the fixed location.
-    # if not pickup:
-    #     pickup = pickup['id']
 
     # if there's no energy in the pickup target, delete it
     try:
@@ -107,23 +95,13 @@ def grab_energy(creep, pickup, only_energy):
     else:
         carry_objects = Game.getObjectById(pickup).energy
 
-    # -----------------------------------------------
-
-    # check_name = 'Layla'
-    # if creep.name == check_name:
-    #     print('len(carry_objects):', len(carry_objects))
-
-    # if len(carry_objects) == STRUCTURE_LINK
     if len(carry_objects) == 0:
         # pick it up.
         return creep.withdraw(Game.getObjectById(pickup), RESOURCE_ENERGY)
 
     # else == STRUCTURE_CONTAINER || STRUCTURE_STORAGE
     else:
-        # resources = Object.keys(carry_objects)
-        # for some_resources in resources:
-        #     if Game.getObjectById(pickup).store[some_resources] == 0:
-        #         resources.splice(some_resources, 1)
+
         for resource in Object.keys(carry_objects):
             # if the creep only need to pick up energy.
             if only_energy and resource != 'energy':
@@ -135,28 +113,6 @@ def grab_energy(creep, pickup, only_energy):
                 del pickup
                 return ERR_NOT_ENOUGH_ENERGY
 
-            # # only hauler and carrier should withdraw something else than energy.
-            # if (creep.memory.role != 'hauler' and creep.memory.role != 'carrier') \
-            #         and resource != 'energy':
-            #     continue
-
-            # # if not a hauler AND selected container doesn't have any energy, delete this
-            # # not supposed to get in here AT ALL THO.
-            # elif (creep.memory.role != 'hauler' and creep.memory.role != 'carrier') \
-            #         and Game.getObjectById(pickup).store[resource] == 0:
-            #
-            #     creep.say('noEnergy')
-            #
-            #     del pickup
-            #
-            #     return
-
-
-            # if creep.name == check_name:
-                # print('ID:', Game.getObjectById(pickup).id)
-                # print('Object.keys(carry_objects):', Object.keys(carry_objects))
-                # print('len(Object.keys(carry_objects)):', len(Object.keys(carry_objects)))
-                # print('Game.getObjectById(pickup).store[', resource, ']:', Game.getObjectById(pickup).store[resource])
             # if there's no such resource, pass it to next loop.
             if Game.getObjectById(pickup).store[resource] == 0:
                 # if creep.name == check_name:
@@ -168,7 +124,7 @@ def grab_energy(creep, pickup, only_energy):
 
             if grab_action == ERR_NOT_ENOUGH_RESOURCES:
                 print(resource)
-            # print(creep.name, 'grab_action:', grab_action)
+
             # 오직 잡기 결과값만 반환한다. 이 함수에서 수거활동 외 활동을 금한다!
             return grab_action
 
@@ -188,7 +144,6 @@ def pick_drops(creep, drop):
     result = creep.pickup(creeps_pickup[0])
 
     if result == ERR_NOT_IN_RANGE:
-        # creep.moveTo(creep.memory.dropped_target['pos'], {'visualizePathStyle': {'stroke': '#0000FF'}})
         creep.moveTo(creeps_pickup[0], {'visualizePathStyle':
                                             {'stroke': '#0000FF', 'opacity': .25}})
     # if you picked it up or it's not there anymore.
@@ -196,7 +151,6 @@ def pick_drops(creep, drop):
         # 집거나 없어서 못먹을 경우 우선 적재량 35%을 채웠는지 확인한다.
         # 안 채웠으면 계속 수확
         if _.sum(creep.carry) > creep.carryCapacity * .35:
-            # creep.say(result)
             del creep.memory.dropped_target
             creep.memory.laboro = 1
             creep.memory.priority = 0
