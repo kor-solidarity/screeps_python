@@ -26,6 +26,7 @@ def run_upgrader(creep, creeps, all_structures):
     stroke_key = "stroke"
 
     # in case it's gonna die soon. this noble act is only allowed if there's a storage in the room.
+    # todo 자원 뽑아오는게 스토리지가 아닐 경우 스토리지로 반납하러 가는길에 죽을 가능성이 있음.
     if creep.ticksToLive < 30 and _.sum(creep.carry) != 0 and creep.room.storage:
         creep.say('endIsNear')
         for minerals in Object.keys(creep.carry):

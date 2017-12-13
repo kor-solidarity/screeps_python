@@ -124,7 +124,7 @@ def pick_pickup(creep, creeps, storages, terminal_capacity=10000, upgrade=False)
                 else:
                     continue
         # if leftover stored_energy has enough energy for carry, set pickup.
-        if stored_energy >= int(creep.carryCapacity * .45):
+        if stored_energy >= int((creep.carryCapacity - _.sum(creep.carry)) * .45):
             return loop_storage.id
             # creep.memory.pickup = loop_storage.id
             # break
