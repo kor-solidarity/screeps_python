@@ -544,6 +544,8 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                                 creep.say('📦 저장합시다', True)
                                 # creep
                                 creep.memory.to_storage = True
+                                move_it = creep.moveTo(creep.room.storage, {'visualizePathStyle': {'stroke': '#ffffff'}
+                                                       , 'reusePath': 20})
                                 return
                             else:
                                 creep.say('발전으로!', True)

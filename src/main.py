@@ -79,7 +79,7 @@ creep.memory.flag:
 
 def main():
     """
-    Main game logic loop.
+    Main game logic loop.셔
     """
 
     cpu_bucket_emergency = 1000
@@ -404,7 +404,6 @@ def main():
 
                 if push_bool:
                     # find and add towers
-                    # 1. todo 새 방식 제안: 메모리에 있는 방을 한번 돌려서 없으면 삭제.
                     # 2. 동시에 방 안에 있는 스트럭쳐들 돌려서 메모리에 있는지 확인.
                     towers = _.filter(my_structures, {'structureType': STRUCTURE_TOWER})
                     if len(towers) > 0:
@@ -1177,11 +1176,19 @@ def main():
                                 regex_dem = '-dem'
                                 dem_bool = False
                                 dem_flag = None
+                                # todo 철거반을 만들었으면 자원회수반도 만든다.
                                 # 여기까지 다 건설이 완료됐으면 철거반이 필요한지 확인해본다.
                                 for fn in Object.keys(flags):
-
-                                    # 로딩안되면 시야에 없단소리. 건너뛴다.
-                                    if Game.flags[fn].room:
+                                    # 로딩안되면 시야에 없단소리. 정찰대 파견한다.
+                                    if not Game.flags[fn].room:
+                                        # look for scouts
+                                        creep_scouts = _.filter(creeps, lambda c: c.memory.role == 'scout'
+                                                                                  and c.memory.flag_name == fn)
+                                        if len(creep_scouts) < 1:
+                                            spawn_res = spawn.createCreep([MOVE], 'Scout-' + fn,
+                                                                          {'role': 'scout', 'flag_name': fn})
+                                            break
+                                    else:
                                         # -dem : 철거지역. 이게 들어가면 이 방에 있는 모든 벽이나 잡건물 다 부수겠다는 소리.
                                         # print("Game.flags[flag].name {} | fn {}".format(Game.flags[flag].name, fn))
                                         if Game.flags[flag].room.name == Game.flags[fn].room.name \
@@ -1199,39 +1206,38 @@ def main():
                                             dem_flag = fn
                                             break
 
-                                if dem_bool:
-                                    remote_dem = _.filter(creeps, lambda c: c.memory.role == 'demolition'
-                                                                            and c.memory.flag_name == dem_flag)
-                                    dem_num = len(remote_dem)
-                                else:
-                                    dem_num = 0
+                                        if dem_bool:
+                                            remote_dem = _.filter(creeps, lambda c: c.memory.role == 'demolition'
+                                                                                    and c.memory.flag_name == dem_flag)
+                                            dem_num = len(remote_dem)
+                                        else:
+                                            dem_num = 0
 
-                                if dem_bool and dem_num == 0:
-                                    if spawn.room.controller.level < 7:
-                                        body = [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK,
-                                                WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK]
-                                    else:
-                                        body = [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE,
-                                                MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, WORK,
-                                                WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK,
-                                                WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK,
-                                                WORK, WORK]
-                                    spawning_creep = spawn.createCreep(body, undefined
-                                                                       , {'role': 'demolition',
-                                                                          'assigned_room': Game.flags[flag].room.name
-                                                                          , 'home_room': spawn.room.name
-                                                                          , 'demo_container': demo_container
-                                                                          , 'flag_name': dem_flag})
-                                    if spawning_creep == ERR_NOT_ENOUGH_RESOURCES:
-                                        body = [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK,
-                                                WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK]
-                                        spawn.createCreep(body, undefined, {'role': 'demolition',
-                                                                            'assigned_room': Game.flags[flag].room.name
-                                                                            , 'home_room': spawn.room.name
-                                                                            , 'demo_container': demo_container
-                                                                            , 'flag_name': dem_flag})
-
-                                    continue
+                                        if dem_bool and dem_num == 0:
+                                            if spawn.room.controller.level < 7:
+                                                body = [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK,
+                                                        WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK]
+                                            else:
+                                                body = [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE,
+                                                        MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, WORK,
+                                                        WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK,
+                                                        WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK,
+                                                        WORK, WORK]
+                                            spawning_creep = spawn.createCreep(body, undefined
+                                                                               , {'role': 'demolition',
+                                                                                  'assigned_room': Game.flags[flag].room.name
+                                                                                  , 'home_room': spawn.room.name
+                                                                                  , 'demo_container': demo_container
+                                                                                  , 'flag_name': dem_flag})
+                                            if spawning_creep == ERR_NOT_ENOUGH_RESOURCES:
+                                                body = [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK,
+                                                        WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK]
+                                                spawn.createCreep(body, undefined, {'role': 'demolition',
+                                                                                    'assigned_room': Game.flags[flag].room.name
+                                                                                    , 'home_room': spawn.room.name
+                                                                                    , 'demo_container': demo_container
+                                                                                    , 'flag_name': dem_flag})
+                                            continue
 
             elif spawn.spawning:
                 if spawn.pos.x > 44:
