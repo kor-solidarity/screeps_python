@@ -615,8 +615,10 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                 creep.moveTo(repair, {'visualizePathStyle': {'stroke': '#ffffff'}, 'reusePath': 10, 'range': 3})
             elif repair_result == ERR_INVALID_TARGET:
                 del creep.memory.repair_target
-            # 어쨌건 운송이 주다.
-            if _.sum(creep.carry) < creep.carryCapacity * outer_work_perc or creep.carry[RESOURCE_ENERGY] == 0:
+
+            # 어쨌건 운송이 주다. 다만 레벨 8이면 수리에 전념할 수 있다.
+            if (_.sum(creep.carry) < creep.carryCapacity * outer_work_perc and creep.room.controller.level != 8) \
+                    or creep.carry[RESOURCE_ENERGY] == 0:
                 creep.memory.priority = 1
 
         # priority 4: upgrade the controller
