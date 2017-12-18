@@ -165,6 +165,17 @@ def roomCallback(creeps, roomName, structures, constructions=None, ignoreRoads=F
 
     costs = __new__(PathFinder.CostMatrix())
 
+    # 컨트롤러 근처엔 절대! 도로를 깔지 않는다.
+    if room.controller:
+        costs.set(room.controller.pos.x, room.controller.pos.y+1, 0xff)
+        costs.set(room.controller.pos.x, room.controller.pos.y-1, 0xff)
+        costs.set(room.controller.pos.x+1, room.controller.pos.y, 0xff)
+        costs.set(room.controller.pos.x+1, room.controller.pos.y+1, 0xff)
+        costs.set(room.controller.pos.x+1, room.controller.pos.y-1, 0xff)
+        costs.set(room.controller.pos.x-1, room.controller.pos.y, 0xff)
+        costs.set(room.controller.pos.x-1, room.controller.pos.y+1, 0xff)
+        costs.set(room.controller.pos.x-1, room.controller.pos.y-1, 0xff)
+
     for struct in structures:
         if struct.structureType == STRUCTURE_ROAD and not ignoreRoads:
             print('not ignoreRoad')

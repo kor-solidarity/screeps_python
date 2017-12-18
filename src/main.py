@@ -79,7 +79,7 @@ creep.memory.flag:
 
 def main():
     """
-    Main game logic loop.셔
+    Main game logic loop.
     """
 
     cpu_bucket_emergency = 1000
@@ -214,16 +214,20 @@ def main():
 
         hostile_creeps = chambro.find(FIND_HOSTILE_CREEPS)
 
-        # 단계별 제곱근값
-        square = chambro.controller.level
-        if square < 4:
+        if chambro.controller:
+            # 단계별 제곱근값
+            square = chambro.controller.level
+            if square < 4:
+                square = 4
+        else:
             square = 4
 
         # 방 안의 터미널 내 에너지 최소값.
-        if chambro.terminal and chambro.controller.level < 8:
-            terminal_capacity = 1000
-        else:
-            terminal_capacity = 10000
+        if chambro.controller:
+            if chambro.terminal and chambro.controller.level < 8:
+                terminal_capacity = 1000
+            else:
+                terminal_capacity = 10000
 
         # list of ALL repairs in the room.
         repairs = all_structures.filter(lambda s: (((s.structureType == STRUCTURE_ROAD
@@ -249,6 +253,7 @@ def main():
         # ext_cpu = Game.cpu.getUsed()
         # extractor = None
         extractor = _.filter(my_structures, lambda s: s.structureType == STRUCTURE_EXTRACTOR)
+        # print('extractor:', extractor)
         # if my_structures:
         #     for structure in my_structures:
         #         # print('structure.structureType: {}'.format(structure.structureType))
@@ -404,6 +409,7 @@ def main():
 
                 if push_bool:
                     # find and add towers
+                    # 1. todo 새 방식 제안: 메모리에 있는 방을 한번 돌려서 없으면 삭제.
                     # 2. 동시에 방 안에 있는 스트럭쳐들 돌려서 메모리에 있는지 확인.
                     towers = _.filter(my_structures, {'structureType': STRUCTURE_TOWER})
                     if len(towers) > 0:
@@ -718,33 +724,36 @@ def main():
                 # print('익스트랙터 {} 광부 {}'.format(extractor, creep_miners))
 
                 # if there's an extractor, make a miner.
-                if extractor and len(creep_miners) == 0:
-                    # print('extractor', extractor)
-                    # continue
-                    minerals = chambro.find(FIND_MINERALS)
-                    if minerals[0].mineralAmount != 0 or minerals[0].ticksToRegeneration < 120:
-                        # only one is needed
-                        if len(creep_miners) > 0:
-                            pass
-                        # make a miner
-                        else:
-                            spawning_creep = spawn.createCreep(
-                                [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, WORK,
-                                 WORK,
-                                 WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK,
-                                 WORK,
-                                 WORK, WORK, CARRY], undefined,
-                                {'role': 'miner', 'assigned_room': spawn.pos.roomName,
-                                 'level': 5})
-                            if spawning_creep == ERR_NOT_ENOUGH_RESOURCES:
+                if bool(extractor):
+                    if bool(len(creep_miners) == 0):
+                        # print('extractor', extractor)
+                        # print("extractor: ", bool(extractor))
+                        # print("len(creep_miners) == 0:", bool(len(creep_miners) == 0))
+                        # continue
+                        minerals = chambro.find(FIND_MINERALS)
+                        if minerals[0].mineralAmount != 0 or minerals[0].ticksToRegeneration < 120:
+                            # only one is needed
+                            if len(creep_miners) > 0:
+                                pass
+                            # make a miner
+                            else:
                                 spawning_creep = spawn.createCreep(
-                                    [MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK,
-                                     WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, CARRY, CARRY],
-                                    undefined,
-                                    {'role': 'miner', 'assigned_room': spawn.pos.roomName})
+                                    [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, WORK,
+                                     WORK,
+                                     WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK,
+                                     WORK,
+                                     WORK, WORK, CARRY], undefined,
+                                    {'role': 'miner', 'assigned_room': spawn.pos.roomName,
+                                     'level': 5})
+                                if spawning_creep == ERR_NOT_ENOUGH_RESOURCES:
+                                    spawning_creep = spawn.createCreep(
+                                        [MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK,
+                                         WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, CARRY, CARRY],
+                                        undefined,
+                                        {'role': 'miner', 'assigned_room': spawn.pos.roomName})
 
-                            if spawning_creep == 0:
-                                continue
+                                if spawning_creep == 0:
+                                    continue
 
                 # 업그레이더는 버켓 비상 근접시부터 생산 고려 자체를 안한다.
                 if Game.cpu.bucket > cpu_bucket_emergency + cpu_bucket_emergency_spawn_start:
@@ -1021,7 +1030,7 @@ def main():
                                         # work 부분부터 넣어본다.
                                         if work_chance == 1:
                                             work_check += 1
-                                            if work_check == 1 or work_check == 4:
+                                            if work_check == 1 or work_check == 3:
                                                 for bodypart in work_body:
                                                     body.push(bodypart)
                                         # 이거부터 들어가야함
@@ -1174,7 +1183,10 @@ def main():
                             if Game.cpu.bucket > cpu_bucket_emergency + cpu_bucket_emergency_spawn_start:
                                 # 아래 철거반 확인용도.
                                 regex_dem = '-dem'
+
+                                # 만들지말지 확인용도
                                 dem_bool = False
+                                # 소속 깃발.
                                 dem_flag = None
                                 # todo 철거반을 만들었으면 자원회수반도 만든다.
                                 # 여기까지 다 건설이 완료됐으면 철거반이 필요한지 확인해본다.
@@ -1193,13 +1205,10 @@ def main():
                                         # print("Game.flags[flag].name {} | fn {}".format(Game.flags[flag].name, fn))
                                         if Game.flags[flag].room.name == Game.flags[fn].room.name \
                                                 and fn.includes(regex_dem):
-                                                # and re.match(regex_dem, fn, re.IGNORECASE):
-                                            # print('flagname {}'.format(fn))
-                                            # print('chkpt')
+
                                             # 여기 걸리면 컨테이너도 박살낼지 결정. 근데 쓸일없을듯.
                                             regex_dem_container = '-dema'
                                             demo_container = 0
-                                            # if re.match(regex_dem_container, fn, re.IGNORECASE):
                                             if fn.includes(regex_dem_container):
                                                 demo_container = 1
                                             dem_bool = True
@@ -1209,6 +1218,12 @@ def main():
                                         if dem_bool:
                                             remote_dem = _.filter(creeps, lambda c: c.memory.role == 'demolition'
                                                                                     and c.memory.flag_name == dem_flag)
+                                            demolish_structures = Game.flags[fn].room.find(FIND_STRUCTURES)
+
+                                            if Game.flags[fn].room.controller:
+                                                index = demolish_structures.indexOf(Game.flags[fn].room.controller)
+                                                demolish_structures.splice(index, 1)
+
                                             dem_num = len(remote_dem)
                                         else:
                                             dem_num = 0
@@ -1238,6 +1253,7 @@ def main():
                                                                                     , 'demo_container': demo_container
                                                                                     , 'flag_name': dem_flag})
                                             continue
+                                        # elif
 
             elif spawn.spawning:
                 if spawn.pos.x > 44:

@@ -434,3 +434,6 @@ def run_miner(creep, all_structures):
             print("WTF no container????")
 
     return
+
+
+# def run_demolition_collector(creep, dropped_all, )

@@ -259,7 +259,7 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
             extra_container_to_be_filled = 0
             # 업그레이드용 컨테이너가 보일 경우.
             if len(container) > 0:
-                print('cont!!{}'.format(container))
+                # print('cont!!{}'.format(container))
                 for ct in container:
                     sources = creep.room.find(FIND_SOURCES)
                     sources.push(creep.room.find(FIND_MINERALS)[0])
@@ -278,7 +278,7 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                         extra_container_to_be_filled += 2000
                         extra_container_to_fill += _.sum(ct.store)
                         structures.push(ct)
-                        print('there\'s a container!')
+                        # print('there\'s a container!')
 
             # 스토리지에서 자원을 캐고 현재 에너지가 90% 이상 찬 경우 발전에 보탠다.
             if creep.room.storage and \
@@ -294,7 +294,7 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                     # 여기서 스토리지를 목록에서 없앤다. 스토리지는 항상 마지막에 채운다.
                     index = structures.indexOf(creep.room.storage)
                     structures.splice(index, 1)
-                    print('delete?', structures)
+                    # print('delete?', structures)
 
                 elif chance == 1:
                     creep.say('🔥 위대한 발전!', True)
@@ -310,7 +310,7 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                 # 여기서 스토리지를 목록에서 없앤다. 스토리지는 항상 마지막에 채운다.
                 index = structures.indexOf(creep.room.storage)
                 structures.splice(index, 1)
-                print('delete?', structures)
+                # print('delete?', structures)
 
             elif len(constructions) > 0 or picker == 2:
                 creep.say('🚧 건설투쟁!', True)

@@ -16,8 +16,8 @@ def run_scout(creep):
     :param creep:
     :return:
     """
-
-    creep.moveTo(Game.flags[creep.memory.flag_name],
-                 {'visualizePathStyle': {'stroke': '#ffffff'}, 'reusePath': 20,
-                  'maxOps': 1000})
+    if Game.flags[creep.memory.flag_name]:
+        creep.moveTo(Game.flags[creep.memory.flag_name],
+                     {'visualizePathStyle': {'stroke': '#ffffff'}, 'reusePath': 20,
+                      'maxOps': 1000})
 
