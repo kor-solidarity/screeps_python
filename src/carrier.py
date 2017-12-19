@@ -173,13 +173,9 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
         # 3. repair
 
         if creep.memory.priority == 0:
-            # print(creep.name)
+
             # made for cases carriers dont have WORK
             creep_body_has_work = creep.memory.work
-            # for body in creep.body:
-            #     if body.type == WORK:
-            #         creep_body_has_work = True
-            #         break
 
             try:
                 # construction sites. only find if creep is not in its flag location.
@@ -358,5 +354,9 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                 creep.memory.priority = 0
             elif repair_result == ERR_NO_BODYPART:
                 creep.memory.priority = 2
+            elif repair_result == 0:
+                if _.sum(Game.getObjectById(creep.memory.pickup).carry) == Game.getObjectById(creep.memory.pickup).carryCapacity:
+                    creep.say('수리보다 운송!', True)
+                    creep.memory.priority = 2
 
         return

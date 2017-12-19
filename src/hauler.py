@@ -280,13 +280,16 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                         structures.push(ct)
                         # print('there\'s a container!')
 
-            # 스토리지에서 자원을 캐고 현재 에너지가 90% 이상 찬 경우 발전에 보탠다.
-            if creep.room.storage and \
+            # 스토리지에서 자원을 캐고 현재 총 에너지가 90% 이상 찬 경우 발전에 보탠다.
+            if creep.room.controller and creep.room.storage and \
                     (creep.pos.inRangeTo(creep.room.storage, 1)
                      and (creep.room.energyAvailable + extra_container_to_fill)
                             > (creep.room.energyCapacityAvailable + extra_container_to_be_filled) * .9):
+                if creep.room.controller.level != 8:
+                    chance = random.randint(0, 2)
+                else:
+                    chance = random.randint(0, 1)
 
-                chance = random.randint(0, 2)
                 if chance == 0:
                     creep.say('💎물류,염려말라!', True)
                     creep.memory.priority = 1
@@ -297,11 +300,11 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                     # print('delete?', structures)
 
                 elif chance == 1:
-                    creep.say('🔥 위대한 발전!', True)
-                    creep.memory.priority = 4
-                elif chance == 2:
                     creep.say('☭ 세상을 고치자!', True)
                     creep.memory.priority = 3
+                elif chance == 2:
+                    creep.say('🔥 위대한 발전!', True)
+                    creep.memory.priority = 4
 
             elif len(structures) > 0 and (picker != 2 or not len(constructions) > 0):
                 creep.say('🔄물류,염려말라!', True)
@@ -360,7 +363,7 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                 # haul_target == cela adreso por porti la energion.
                 if not creep.memory.haul_target and creep.carry.energy > 0:
                     if not passed_priority_0:
-                        # todo 업그레이더 전용 컨테이너가 존재할 경우 거기다가도 보내야함. 추가합시다.
+
                         structures = all_structures.filter(lambda s: ((s.structureType == STRUCTURE_SPAWN
                                                                        or s.structureType == STRUCTURE_EXTENSION
                                                                        or s.structureType == STRUCTURE_NUKER)
@@ -506,7 +509,6 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                             break
 
                 else:
-                    # todo 컨테이너 꽉 찼을 경우 목표취소 안한다. 이거 수정해야함. 근접한 후에서야 -8 오류뜲
                     # transfer_result = creep.transfer(structure, RESOURCE_ENERGY)
                     transfer_result = creep.transfer(Game.getObjectById(creep.memory.haul_target), RESOURCE_ENERGY)
                     if transfer_result == ERR_NOT_IN_RANGE:

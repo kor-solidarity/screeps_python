@@ -443,7 +443,8 @@ def main():
                     room_names.append(spawn.room.name)
 
             if Memory.debug or Game.time % interval == 0 or Memory.tick_check:
-                print('방 루프에서 스폰 준비 : {} cpu'.format(round(Game.cpu.getUsed() - spawn_cpu, 2)))
+                print('방 {} 루프에서 스폰 {} 준비시간 : {} cpu'.format(nesto.room.name, nesto.name
+                                                             , round(Game.cpu.getUsed() - spawn_cpu, 2)))
 
             # if spawn is not spawning, try and make one i guess.
             # spawning priority: harvester > hauler > upgrader > melee > etc.
@@ -1295,14 +1296,6 @@ def main():
             if Memory.debug or Game.time % interval == 0 or Memory.tick_check:
                 print('spawn {} used {} cpu'.format(nesto.name, round(spawn_cpu_end, 2)))
 
-        # 멀티방 건물정보 저장. 현재는 아무기능 안한다.
-        if Game.time % structure_renew_count == 1:
-            # 정규식으로 확인. -rm 으로 끝나는 깃발은 다 멀티자원방이기 때문에 그걸 확인한다.
-            regex_flag = r'.+-rm'
-            for flag in Object.keys(Game.flags):
-                if re.match(regex_flag, flag, re.IGNORECASE):
-                    pass
-
         # loop for ALL STRUCTURES
         if Memory.rooms:
             room_cpu = Game.cpu.getUsed()
@@ -1378,7 +1371,6 @@ def main():
     # there's a reason I made it this way...
     if not Memory.tick_check and Memory.tick_check != False:
         Memory.tick_check = False
-
 
     if Game.time % interval == 0 or Memory.tick_check:
         cpu_total = 0
