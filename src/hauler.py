@@ -550,9 +550,14 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                                                        , 'reusePath': 20})
                                 return
                             else:
-                                creep.say('발전으로!', True)
-                                creep.memory.priority = 4
-                                return
+                                if creep.room.controller.level != 8:
+                                    creep.say('발전으로!', True)
+                                    creep.memory.priority = 4
+                                    return
+                                else:
+                                    creep.say('고향을 지킨다!', True)
+                                    creep.memory.priority = 3
+                                    return
                         except:
                             print('no storage I guess')
                         creep.memory.priority = 0

@@ -355,8 +355,9 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
             elif repair_result == ERR_NO_BODYPART:
                 creep.memory.priority = 2
             elif repair_result == 0:
-                if _.sum(Game.getObjectById(creep.memory.pickup).carry) == Game.getObjectById(creep.memory.pickup).carryCapacity:
+                if _.sum(Game.getObjectById(creep.memory.pickup).store) \
+                        == Game.getObjectById(creep.memory.pickup).storeCapacity:
                     creep.say('수리보다 운송!', True)
-                    creep.memory.priority = 2
-
+                    creep.memory.laboro = 0
+                    creep.memory.priority = 0
         return

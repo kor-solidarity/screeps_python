@@ -20,6 +20,7 @@ def run_remote_defender(creep, creeps, hostile_creeps):
     :param hostile_creeps: 적
     :return:
     """
+    # todo 원거리 크립으로 개조해야함..
     # random blurtin'
     listo = ['Charge!', "KILL!!", "Ypa!", 'CodeIn 🐍!', 'Python 🤘!']
     try:  # incase there's no creep for visual

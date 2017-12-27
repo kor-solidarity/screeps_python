@@ -677,13 +677,23 @@ def main():
                     # 순서는 무조건 아래와 같다. 무조건 덩치큰게 장땡.
                     # 1200
                     if len(creep_haulers) >= 2:
-                        spawning_creep = spawn.createCreep(
-                            [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK,
-                             WORK, WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY,
-                             CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY,
-                             CARRY, CARRY],
-                            undefined, {'role': 'hauler', 'assigned_room': spawn.pos.roomName,
-                                        'level': 8})
+                        spawning_creep = ERR_NOT_ENOUGH_ENERGY
+                        if spawn.room.controller.level == 8:
+                            spawning_creep = spawn.createCreep(
+                                [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE,
+                                 MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY,
+                                 CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY,
+                                 CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY],
+                                undefined, {'role': 'hauler', 'assigned_room': spawn.pos.roomName,
+                                            'level': 8})
+                        if spawning_creep == ERR_NOT_ENOUGH_ENERGY:
+                            spawning_creep = spawn.createCreep(
+                                [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK,
+                                 WORK, WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY,
+                                 CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY,
+                                 CARRY, CARRY],
+                                undefined, {'role': 'hauler', 'assigned_room': spawn.pos.roomName,
+                                            'level': 8})
                     else:
                         spawning_creep = ERR_NOT_ENOUGH_ENERGY
 
