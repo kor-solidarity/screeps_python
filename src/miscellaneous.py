@@ -229,3 +229,7 @@ def calc_size(distance, divisor=6, work_chance=False):
     if distance % 6 > 2:
         body.push(MOVE)
         body.push(CARRY)
+
+
+def find_distance(creep, distance=5):
+    return {'pos': creep.pos, 'range': distance}

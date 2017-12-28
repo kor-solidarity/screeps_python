@@ -281,7 +281,7 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                         # print('there\'s a container!')
 
             # 스토리지에서 자원을 캐고 현재 총 에너지가 90% 이상 찬 경우 발전에 보탠다.
-            if creep.room.controller and creep.room.storage and \
+            if len(repairs) == 0 and creep.room.controller and creep.room.storage and \
                     (creep.pos.inRangeTo(creep.room.storage, 1)
                      and (creep.room.energyAvailable + extra_container_to_fill)
                             > (creep.room.energyCapacityAvailable + extra_container_to_be_filled) * .9):
@@ -448,7 +448,7 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                                             size_counter += 2
                                         else:
                                             size_counter += 3
-                                        # print('STRUCTURE_CONTAINER, counter: {}'.format(size_counter))
+                                            # print('STRUCTURE_CONTAINER, counter: {}'.format(size_counter))
                                     # aŭ estas nesto
                                     else:
                                         # if spawn's energy is half-full, only one hauler is needed.
@@ -465,7 +465,6 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                         if structure.structureType == STRUCTURE_SPAWN:
                             if creep.pos.isNearTo(Game.getObjectById(structure.id)) \
                                     and structure.energy >= structure.energyCapacity * .9:
-
                                 size_counter += 3
 
                         # size_counter estas malpli ol 3 == structure povas asigni al creep-o
@@ -547,7 +546,7 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                                 # creep
                                 creep.memory.to_storage = True
                                 move_it = creep.moveTo(creep.room.storage, {'visualizePathStyle': {'stroke': '#ffffff'}
-                                                       , 'reusePath': 20})
+                                    , 'reusePath': 20})
                                 return
                             else:
                                 if creep.room.controller.level != 8:

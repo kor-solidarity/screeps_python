@@ -1,5 +1,6 @@
 from defs import *
 import random
+import miscellaneous
 
 __pragma__('noalias', 'name')
 __pragma__('noalias', 'undefined')
@@ -23,6 +24,7 @@ def run_remote_defender(creep, creeps, hostile_creeps):
     # todo 원거리 크립으로 개조해야함..
     # random blurtin'
     listo = ['Charge!', "KILL!!", "Ypa!", 'CodeIn 🐍!', 'Python 🤘!']
+
     try:  # incase there's no creep for visual
         if creep.room.name != Game.flags[creep.memory.flag_name].room.name:
             creep.moveTo(Game.flags[creep.memory.flag_name], {'visualizePathStyle': {'stroke': '#ffffff'}})
@@ -30,6 +32,7 @@ def run_remote_defender(creep, creeps, hostile_creeps):
     except:
         creep.moveTo(Game.flags[creep.memory.flag_name], {'visualizePathStyle': {'stroke': '#ffffff'}})
         return
+
     # find the goddamn enemies
     if creep.room.name != Game.flags[creep.memory.flag_name].room.name:
         enemies = hostile_creeps
@@ -37,25 +40,42 @@ def run_remote_defender(creep, creeps, hostile_creeps):
         enemies = Game.flags[creep.memory.flag_name].room.find(FIND_HOSTILE_CREEPS)
 
     if len(enemies) > 0:
-
+        # 거리안에 없으면 무조건 펑펑 터친다
+        creep.rangedMassAttack()
         enemy = creep.pos.findClosestByRange(enemies)
 
-        # distance = creep.pos.getRangeTo(enemy)
-        creep.rangedAttack(enemy)
+        distance = creep.pos.getRangeTo(enemy)
+        # 거리유지
+        if distance < 3:
 
-        # attack result
-        atk_res = creep.attack(enemy)
-
-        if atk_res == ERR_NOT_IN_RANGE:
-
-            rand_int = random.randint(0, len(listo)-1)
-            creep.say(listo[rand_int], True)
-            creep.heal(Game.getObjectById(creep.id))
-            creep.moveTo(enemy, {'visualizePathStyle': {'stroke': '#FF0000'}, 'ignoreCreeps': False})
-        elif atk_res == OK:
-            return
+            goals = _.map(enemies, lambda: miscellaneous.find_distance(enemy))
+            print("goals:", goals)
+            f = PathFinder.search(creep.pos, goals, {'flee': True})
+            creep.cancelOrder('rangedMassAttack')
+            creep.rangedAttack(enemy)
+            position = f.path[0]
+            creep.move(creep.pos.getDirectionTo(position))
+            evading = True
+        elif distance == 3:
+            creep.cancelOrder('rangedMassAttack')
+            creep.rangedAttack(enemy)
         else:
-            print(creep.name, 'ATK ERR:', atk_res)
+            creep.moveTo(enemy, {'visualizePathStyle': {'stroke': '#FF0000'}, 'ignoreCreeps': False})
+
+        creep.heal(Game.getObjectById(creep.id))
+        # attack result NULLIFIED
+        # atk_res = creep.attack(enemy)
+        #
+        # if atk_res == ERR_NOT_IN_RANGE:
+        #
+        #     rand_int = random.randint(0, len(listo)-1)
+        #     creep.say(listo[rand_int], True)
+        #     creep.heal(Game.getObjectById(creep.id))
+        #     creep.moveTo(enemy, {'visualizePathStyle': {'stroke': '#FF0000'}, 'ignoreCreeps': False})
+        # elif atk_res == OK:
+        #     return
+        # else:
+        #     print(creep.name, 'ATK ERR:', atk_res)
     # no enemies? heal the comrades and gtfo of the road
     else:
         wounded = _.filter(creeps, lambda c: c.hits < c.hitsMax)

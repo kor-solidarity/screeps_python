@@ -214,6 +214,10 @@ def main():
 
         hostile_creeps = chambro.find(FIND_HOSTILE_CREEPS)
 
+        # to filter out the allies.
+        if len(hostile_creeps) > 0:
+            hostile_creeps = miscellaneous.filter_allies(hostile_creeps)
+
         if chambro.controller:
             # 단계별 제곱근값
             square = chambro.controller.level
@@ -265,10 +269,6 @@ def main():
         # print('ext cpu: {}'.format(round(Game.cpu.getUsed() - ext_cpu, 3)))
 
         # print('room {} extr? {}'.format(chambra_nomo, extractor))
-
-        # to filter out the allies.
-        if len(hostile_creeps) > 0:
-            hostile_creeps = miscellaneous.filter_allies(hostile_creeps)
 
         # my_structures = _.filter(all_structures, lambda s: s.my == True)
 
@@ -675,17 +675,18 @@ def main():
 
                 if len(creep_haulers) < hauler_capacity:
                     # 순서는 무조건 아래와 같다. 무조건 덩치큰게 장땡.
+                    # 만일 컨트롤러 레벨이 8일 경우 가장 WORK 높은애 우선 하나.
+                    if spawn.room.controller.level == 8:
+                        spawning_creep = spawn.createCreep(
+                            [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE,
+                             MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY,
+                             CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY,
+                             CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY],
+                            undefined, {'role': 'hauler', 'assigned_room': spawn.pos.roomName,
+                                        'level': 8})
+
                     # 1200
                     if len(creep_haulers) >= 2:
-                        spawning_creep = ERR_NOT_ENOUGH_ENERGY
-                        if spawn.room.controller.level == 8:
-                            spawning_creep = spawn.createCreep(
-                                [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE,
-                                 MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY,
-                                 CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY,
-                                 CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY],
-                                undefined, {'role': 'hauler', 'assigned_room': spawn.pos.roomName,
-                                            'level': 8})
                         if spawning_creep == ERR_NOT_ENOUGH_ENERGY:
                             spawning_creep = spawn.createCreep(
                                 [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK,
@@ -864,33 +865,33 @@ def main():
                                 hostiles = miscellaneous.filter_allies(hostiles)
                                 print('len(hostiles) == {} and len(remote_troops) == {}'
                                       .format(len(hostiles), len(remote_troops)))
-                            if len(hostiles) > 1:
-                                plus = 1
-
-                            else:
+                            # if len(hostiles) > 1:
+                            #     plus = 1
+                            #
+                            # else:
                                 plus = 0
                             # print(Game.flags[flag].room.name, 'remote_troops', len(remote_troops))
-                            if len(hostiles) + plus > len(remote_troops):
-                                # 임시조치. 한번 그냥 적들어오면 아무것도 안해보자.
-                                continue
+                                if len(hostiles) + plus > len(remote_troops):
+                                    # 렙7 이하면 스폰 안한다.
+                                    if spawn.room.controller.level < 7:
+                                        continue
 
-                                # second one is the BIG GUY. made in case invader's too strong.
-                                # 임시로 0으로 놨음. 구조 자체를 뜯어고쳐야함.
-                                if len(remote_troops) == 0:
-                                    spawn_res = spawn.createCreep(
-                                        [TOUGH, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE,
-                                         MOVE, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK,
-                                         ATTACK, RANGED_ATTACK, HEAL],
-                                        undefined, {'role': 'soldier', 'assigned_room': Game.flags[flag].room.name
-                                            , 'home_room': spawn.room.name, 'flag_name': flag})
-                                    continue
-                                spawn_res = spawn.createCreep(
-                                    [TOUGH, TOUGH, TOUGH, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, ATTACK, RANGED_ATTACK,
-                                     HEAL],
-                                    undefined, {'role': 'soldier', 'assigned_room': Game.flags[flag].room.name
-                                        , 'home_room': spawn.room.name, 'flag_name': flag})
-                                # if spawn_res == 0:
-                                continue
+                                    # second one is the BIG GUY. made in case invader's too strong.
+                                    # 임시로 0으로 놨음. 구조 자체를 뜯어고쳐야함.
+                                    # 원래 두 크립이 연동하는거지만 한번 없이 해보자.
+                                    if len(remote_troops) == 0:
+                                        spawn_res = spawn.createCreep(
+                                            [TOUGH, TOUGH, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE,
+                                             MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE,
+                                             MOVE, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK,
+                                             RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK,
+                                             RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK,
+                                             RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK,
+                                             RANGED_ATTACK, HEAL, HEAL, HEAL],
+                                            undefined, {'role': 'soldier', 'soldier': 'remote_defender'
+                                                        , 'assigned_room': Game.flags[flag].room.name
+                                                        , 'home_room': spawn.room.name, 'flag_name': flag})
+                                        continue
 
                             # 방 안에 적이 있으면 아예 생산을 하지 않는다! 정찰대와 방위병 빼고.
                             if len(hostiles) > 0:
@@ -1125,16 +1126,6 @@ def main():
                                                 , 'home_room': spawn.room.name, 'source_num': carrier_source})
 
                                         print('spawning {}'.format(spawning))
-                                        # 과연 이 부분이 필요할까? 너무 크립의 효율이 떨어져 버리는듯.
-                                        # if spawning == ERR_NOT_ENOUGH_RESOURCES:
-                                        #     spawn.createCreep(
-                                        #         [WORK, WORK, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, MOVE,
-                                        #          MOVE, MOVE, MOVE, MOVE],
-                                        #         undefined,
-                                        #         {'role': 'carrier', 'assigned_room': Game.flags[flag].room.name,
-                                        #          'flag_name': flag, 'pickup': carrier_pickup
-                                        #             , 'home_room': spawn.room.name
-                                        #             , 'work': True, 'source_num': carrier_source})
                                         continue
                                 # 픽업이 존재하지 않는다는건 현재 해당 건물이 없다는 뜻이므로 새로 지어야 함.
                                 else:
@@ -1277,9 +1268,6 @@ def main():
                 spawn.room.visual.text(
                     '🛠 ' + spawning_creep.memory.role + ' '
                     + "{}/{}".format(spawn.spawning.remainingTime - 1, spawn.spawning.needTime),
-                    # + str(int(
-                    #     ((spawn.spawning.needTime - spawn.spawning.remainingTime)
-                    #      / spawn.spawning.needTime) * 100)) + '%',
                     spawn.pos.x + 1,
                     spawn.pos.y,
                     {'align': align, 'opacity': 0.8}
