@@ -249,7 +249,7 @@ def run_harvester(creep, all_structures, constructions, creeps, dropped_all):
                                                            or s.structureType == STRUCTURE_CONTAINER
                                                            or s.structureType == STRUCTURE_LINK))
 
-            storage = creep.pos.findClosestByRange(storages)
+            storage = Game.getObjectById(creep.memory.source_num).pos.findClosestByRange(storages)
             # print('len(storage):', len(storage))
             
             if len(storage) == 0:
@@ -264,7 +264,9 @@ def run_harvester(creep, all_structures, constructions, creeps, dropped_all):
         #                                           or s.structureType == STRUCTURE_CONTAINER)
 
         if creep.memory.container:
-
+            if not Game.getObjectById(creep.memory.container):
+                del creep.memory.container
+                return
             if not Game.getObjectById(creep.memory.source_num).pos.inRangeTo(Game.getObjectById(creep.memory.container), 3):
                 # print('huh?')
                 del creep.memory.container

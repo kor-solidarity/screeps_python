@@ -290,7 +290,7 @@ def main():
 
             # but if a soldier/harvester.... nope. they're must-be-run creeps
             if creep.memory.role == 'soldier':
-                soldier.run_remote_defender(creep, creeps, hostile_creeps)
+                soldier.run_remote_defender(all_structures, creep, creeps, hostile_creeps)
 
             elif creep.memory.role == 'harvester':
                 harvester.run_harvester(creep, all_structures, constructions, creeps, dropped_all)
@@ -1317,11 +1317,16 @@ def main():
                             # 수리작업을 할때 벽·방어막 체력 만 이하가 있으면 그걸 최우선으로 고친다.
                             # 적이 있을 시 수리 자체를 안하니 있으면 아예 무시.
                             if len(hostile_creeps) == 0 and current_lvl > 4 and Game.cpu.bucket > cpu_bucket_emergency:
-                                for repair_wall_rampart in repairs:
-                                    if (repair_wall_rampart.structureType == STRUCTURE_WALL
-                                            or repair_wall_rampart.structureType == STRUCTURE_RAMPART) \
-                                            and repair_wall_rampart.hits < 300:
-                                        repairs = [repair_wall_rampart]
+                                for repair_obj in repairs:
+                                    if (repair_obj.structureType == STRUCTURE_WALL
+                                            or repair_obj.structureType == STRUCTURE_RAMPART) \
+                                            and repair_obj.hits < 300:
+                                        repairs = [repair_obj]
+                                        break
+                                    elif (repair_obj.structureType == STRUCTURE_CONTAINER
+                                            or repair_obj.structureType == STRUCTURE_ROAD) \
+                                            and repair_obj.hits < repair_obj.hitsMax * .05:
+                                        repairs = [repair_obj]
                                         break
 
                             for tower in structure_list[building_name]:

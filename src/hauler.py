@@ -255,8 +255,10 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                                               s.structureType == STRUCTURE_CONTAINER
                                               and s.pos.inRangeTo(creep.room.controller, 6)
                                               and _.sum(s.store) < s.storeCapacity)
-            extra_container_to_fill = 0
-            extra_container_to_be_filled = 0
+            # 추가 컨테이너 채워진 양
+            extra_container_filled = 0
+            # 추가 컨테이너 총 크기(당연하지만 개당 2000)
+            extra_containers_capacity = 0
             # 업그레이드용 컨테이너가 보일 경우.
             if len(container) > 0:
                 # print('cont!!{}'.format(container))
@@ -275,16 +277,17 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                             for_upgrade = True
                             break
                     if for_upgrade:
-                        extra_container_to_be_filled += 2000
-                        extra_container_to_fill += _.sum(ct.store)
+                        extra_containers_capacity += 2000
+                        extra_container_filled += _.sum(ct.store)
                         structures.push(ct)
                         # print('there\'s a container!')
 
-            # 스토리지에서 자원을 캐고 현재 총 에너지가 90% 이상 찬 경우 발전에 보탠다.
-            if len(repairs) == 0 and creep.room.controller and creep.room.storage and \
+            # 스토리지에서 자원을 캐고 현재 총 에너지가 90% 이상 찬 경우 발전또는 수리에 보탠다.
+            if creep.room.controller and creep.room.storage and \
                     (creep.pos.inRangeTo(creep.room.storage, 1)
-                     and (creep.room.energyAvailable + extra_container_to_fill)
-                            > (creep.room.energyCapacityAvailable + extra_container_to_be_filled) * .9):
+                     and (creep.room.energyAvailable + extra_container_filled)
+                            > (creep.room.energyCapacityAvailable + extra_containers_capacity) * .9):
+                # print("{} is near storage and got no place to fill".format(creep.name))
                 if creep.room.controller.level != 8:
                     chance = random.randint(0, 2)
                 else:

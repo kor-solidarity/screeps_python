@@ -13,7 +13,7 @@ __pragma__('noalias', 'update')
 
 
 # only for defending the remote room from ai
-def run_remote_defender(creep, creeps, hostile_creeps):
+def run_remote_defender(all_structures, creep, creeps, hostile_creeps):
     """
     blindly search and kills npc invaders
     :param creep:
@@ -49,7 +49,7 @@ def run_remote_defender(creep, creeps, hostile_creeps):
         if distance < 3:
 
             goals = _.map(enemies, lambda: miscellaneous.find_distance(enemy))
-            print("goals:", goals)
+            # print("goals:", goals)
             f = PathFinder.search(creep.pos, goals, {'flee': True})
             creep.cancelOrder('rangedMassAttack')
             creep.rangedAttack(enemy)
@@ -80,16 +80,27 @@ def run_remote_defender(creep, creeps, hostile_creeps):
     else:
         wounded = _.filter(creeps, lambda c: c.hits < c.hitsMax)
 
-        if len(wounded) > 0 and creep.memory.heal:
+        if len(wounded) > 0:
             closest = creep.pos.findClosestByRange(wounded)
             heal = creep.heal(closest)
 
             if heal != 0:
                 creep.moveTo(closest, {'visualizePathStyle': {'stroke': '#FF0000', 'opacity': .25}})
         else:
+            # todo what if there's no containers??
+            if not creep.memory.recycle_loc:
+                containers = _.filter(all_structures, lambda s: s.structureType == STRUCTURE_CONTAINER)
+                closest_container = creep.pos.findClosestByRange(containers)
+                creep.memory.recycle_loc = closest_container.id
+            if Game.getObjectById(creep.memory.recycle_loc):
+                if creep.pos.inRangeTo(Game.getObjectById(creep.memory.recycle_loc), 0):
+                    creep.suicide()
+                else:
+                    creep.moveTo(Game.getObjectById(creep.memory.recycle_loc)
+                                 , {'visualizePathStyle': {'stroke': '#ffffff'}, 'reusePath': 50})
             # just to get the creep off the road
-            creep.moveTo(Game.flags[creep.memory.flag_name], {'visualizePathStyle': {'stroke': '#ffffff'},
-                                                              'reusePath': 50})
+            # creep.moveTo(Game.flags[creep.memory.flag_name], {'visualizePathStyle': {'stroke': '#ffffff'},
+            #                                                   'reusePath': 50})
 
 
 def remote_healer(creep, creeps, hostile_creeps):

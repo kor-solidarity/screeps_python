@@ -56,12 +56,13 @@ def harvest_energy(creep, source_num):
     return harvested
 
 
-def grab_energy(creep, pickup, only_energy):
+def grab_energy(creep, pickup, only_energy, min_capacity=.4):
     """
     grabbing energy from local storages(container, storage, etc.)
     :param creep:
     :param pickup: creep.memory. 가장 가까운 또는 목표 storage의 ID
     :param only_energy: bool
+    :param min_capacity:
     :return: any creep.withdraw return codes
     """
     # we will make new script for some stuff.
@@ -70,12 +71,12 @@ def grab_energy(creep, pickup, only_energy):
     try:
         # print(pickup, 'type:', Game.getObjectById(pickup).structureType)
         if Game.getObjectById(pickup).structureType != STRUCTURE_LINK:
-            if _.sum(Game.getObjectById(pickup).store) < (creep.carryCapacity - _.sum(creep.carry)) * .4:
+            if _.sum(Game.getObjectById(pickup).store) < (creep.carryCapacity - _.sum(creep.carry)) * min_capacity:
                 del pickup
                 # print('checkpoint?')
                 return ERR_NOT_ENOUGH_ENERGY
         else:
-            if Game.getObjectById(pickup).energy < (creep.carryCapacity - _.sum(creep.carry)) * .4:
+            if Game.getObjectById(pickup).energy < (creep.carryCapacity - _.sum(creep.carry)) * min_capacity:
                 del pickup
                 # print('checkpoint??')
                 return ERR_NOT_ENOUGH_ENERGY
