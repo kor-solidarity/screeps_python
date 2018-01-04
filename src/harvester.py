@@ -39,7 +39,7 @@ def run_harvester(creep, all_structures, constructions, creeps, dropped_all):
     # 소속된 깃발이 있는 방에 없으면 있는 방으로 우선 가고 본다.
     if creep.memory.flag_name and Game.flags[creep.memory.flag_name].pos.roomName != creep.pos.roomName:
         creep.moveTo(Game.flags[creep.memory.flag_name], {'visualizePathStyle':
-                                                                  {'stroke': '#ADD8E6', 'opacity': .25}})
+                                                              {'stroke': '#ADD8E6', 'opacity': .25}})
         return
 
     # no memory.laboro? make one.
@@ -239,7 +239,10 @@ def run_harvester(creep, all_structures, constructions, creeps, dropped_all):
             elif grab_result == ERR_INVALID_TARGET:
                 del creep.memory.pickup
 
-        harvest_stuff.harvest_energy(creep, creep.memory.source_num)
+        if _.sum(creep.carry) > creep.carryCapacity - 10:
+            creep.memory.laboro = 1
+        else:
+            harvest_stuff.harvest_energy(creep, creep.memory.source_num)
 
     # if carryCapacity is full - then go to nearest container or storage to store the energy.
     elif creep.memory.laboro == 1:
@@ -267,7 +270,9 @@ def run_harvester(creep, all_structures, constructions, creeps, dropped_all):
             if not Game.getObjectById(creep.memory.container):
                 del creep.memory.container
                 return
-            if not Game.getObjectById(creep.memory.source_num).pos.inRangeTo(Game.getObjectById(creep.memory.container), 3):
+
+            if not Game.getObjectById(creep.memory.source_num).pos.inRangeTo(
+                    Game.getObjectById(creep.memory.container), 3):
                 # print('huh?')
                 del creep.memory.container
                 return

@@ -60,9 +60,11 @@ def run_remote_defender(all_structures, creep, creeps, hostile_creeps):
             creep.cancelOrder('rangedMassAttack')
             creep.rangedAttack(enemy)
         else:
+            if creep.hits < creep.hitsMax and not distance < 6:
+                creep.cancelOrder('rangedMassAttack')
+                creep.heal(Game.getObjectById(creep.id))
             creep.moveTo(enemy, {'visualizePathStyle': {'stroke': '#FF0000'}, 'ignoreCreeps': False})
 
-        creep.heal(Game.getObjectById(creep.id))
         # attack result NULLIFIED
         # atk_res = creep.attack(enemy)
         #

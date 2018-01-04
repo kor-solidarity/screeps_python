@@ -880,7 +880,7 @@ def main():
                                     # 렙7 이하면 스폰 안한다.
                                     if spawn.room.controller.level < 7:
                                         continue
-
+                                    # todo 인베이더일 경우에만 잡으러 간다. npc가 아닐 경우... 카운터를 새로 세야할듯.
                                     # second one is the BIG GUY. made in case invader's too strong.
                                     # 임시로 0으로 놨음. 구조 자체를 뜯어고쳐야함.
                                     # 원래 두 크립이 연동하는거지만 한번 없이 해보자.
