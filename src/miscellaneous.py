@@ -233,3 +233,18 @@ def calc_size(distance, divisor=6, work_chance=False):
 
 def find_distance(creep, distance=5):
     return {'pos': creep.pos, 'range': distance}
+
+
+def clear_orders():
+    my_orders = Game.market.orders
+    for order in Object.keys(my_orders):
+        if my_orders[order]['remainingAmount'] != 0:
+            continue
+        if my_orders[order]['active']:
+            continue
+        if my_orders[order]['amount'] != 0:
+            continue
+        print('DELETING OLD ORDER: room {}, id {}, remaining amount {}'.format(
+            my_orders[order]['roomName'], my_orders[order]['id']
+                      , my_orders[order]['remainingAmount']))
+        Game.market.cancelOrder(order)

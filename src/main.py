@@ -196,6 +196,11 @@ def main():
     # total spawns ran
     spawn_run_num = 0
 
+    # 때에따라 한번씩 빈주문 삭제
+    if Game.time % 80000 == 0:
+        print('attempting to clear market records...')
+        miscellaneous.clear_orders()
+
     # run everything according to each rooms.
     for chambra_nomo in Object.keys(Game.rooms):
         chambro_cpu = Game.cpu.getUsed()
@@ -386,7 +391,7 @@ def main():
             # this part is made to save memory and separate functional structures out of spawn loop.
             if Game.time % structure_renew_count == 1 or not Memory.rooms:
                 # TESTING PART
-                print('check')
+                # print('check')
                 # obj.property === obj['property']
 
                 push_bool = True
@@ -403,7 +408,7 @@ def main():
                     print('room_name({}) || spawn.room.name({})'.format(room_name, spawn.room.name))
                     # 순환 돌려서 하나라도 방이름 중복되면 아래 추가 안해야함.
                     if room_name == spawn.room.name:
-                        print('check')
+                        # print('check')
                         push_bool = False
                         break
 
@@ -881,14 +886,21 @@ def main():
                                     # 원래 두 크립이 연동하는거지만 한번 없이 해보자.
                                     if len(remote_troops) == 0:
                                         spawn_res = spawn.createCreep(
-                                            [TOUGH, TOUGH, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE,
-                                             MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE,
-                                             MOVE, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK,
+                                            # think this is too much for mere invaders
+                                            # [TOUGH, TOUGH, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE,
+                                            #  MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE,
+                                            #  MOVE, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK,
+                                            #  RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK,
+                                            #  RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK,
+                                            #  RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK,
+                                            #  RANGED_ATTACK, HEAL, HEAL, HEAL],
+                                            [TOUGH, TOUGH, TOUGH, TOUGH, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE,
+                                             MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE,
+                                             MOVE, MOVE, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK,
                                              RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK,
                                              RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK,
-                                             RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK,
-                                             RANGED_ATTACK, HEAL, HEAL, HEAL],
-                                            undefined, {'role': 'soldier', 'soldier': 'remote_defender'
+                                             RANGED_ATTACK, HEAL, HEAL, HEAL]
+                                            , undefined, {'role': 'soldier', 'soldier': 'remote_defender'
                                                         , 'assigned_room': Game.flags[flag].room.name
                                                         , 'home_room': spawn.room.name, 'flag_name': flag})
                                         continue
