@@ -868,8 +868,8 @@ def main():
                             # to filter out the allies.
                             if len(hostiles) > 0:
                                 hostiles = miscellaneous.filter_allies(hostiles)
-                                print('len(hostiles) == {} and len(remote_troops) == {}'
-                                      .format(len(hostiles), len(remote_troops)))
+                                # print('len(hostiles) == {} and len(remote_troops) == {}'
+                                #       .format(len(hostiles), len(remote_troops)))
                             # if len(hostiles) > 1:
                             #     plus = 1
                             #
@@ -881,10 +881,17 @@ def main():
                                     if spawn.room.controller.level < 7:
                                         continue
                                     # todo 인베이더일 경우에만 잡으러 간다. npc가 아닐 경우... 카운터를 새로 세야할듯.
+                                    # 상대방이 AI인가? AI일때만 건드린다.
+                                    npc_hostile = False
+                                    for h in hostiles:
+                                        if h.owner == 'Invader':
+                                            print('INVADER ALERT at {}'.format(Game.flags[flag].room.name))
+                                            npc_hostile = True
+
                                     # second one is the BIG GUY. made in case invader's too strong.
                                     # 임시로 0으로 놨음. 구조 자체를 뜯어고쳐야함.
                                     # 원래 두 크립이 연동하는거지만 한번 없이 해보자.
-                                    if len(remote_troops) == 0:
+                                    if len(remote_troops) == 0 and npc_hostile:
                                         spawn_res = spawn.createCreep(
                                             # think this is too much for mere invaders
                                             # [TOUGH, TOUGH, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE,
