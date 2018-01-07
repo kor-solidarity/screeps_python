@@ -297,6 +297,7 @@ def run_harvester(creep, all_structures, constructions, creeps, dropped_all):
                     if c.memory.role == 'harvester' and c.memory.size > 1 and c.ticksToLive > 200:
                         # print('creep check?: {}'.format(c.name))
                         if c.memory.source_num == creep.memory.source_num:
+                            creep.moveTo(Game.getObjectById(creep.memory.source_num))
                             creep.suicide()
 
         else:

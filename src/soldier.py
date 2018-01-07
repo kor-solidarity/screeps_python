@@ -21,6 +21,7 @@ def run_remote_defender(all_structures, creep, creeps, hostile_creeps):
     :param hostile_creeps: 적
     :return:
     """
+
     # todo 원거리 크립으로 개조해야함..
     # random blurtin'
     listo = ['Charge!', "KILL!!", "Ypa!", 'CodeIn 🐍!', 'Python 🤘!']
@@ -33,6 +34,15 @@ def run_remote_defender(all_structures, creep, creeps, hostile_creeps):
         creep.moveTo(Game.flags[creep.memory.flag_name], {'visualizePathStyle': {'stroke': '#ffffff'}})
         return
 
+    if not creep.memory.keeper_lair and not creep.memory.keeper_lair == 0:
+        for s in all_structures:
+            if s.structureType == STRUCTURE_KEEPER_LAIR:
+                creep.memory.keeper_lair = 1
+                break
+        # 여기 도달했으면 키퍼방이 아닌거.
+        if not creep.memory.keeper_lair:
+            creep.memory.keeper_lair = 0
+
     # find the goddamn enemies
     if creep.room.name != Game.flags[creep.memory.flag_name].room.name:
         enemies = hostile_creeps
@@ -40,6 +50,10 @@ def run_remote_defender(all_structures, creep, creeps, hostile_creeps):
         enemies = Game.flags[creep.memory.flag_name].room.find(FIND_HOSTILE_CREEPS)
 
     if len(enemies) > 0:
+
+        if creep.memory.keeper_lair_spawning:
+            del creep.memory.keeper_lair_spawning
+
         # 거리안에 없으면 무조건 펑펑 터친다
         creep.rangedMassAttack()
         enemy = creep.pos.findClosestByRange(enemies)
@@ -58,9 +72,10 @@ def run_remote_defender(all_structures, creep, creeps, hostile_creeps):
             evading = True
         elif distance == 3:
             creep.cancelOrder('rangedMassAttack')
-            creep.rangedAttack(enemy)
+            if creep.rangedAttack(enemy) == ERR_NO_BODYPART:
+                creep.heal(Game.getObjectById(creep.id))
         else:
-            if creep.hits < creep.hitsMax and not distance < 6:
+            if creep.hits < creep.hitsMax and not distance < 5:
                 creep.cancelOrder('rangedMassAttack')
                 creep.heal(Game.getObjectById(creep.id))
             creep.moveTo(enemy, {'visualizePathStyle': {'stroke': '#FF0000'}, 'ignoreCreeps': False})
@@ -88,6 +103,19 @@ def run_remote_defender(all_structures, creep, creeps, hostile_creeps):
 
             if heal != 0:
                 creep.moveTo(closest, {'visualizePathStyle': {'stroke': '#FF0000', 'opacity': .25}})
+
+        elif creep.memory.keeper_lair:
+            # 스폰시간이 가장 낮은 키퍼레어로 다가가서 대기탄다.
+            if not creep.memory.keeper_lair_spawning:
+                lairs = _.filter(all_structures, lambda s: s.structureType == STRUCTURE_KEEPER_LAIR)
+                closest_lair = _.min(lairs, lambda l: l.ticksToSpawn)
+                creep.memory.keeper_lair_spawning = closest_lair.id
+
+            closest_lair_obj = Game.getObjectById(creep.memory.keeper_lair_spawning)
+            if not creep.pos.inRangeTo(closest_lair_obj, 3):
+                creep.moveTo(closest_lair_obj, {'visualizePathStyle': {'stroke': '#FF0000', 'opacity': .25}
+                             , 'range': 3, 'reusePath': 10})
+
         else:
             # todo what if there's no containers??
             if not creep.memory.recycle_loc:

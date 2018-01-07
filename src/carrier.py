@@ -53,6 +53,7 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
     if _.sum(creep.carry) == 0 and creep.memory.laboro != 0:
         creep.memory.laboro = 0
         creep.memory.priority = 0
+        del creep.memory.build_target
     elif _.sum(creep.carry) == creep.carryCapacity and creep.memory.laboro != 1:
         creep.memory.laboro = 1
         creep.memory.priority = 0
