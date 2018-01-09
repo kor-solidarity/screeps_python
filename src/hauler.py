@@ -242,7 +242,9 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
             # defining structures to fill the energy on. originally above of this spot but replaced for cpu eff.
             # towers only fills 80% since it's gonna repair here and there all the time.
             structures = all_structures.filter(lambda s: ((s.structureType == STRUCTURE_SPAWN
-                                                           or s.structureType == STRUCTURE_EXTENSION)
+                                                           or s.structureType == STRUCTURE_EXTENSION
+                                                           or s.structureType == STRUCTURE_NUKER
+                                                           or s.structureType == STRUCTURE_LAB)
                                                           and s.energy < s.energyCapacity)
                                                          or (s.structureType == STRUCTURE_TOWER
                                                              and s.energy < s.energyCapacity * 0.8)
@@ -303,8 +305,12 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                     # print('delete?', structures)
 
                 elif chance == 1:
-                    creep.say('☭ 세상을 고치자!', True)
-                    creep.memory.priority = 3
+                    if len(constructions) > 0:
+                        creep.say('⚒건설,염려말라!', True)
+                        creep.memory.priority = 2
+                    else:
+                        creep.say('☭ 세상을 고치자!', True)
+                        creep.memory.priority = 3
                 elif chance == 2:
                     creep.say('🔥 위대한 발전!', True)
                     creep.memory.priority = 4
@@ -369,7 +375,8 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
 
                         structures = all_structures.filter(lambda s: ((s.structureType == STRUCTURE_SPAWN
                                                                        or s.structureType == STRUCTURE_EXTENSION
-                                                                       or s.structureType == STRUCTURE_NUKER)
+                                                                       or s.structureType == STRUCTURE_NUKER
+                                                                       or s.structureType == STRUCTURE_LAB)
                                                                       and s.energy < s.energyCapacity)
                                                                      or (s.structureType == STRUCTURE_TOWER
                                                                          and s.energy < s.energyCapacity * 0.8))
