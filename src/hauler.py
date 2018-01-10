@@ -459,7 +459,7 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                                         else:
                                             size_counter += 3
                                             # print('STRUCTURE_CONTAINER, counter: {}'.format(size_counter))
-                                    # aŭ estas nesto
+                                    # aŭ estas nesto aŭ lab
                                     else:
                                         # if spawn's energy is half-full, only one hauler is needed.
                                         if structure.energy > structure.energyCapacity * .5:
