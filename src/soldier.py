@@ -27,11 +27,13 @@ def run_remote_defender(all_structures, creep, creeps, hostile_creeps):
     listo = ['Charge!', "KILL!!", "Ypa!", 'CodeIn 🐍!', 'Python 🤘!']
 
     try:  # incase there's no creep for visual
-        if creep.room.name != Game.flags[creep.memory.flag_name].room.name:
-            creep.moveTo(Game.flags[creep.memory.flag_name], {'visualizePathStyle': {'stroke': '#ffffff'}})
+        if creep.room.name != creep.memory.assigned_room:
+            creep.moveTo(RoomPosition(25, 25, creep.memory.assigned_room)
+                         , {'visualizePathStyle': {'stroke': '#ffffff'}}, {'range': 20})
             return
     except:
-        creep.moveTo(Game.flags[creep.memory.flag_name], {'visualizePathStyle': {'stroke': '#ffffff'}})
+        creep.moveTo(RoomPosition(25, 25, creep.memory.assigned_room)
+                     , {'visualizePathStyle': {'stroke': '#ffffff'}}, {'range': 20})
         return
 
     if not creep.memory.keeper_lair and not creep.memory.keeper_lair == 0:

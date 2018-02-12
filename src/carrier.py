@@ -100,7 +100,7 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
             # 1. if 1 == False, look for storage|containers to get the energy from.
             # 2. if 2 == False, you harvest on ur own.
 
-            result = harvest_stuff.grab_energy(creep, creep.memory.pickup, True)
+            result = harvest_stuff.grab_energy(creep, creep.memory.pickup, True, 0.3)
             # print(creep.name, result)
             if result == ERR_NOT_IN_RANGE:
                 creep.moveTo(Game.getObjectById(creep.memory.pickup),
