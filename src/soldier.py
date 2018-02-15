@@ -28,11 +28,11 @@ def run_remote_defender(all_structures, creep, creeps, hostile_creeps):
 
     try:  # incase there's no creep for visual
         if creep.room.name != creep.memory.assigned_room:
-            creep.moveTo(RoomPosition(25, 25, creep.memory.assigned_room)
+            creep.moveTo(__new__(RoomPosition(25, 25, creep.memory.assigned_room))
                          , {'visualizePathStyle': {'stroke': '#ffffff'}}, {'range': 20})
             return
     except:
-        creep.moveTo(RoomPosition(25, 25, creep.memory.assigned_room)
+        creep.moveTo(__new__(RoomPosition(25, 25, creep.memory.assigned_room))
                      , {'visualizePathStyle': {'stroke': '#ffffff'}}, {'range': 20})
         return
 

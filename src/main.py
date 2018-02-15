@@ -27,34 +27,6 @@ __pragma__('noalias', 'type')
 __pragma__('noalias', 'update')
 
 """
-stuff you need now:
-- harvester:  
-        1. harvest stuff to areas. in this case they also must harvest dropped resources.
-        1-1. after this the harvester won't leave anywhere else than areas close to them. distributor will carry 4 them 
-        2. if theres no place to collect to they go and help up with upgrading.
-        3. there are currently 5 harvesters. when python is made i only need 1 or 2(probably). 
-
-- upgrader: 
-        1. upgrade. what else.
-- hauler:
-        1. so... this guy does all the job carrying resources from one place to another. 
-            harvester only collects to storage.
-        2. this i need to make it work -  carriers repair as they move to distribute. 
-        
-- carrier:
-        1. same with hauler. but focused in remotes        
-        
-- fighter(melee):
-        1. well.... fights off enemy and also attacks.
-        2. normally only makes 1 but when there's crisis more are being made.
-        ([TOUGH,TOUGH,TOUGH,ATTACK,ATTACK,ATTACK,ATTACK,ATTACK,MOVE,MOVE,MOVE,MOVE,MOVE], undefined, {'role': 'melee'})
-        ([TOUGH,ATTACK,ATTACK,MOVE,MOVE,MOVE], undefined, {'role': 'melee'}) - smaller 
-- tower:
-        1. defends. will repair when there's no enemies around. 
-
-
-def harvest(role):
-
 UNIVERSAL CODE:
 creep.memory.laboro:
 0 = HARVEST
