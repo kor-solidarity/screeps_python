@@ -164,9 +164,9 @@ def run_spawn(spawn, all_structures, hostile_creeps, divider, counter, cpu_bucke
                     plus -= 1
             # 링크.
             else:
-                if harvest_target.energy == harvest_target.energyCapacity:
+                if harvest_target.energy == harvest_target.energyCapacity and harvest_target.cooldown == 0:
                     plus += 1
-                elif harvest_target.energy <= harvest_target.energyCapacity * .4:
+                elif harvest_target.energy <= harvest_target.energyCapacity * .75:
                     plus -= 1
 
         # 건물이 아예 없을 시
@@ -451,6 +451,7 @@ def run_spawn(spawn, all_structures, hostile_creeps, divider, counter, cpu_bucke
                     if len(hostiles) > 0:
                         continue
 
+                    # todo 1. 리서버를 먼져 생산한다. 2. 컨트롤러 예약이 다른 플레이어에 의해 먹혔을 시 대응방안
                     # find creeps with assigned flag.
                     remote_carriers = _.filter(creeps, lambda c: c.memory.role == 'carrier'
                                                                  and c.memory.flag_name == flag

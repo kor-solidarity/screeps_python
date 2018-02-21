@@ -22,7 +22,6 @@ def run_remote_defender(all_structures, creep, creeps, hostile_creeps):
     :return:
     """
 
-    # todo 원거리 크립으로 개조해야함..
     # random blurtin'
     listo = ['Charge!', "KILL!!", "Ypa!", 'CodeIn 🐍!', 'Python 🤘!']
 
