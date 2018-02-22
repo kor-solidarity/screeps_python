@@ -73,7 +73,7 @@ def run_links(link, my_structures):
                                   link.pos.x + 0, link.pos.y, {'align': align, 'opacity': 0.8, 'font': 0.45})
         return
 
-    if link.cooldown and link.energy:
+    if link.energy:
 
         link.room.visual.text(' 💎{}|{}'.format(link.energy, link.cooldown),
                               link.pos.x + 0, link.pos.y, {'align': align, 'opacity': 0.8})

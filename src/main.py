@@ -182,9 +182,9 @@ def main():
         # filters are added in between to lower cpu costs.
         all_structures = chambro.find(FIND_STRUCTURES)
 
-        creeps = chambro.find(FIND_MY_CREEPS)
+        room_creeps = chambro.find(FIND_MY_CREEPS)
 
-        malsana_amikoj = _.filter(creeps, lambda c: c.hits < c.hitsMax)
+        malsana_amikoj = _.filter(room_creeps, lambda c: c.hits < c.hitsMax)
 
         constructions = chambro.find(FIND_CONSTRUCTION_SITES)
         dropped_all = chambro.find(FIND_DROPPED_RESOURCES)
@@ -254,7 +254,7 @@ def main():
         # print("preparation time for room {}: {} cpu".format(chambro.name, round(Game.cpu.getUsed() - chambro_cpu, 2)))
 
         # Run each creeps
-        for chambro_creep in creeps:
+        for chambro_creep in room_creeps:
             creep_cpu = Game.cpu.getUsed()
 
             creep = Game.creeps[chambro_creep.name]
@@ -267,10 +267,10 @@ def main():
 
             # but if a soldier/harvester.... nope. they're must-be-run creeps
             if creep.memory.role == 'soldier':
-                soldier.run_remote_defender(all_structures, creep, creeps, hostile_creeps)
+                soldier.run_remote_defender(all_structures, creep, room_creeps, hostile_creeps)
 
             elif creep.memory.role == 'harvester':
-                harvester.run_harvester(creep, all_structures, constructions, creeps, dropped_all)
+                harvester.run_harvester(creep, all_structures, constructions, room_creeps, dropped_all)
                 """
                 Runs a creep as a generic harvester.
                 :param creep: The creep to run
@@ -282,7 +282,7 @@ def main():
 
             elif creep.memory.role == 'hauler':
                 hauler.run_hauler(creep, all_structures, constructions,
-                                  creeps, dropped_all, repairs, terminal_capacity)
+                                  room_creeps, dropped_all, repairs, terminal_capacity)
                 """
                 :param creep:
                 :param all_structures: creep.room.find(FIND_STRUCTURES)
@@ -292,7 +292,7 @@ def main():
                 :return:
                 """
             elif creep.memory.role == 'carrier':
-                carrier.run_carrier(creep, creeps, all_structures, constructions, dropped_all, repairs)
+                carrier.run_carrier(creep, room_creeps, all_structures, constructions, dropped_all, repairs)
                 """
                 technically same with hauler, but more concentrated in carrying itself.
                     and it's for remote mining ONLY.
@@ -313,7 +313,7 @@ def main():
                     continue
 
             if creep.memory.role == 'upgrader':
-                upgrader.run_upgrader(creep, creeps, all_structures)
+                upgrader.run_upgrader(creep, room_creeps, all_structures)
 
             elif creep.memory.role == 'miner':
                 harvester.run_miner(creep, all_structures)
@@ -424,7 +424,7 @@ def main():
                 print('방 {} 루프에서 스폰 {} 준비시간 : {} cpu'.format(nesto.room.name, nesto.name
                                                              , round(Game.cpu.getUsed() - spawn_cpu, 2)))
 
-            structure_spawn.run_spawn(nesto, all_structures, hostile_creeps, divider, counter
+            structure_spawn.run_spawn(nesto, all_structures, room_creeps, hostile_creeps, divider, counter
                                       , cpu_bucket_emergency, cpu_bucket_emergency_spawn_start, extractor
                                       , terminal_capacity, chambro, interval)
 

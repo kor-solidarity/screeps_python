@@ -11,9 +11,9 @@ __pragma__('noalias', 'set')
 __pragma__('noalias', 'type')
 __pragma__('noalias', 'update')
 
-# 스폰을 메인에서 쪼개기 위한 용도. 현재 어떻게 빼내야 하는지 감이 안잡혀서 공백임.
 
-def run_spawn(spawn, all_structures, hostile_creeps, divider, counter, cpu_bucket_emergency
+# 스폰을 메인에서 쪼개기 위한 용도. 현재 어떻게 빼내야 하는지 감이 안잡혀서 공백임.
+def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, counter, cpu_bucket_emergency
               , cpu_bucket_emergency_spawn_start, extractor, terminal_capacity, chambro, interval):
     # print('yolo')
     spawn_cpu = Game.cpu.getUsed()
@@ -59,7 +59,7 @@ def run_spawn(spawn, all_structures, hostile_creeps, divider, counter, cpu_bucke
         # need each number of creeps by type. now all divided by assigned room.
         # assigned_room == 주 작업하는 방. remote에서 작업하는 애들이면 그쪽으로 보내야함.
         # home_room == 원래 소속된 방. remote에서 일하는 애들에나 필요할듯.
-        # todo FIND 크립에서 필터링이 아니라 메모리에서 뽑아오게끔 개조요망. 이놈이 여태 cpu 잡아먹은 주범임.
+
         creep_harvesters = _.filter(creeps, lambda c: (c.memory.role == 'harvester'
                                                        and c.memory.assigned_room == spawn.pos.roomName
                                                        and not c.memory.flag_name
@@ -363,7 +363,7 @@ def run_spawn(spawn, all_structures, hostile_creeps, divider, counter, cpu_bucke
                     # print('scouts:', len(creep_scouts))
                     if len(creep_scouts) < 1:
                         spawn_res = spawn.createCreep([MOVE], 'Scout-' + flag,
-                                                      {'role': 'scout', 'flag_name': flag})
+                                                      {'role': 'scout', 'assigned_room': Game.flags[flag].pos.roomName})
                         # print('spawn_res:', spawn_res)
                         break
                 else:
@@ -448,7 +448,7 @@ def run_spawn(spawn, all_structures, hostile_creeps, divider, counter, cpu_bucke
                                 continue
 
                     # 방 안에 적이 있으면 아예 생산을 하지 않는다! 정찰대와 방위병 빼고.
-                    if len(hostiles) > 0:
+                    if len(hostiles) > 0 and len(remote_troops) == 0:
                         continue
 
                     # todo 1. 리서버를 먼져 생산한다. 2. 컨트롤러 예약이 다른 플레이어에 의해 먹혔을 시 대응방안
@@ -758,7 +758,8 @@ def run_spawn(spawn, all_structures, hostile_creeps, divider, counter, cpu_bucke
                                                                           and c.memory.flag_name == fn)
                                 if len(creep_scouts) < 1:
                                     spawn_res = spawn.createCreep([MOVE], 'Scout-' + fn,
-                                                                  {'role': 'scout', 'flag_name': fn})
+                                                                  {'role': 'scout'
+                                                                      , 'assigned_room': Game.flags[fn].pos.roomName})
                                     break
                             else:
                                 # -dem : 철거지역. 이게 들어가면 이 방에 있는 모든 벽이나 잡건물 다 부수겠다는 소리.
@@ -841,21 +842,14 @@ def run_spawn(spawn, all_structures, hostile_creeps, divider, counter, cpu_bucke
     else:
         # 1/3 chance healing
         randint = random.randint(1, 3)
-
         if randint != 1:
             return
         # 이 곳에 필요한거: spawn 레벨보다 같거나 높은 애들 지나갈 때 TTL이 오백 이하면 회복시켜준다.
         # room controller lvl ± 2 에 부합한 경우에만 수리를 실시한다.
         level = spawn.room.controller.level
-
-        for creep in Game.creeps:
+        for creep in room_creeps:
             # 방 안에 있는 크립 중에 회복대상자
-            if 100 < creep.ticksToLive < 500 and creep.memory.level >= level:
+            if (100 < creep.ticksToLive < 500) and creep.memory.level >= level:
                 if spawn.pos.isNearTo(creep):
-                    # print(creep.ticksToLive)
                     result = spawn.renewCreep(creep)
                     break
-
-    # spawn_cpu_end = Game.cpu.getUsed() - spawn_cpu
-    # if Memory.debug or Game.time % interval == 0 or Memory.tick_check:
-    #     print('spawn {} used {} cpu'.format(spawn.name, round(spawn_cpu_end, 2)))
