@@ -248,3 +248,16 @@ def clear_orders():
             my_orders[order]['roomName'], my_orders[order]['id']
                       , my_orders[order]['remainingAmount']))
         Game.market.cancelOrder(order)
+
+
+def get_to_da_room(creep, roomName):
+    """
+
+    :param creep:
+    :param roomName:
+    :return:
+    """
+    result = creep.moveTo(__new__(RoomPosition(25, 25, roomName))
+                 , {'visualizePathStyle': {'stroke': '#ffffff'}, 'reusePath': 20, 'range': 20
+                     , 'maxOps': 1000})
+    return result

@@ -1,4 +1,5 @@
 from defs import *
+import miscellaneous
 
 __pragma__('noalias', 'name')
 __pragma__('noalias', 'undefined')
@@ -16,13 +17,9 @@ def run_scout(creep):
     :param creep:
     :return:
     """
-    if not creep.memory.in_corner and creep.memory.in_corner != 0:
-        creep.memory.in_corner = 0
+    # if not creep.memory.in_corner and creep.memory.in_corner != 0:
+    #     creep.memory.in_corner = 0
 
     # todo 방 하나 정찰하고 또 다른곳 가서 등등등.... 하는 역할을 수행해야만 한다.
-    # 그리고 지금 확실하게 방안으로 들어가질 않음.
-    if not Game.rooms[creep.memory.assigned_room]:
-        creep.moveTo(__new__(RoomPosition(25, 25, creep.memory.assigned_room))
-                     , {'visualizePathStyle': {'stroke': '#ffffff'}, 'reusePath': 20, 'range': 20
-                     , 'maxOps': 1000})
 
+    miscellaneous.get_to_da_room(creep, creep.memory.assigned_room)

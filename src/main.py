@@ -190,6 +190,7 @@ def main():
         dropped_all = chambro.find(FIND_DROPPED_RESOURCES)
 
         hostile_creeps = chambro.find(FIND_HOSTILE_CREEPS)
+        nukes = chambro.find(FIND_NUKES)
 
         # to filter out the allies.
         if len(hostile_creeps) > 0:
@@ -200,8 +201,13 @@ def main():
             square = chambro.controller.level
             if square < 4:
                 square = 4
+            if bool(nukes) and square > 5:
+                repair_pts = 5200000
+            else:
+                repair_pts = square ** square
         else:
             square = 4
+            repair_pts = square ** square
 
         # 방 안의 터미널 내 에너지 최소값.
         if chambro.controller:
@@ -210,21 +216,39 @@ def main():
             else:
                 terminal_capacity = 10000
 
-        # list of ALL repairs in the room.
-        repairs = all_structures.filter(lambda s: (((s.structureType == STRUCTURE_ROAD
-                                                     or s.structureType == STRUCTURE_TOWER
-                                                     or s.structureType == STRUCTURE_EXTENSION
-                                                     or s.structureType == STRUCTURE_LINK
-                                                     or s.structureType == STRUCTURE_LAB
-                                                     or s.structureType == STRUCTURE_CONTAINER
-                                                     or s.structureType == STRUCTURE_STORAGE)
-                                                    and s.hits < s.hitsMax)
-                                                   or ((s.structureType == STRUCTURE_WALL
-                                                        and s.hits < int(square ** square))
-                                                       or (s.structureType == STRUCTURE_RAMPART
-                                                           and s.hits < int(square ** square))
-                                                       and chambro.controller.level > 1)
-                                                   ))
+        if bool(nukes):
+            # list of ALL repairs in the room.
+            repairs = all_structures.filter(lambda s: (((s.structureType == STRUCTURE_ROAD
+                                                         or s.structureType == STRUCTURE_TOWER
+                                                         or s.structureType == STRUCTURE_EXTENSION
+                                                         or s.structureType == STRUCTURE_LINK
+                                                         or s.structureType == STRUCTURE_LAB
+                                                         or s.structureType == STRUCTURE_CONTAINER
+                                                         or s.structureType == STRUCTURE_STORAGE)
+                                                        and s.hits < s.hitsMax)
+                                                       or ((s.structureType == STRUCTURE_WALL
+                                                            and s.hits < int(repair_pts))
+                                                           or (s.structureType == STRUCTURE_RAMPART
+                                                               and ((s.hits < int(repair_pts))
+                                                                    or (s.pos == nukes[0].pos
+                                                                        and (s.hits < int(repair_pts * 2))))
+                                                               and chambro.controller.level > 1))))
+
+        else:
+            # list of ALL repairs in the room.
+            repairs = all_structures.filter(lambda s: (((s.structureType == STRUCTURE_ROAD
+                                                         or s.structureType == STRUCTURE_TOWER
+                                                         or s.structureType == STRUCTURE_EXTENSION
+                                                         or s.structureType == STRUCTURE_LINK
+                                                         or s.structureType == STRUCTURE_LAB
+                                                         or s.structureType == STRUCTURE_CONTAINER
+                                                         or s.structureType == STRUCTURE_STORAGE)
+                                                        and s.hits < s.hitsMax)
+                                                       or ((s.structureType == STRUCTURE_WALL
+                                                            and s.hits < int(repair_pts))
+                                                           or (s.structureType == STRUCTURE_RAMPART
+                                                               and (s.hits < int(repair_pts)
+                                                                    and chambro.controller.level > 1)))))
 
         if not repairs or len(repairs) == 0:
             repairs = []
@@ -344,6 +368,61 @@ def main():
                 except:
                     pass
 
+        # loop for ALL STRUCTURES
+        if Memory.rooms:
+            room_cpu = Game.cpu.getUsed()
+            room_cpu_num = 0
+            for room_name in Object.keys(Memory.rooms):
+                # 방 이름이 똑같아야만 돈다.
+                if room_name == chambra_nomo:
+                    # get json list by room name
+                    structure_list = Memory.rooms[room_name]
+                    # 현 방의 레벨
+                    current_lvl = Game.rooms[room_name].controller.level
+
+                    # divide them by structure names
+                    for building_name in Object.keys(structure_list):
+                        if building_name == 'remote':
+                            # 재건 관련 지역
+                            if Game.time % 47 == 0:
+                                pass
+                            continue
+                        elif building_name == STRUCTURE_TOWER:
+                            # 수리작업을 할때 벽·방어막 체력 만 이하가 있으면 그걸 최우선으로 고친다.
+                            # 적이 있을 시 수리 자체를 안하니 있으면 아예 무시.
+                            if len(hostile_creeps) == 0 and current_lvl > 4 and Game.cpu.bucket > cpu_bucket_emergency:
+                                for repair_obj in repairs:
+                                    if (repair_obj.structureType == STRUCTURE_WALL
+                                        or repair_obj.structureType == STRUCTURE_RAMPART) \
+                                            and repair_obj.hits < 300:
+                                        repairs = [repair_obj]
+                                        break
+                                    elif (repair_obj.structureType == STRUCTURE_CONTAINER
+                                          or repair_obj.structureType == STRUCTURE_ROAD) \
+                                            and repair_obj.hits < repair_obj.hitsMax * .05:
+                                        repairs = [repair_obj]
+                                        break
+
+                            for tower in structure_list[building_name]:
+                                # sometimes these could die you know....
+                                the_tower = Game.getObjectById(tower)
+                                if the_tower:
+                                    room_cpu_num += 1
+                                    building_action.run_tower(the_tower, hostile_creeps, repairs, malsana_amikoj)
+                        elif building_name == STRUCTURE_LINK:
+                            for link in structure_list[building_name]:
+                                if Game.getObjectById(link):
+                                    room_cpu_num += 1
+                                    building_action.run_links(Game.getObjectById(link), my_structures)
+                    break
+
+            if room_cpu_num > 0 and (Memory.debug or Game.time % interval == 0 or Memory.tick_check):
+                end = Game.cpu.getUsed()
+                # print("end {} start {}".format(round(end, 2), round(room_cpu, 2)))
+                room_cpu_avg = (end - room_cpu) / room_cpu_num
+                print("{} structures ran in {} total with avg. {} cpu, tot. {} cpu"
+                      .format(room_cpu_num, room_name, round(room_cpu_avg, 2), round(end - room_cpu, 2)))
+
         # 스폰 여럿이어서 생길 중복방지.
         room_names = []
 
@@ -431,62 +510,6 @@ def main():
             spawn_cpu_end = Game.cpu.getUsed() - spawn_cpu
             if Memory.debug or Game.time % interval == 0 or Memory.tick_check:
                 print('spawn {} used {} cpu'.format(spawn.name, round(spawn_cpu_end, 2)))
-
-
-        # loop for ALL STRUCTURES
-        if Memory.rooms:
-            room_cpu = Game.cpu.getUsed()
-            room_cpu_num = 0
-            for room_name in Object.keys(Memory.rooms):
-                # 방 이름이 똑같아야만 돈다.
-                if room_name == chambra_nomo:
-                    # get json list by room name
-                    structure_list = Memory.rooms[room_name]
-                    # 현 방의 레벨
-                    current_lvl = Game.rooms[room_name].controller.level
-
-                    # divide them by structure names
-                    for building_name in Object.keys(structure_list):
-                        if building_name == 'remote':
-                            # 재건 관련 지역
-                            if Game.time % 47 == 0:
-                                pass
-                            continue
-                        elif building_name == STRUCTURE_TOWER:
-                            # 수리작업을 할때 벽·방어막 체력 만 이하가 있으면 그걸 최우선으로 고친다.
-                            # 적이 있을 시 수리 자체를 안하니 있으면 아예 무시.
-                            if len(hostile_creeps) == 0 and current_lvl > 4 and Game.cpu.bucket > cpu_bucket_emergency:
-                                for repair_obj in repairs:
-                                    if (repair_obj.structureType == STRUCTURE_WALL
-                                        or repair_obj.structureType == STRUCTURE_RAMPART) \
-                                            and repair_obj.hits < 300:
-                                        repairs = [repair_obj]
-                                        break
-                                    elif (repair_obj.structureType == STRUCTURE_CONTAINER
-                                          or repair_obj.structureType == STRUCTURE_ROAD) \
-                                            and repair_obj.hits < repair_obj.hitsMax * .05:
-                                        repairs = [repair_obj]
-                                        break
-
-                            for tower in structure_list[building_name]:
-                                # sometimes these could die you know....
-                                the_tower = Game.getObjectById(tower)
-                                if the_tower:
-                                    room_cpu_num += 1
-                                    building_action.run_tower(the_tower, hostile_creeps, repairs, malsana_amikoj)
-                        elif building_name == STRUCTURE_LINK:
-                            for link in structure_list[building_name]:
-                                if Game.getObjectById(link):
-                                    room_cpu_num += 1
-                                    building_action.run_links(Game.getObjectById(link), my_structures)
-                    break
-
-            if room_cpu_num > 0 and (Memory.debug or Game.time % interval == 0 or Memory.tick_check):
-                end = Game.cpu.getUsed()
-                # print("end {} start {}".format(round(end, 2), round(room_cpu, 2)))
-                room_cpu_avg = (end - room_cpu) / room_cpu_num
-                print("{} structures ran in {} total with avg. {} cpu, tot. {} cpu"
-                      .format(room_cpu_num, room_name, round(room_cpu_avg, 2), round(end - room_cpu, 2)))
 
     if Game.cpu.bucket < cpu_bucket_emergency:
         print('passed creeps:', passing_creep_counter)

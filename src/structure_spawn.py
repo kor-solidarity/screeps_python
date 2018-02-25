@@ -85,18 +85,20 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
         num_o_sources = len(room_sources)
         if extractor and extractor.cooldown == 0:
             room_sources.push(extractor)
+
+        containers_and_links = all_structures.filter(lambda st: st.structureType == STRUCTURE_CONTAINER
+                                                                or st.structureType == STRUCTURE_LINK)
         # print('ext at room {}: {}'.format(chambra_nomo, extractor))
         # 소스 주변에 자원채취용 컨테이너·링크가 얼마나 있는가 확인.
         for rs in room_sources:
-            for s in all_structures:
-                if s.structureType == STRUCTURE_CONTAINER or s.structureType == STRUCTURE_LINK:
-                    # 세칸이내에 존재하는가?
-                    if rs.pos.inRangeTo(s, 3):
-                        # 실제 거리도 세칸 이내인가?
-                        if len(rs.pos.findPathTo(s, {'ignoreCreeps': True})) <= 3:
-                            # 여기까지 들어가있으면 요건충족한거.
-                            harvest_carry_targets.push(s.id)
-                            break
+            for s in containers_and_links:
+                # 세칸이내에 존재하는가?
+                if rs.pos.inRangeTo(s, 3):
+                    # 실제 거리도 세칸 이내인가?
+                    if len(rs.pos.findPathTo(s, {'ignoreCreeps': True})) <= 3:
+                        # 여기까지 들어가있으면 요건충족한거.
+                        harvest_carry_targets.push(s.id)
+                        break
 
         # print('harvest_carry_targets', harvest_carry_targets)
         # print('sources', sources)
@@ -164,9 +166,9 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                     plus -= 1
             # 링크.
             else:
-                if harvest_target.energy == harvest_target.energyCapacity and harvest_target.cooldown == 0:
-                    plus += 1
-                elif harvest_target.energy <= harvest_target.energyCapacity * .75:
+                # if harvest_target.energy == harvest_target.energyCapacity and harvest_target.cooldown == 0:
+                #     plus += 1
+                if harvest_target.energy <= harvest_target.energyCapacity * .8 or harvest_target.cooldown != 0:
                     plus -= 1
 
         # 건물이 아예 없을 시
@@ -359,7 +361,8 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                 if not Game.flags[flag].room:
                     # look for scouts
                     creep_scouts = _.filter(creeps, lambda c: c.memory.role == 'scout'
-                                                              and c.memory.flag_name == flag)
+                                                              and c.memory.assigned_room == Game.flags[
+                                                                       flag].pos.roomName)
                     # print('scouts:', len(creep_scouts))
                     if len(creep_scouts) < 1:
                         spawn_res = spawn.createCreep([MOVE], 'Scout-' + flag,
@@ -369,7 +372,8 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                 else:
                     # find creeps with assigned flag. find troops first.
                     remote_troops = _.filter(creeps, lambda c: c.memory.role == 'soldier'
-                                                               and c.memory.flag_name == flag
+                                                               and c.memory.assigned_room == Game.flags[
+                                                                       flag].pos.roomName
                                                                and (c.spawning or (c.hits > c.hitsMax * .6
                                                                                    and c.ticksToLive > 300)))
 
@@ -447,21 +451,28 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                                         , 'home_room': spawn.room.name, 'flag_name': flag})
                                 continue
 
-                    # 방 안에 적이 있으면 아예 생산을 하지 않는다! 정찰대와 방위병 빼고.
-                    if len(hostiles) > 0 and len(remote_troops) == 0:
-                        continue
+                    # 방 안에 적이 있으면 방위병이 생길때까지 생산을 하지 않는다.
+                    if len(hostiles) > 0:
+                        not_spawning_troops = remote_troops.filter(lambda c: not c.spawning)
+                        if not_spawning_troops:
+                            pass
+                        else:
+                            continue
 
                     # todo 1. 리서버를 먼져 생산한다. 2. 컨트롤러 예약이 다른 플레이어에 의해 먹혔을 시 대응방안
                     # find creeps with assigned flag.
                     remote_carriers = _.filter(creeps, lambda c: c.memory.role == 'carrier'
-                                                                 and c.memory.flag_name == flag
+                                                                 and c.memory.assigned_room == Game.flags[
+                                                                     flag].pos.roomName
                                                                  and (c.spawning or c.ticksToLive > 100))
                     # exclude creeps with less than 100 life ticks so the new guy can be replaced right away
                     remote_harvesters = _.filter(creeps, lambda c: c.memory.role == 'harvester'
-                                                                   and c.memory.flag_name == flag
+                                                                   and c.memory.assigned_room == Game.flags[
+                                                                       flag].pos.roomName
                                                                    and (c.spawning or c.ticksToLive > 120))
                     remote_reservers = _.filter(creeps, lambda c: c.memory.role == 'reserver'
-                                                                  and c.memory.flag_name == flag)
+                                                                  and c.memory.assigned_room == Game.flags[
+                                                                      flag].pos.roomName)
 
                     # resources in flag's room
                     # 멀티에 소스가 여럿일 경우 둘을 스폰할 필요가 있다.
@@ -472,7 +483,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                                                lambda s: s.structureType == STRUCTURE_CONTAINER)
                     flag_constructions = Game.flags[flag].room.find(FIND_CONSTRUCTION_SITES)
 
-                    # 새 작업. - 만일 소스가 너무 가까워서 가운데에 컨테이너 하나 공동으로 놔도 되는 경우?
+                    # todo 새 작업. - 만일 소스가 너무 가까워서 가운데에 컨테이너 하나 공동으로 놔도 되는 경우?
                     # NUIILFIED. STILL NEED MORE EFFORT
                     # # 만일 컨테이너 수가 소스보다 적은 경우
                     # if len(flag_containers) < len(flag_energy_sources):
@@ -841,7 +852,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
         )
     else:
         # 1/3 chance healing
-        randint = random.randint(1, 3)
+        randint = random.randint(1, 4)
         if randint != 1:
             return
         # 이 곳에 필요한거: spawn 레벨보다 같거나 높은 애들 지나갈 때 TTL이 오백 이하면 회복시켜준다.

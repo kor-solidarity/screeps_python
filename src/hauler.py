@@ -283,7 +283,10 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                         extra_container_filled += _.sum(ct.store)
                         structures.push(ct)
                         # print('there\'s a container!')
-
+            # towers = structures.filter(lambda s: s.structureType == STRUCTURE_TOWER)
+            # towers_filled_amount = 0
+            # for t in towers:
+            #     towers_filled_amount += t.energy
             # 스토리지에서 자원을 캐고 현재 총 에너지가 90% 이상 찬 경우 발전또는 수리에 보탠다.
             if creep.room.controller and creep.room.storage and \
                     (creep.pos.inRangeTo(creep.room.storage, 1)
