@@ -362,7 +362,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                     # look for scouts
                     creep_scouts = _.filter(creeps, lambda c: c.memory.role == 'scout'
                                                               and c.memory.assigned_room == Game.flags[
-                                                                       flag].pos.roomName)
+                                                                  flag].pos.roomName)
                     # print('scouts:', len(creep_scouts))
                     if len(creep_scouts) < 1:
                         spawn_res = spawn.createCreep([MOVE], 'Scout-' + flag,
@@ -373,7 +373,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                     # find creeps with assigned flag. find troops first.
                     remote_troops = _.filter(creeps, lambda c: c.memory.role == 'soldier'
                                                                and c.memory.assigned_room == Game.flags[
-                                                                       flag].pos.roomName
+                                                                   flag].pos.roomName
                                                                and (c.spawning or (c.hits > c.hitsMax * .6
                                                                                    and c.ticksToLive > 300)))
 
@@ -390,9 +390,22 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                             break
 
                     # 방에 컨트롤러가 없는 경우 가정.
-                    flag_room_controller = False
-                    if Game.flags[flag].room.controller:
-                        flag_room_controller = True
+                    flag_room_controller = Game.flags[flag].room.controller
+                    flag_room_reserved_by_other = False
+
+                    # 컨트롤러가 있는가?
+                    if flag_room_controller:
+                        # 있다면...
+                        # 주인이 존재하고 내것이 아닌가?
+                        if flag_room_controller.owner and not flag_room_controller.my:
+                            # 이 경우는 나중에 생각.
+                            pass
+                        # 예약이 돼있는가?
+                        elif flag_room_controller.reservation:
+                            # 내가 예약한것이 아닌가?
+                            if flag_room_controller.reservation.username \
+                                    != spawn.owner.username:
+                                flag_room_reserved_by_other = True
 
                     # to filter out the allies.
                     if len(hostiles) > 0:
