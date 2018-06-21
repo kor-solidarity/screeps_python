@@ -1,8 +1,12 @@
 from typing import Any, Callable, Dict, List, Optional, Type, Union
 
+# noinspection PyProtectedMember
 from .memory import _Memory
 from .misc_obj import RoomObject
 from .structures import StructureController, StructureStorage, StructureTerminal
+
+_HasPosition = Union['RoomPosition', 'RoomObject']
+_FindParameter = Union[int, List[_HasPosition]]
 
 
 # noinspection PyPep8Naming
@@ -12,11 +16,13 @@ class RoomPosition:
     :type y: int
     :type roomName: str
     :type prototype: Type[RoomPosition]
-    # used for the common (pos.pos or pos).. trick for accepting RoomObject and RoomPosition
     """
     prototype = None  # type: Type[RoomPosition]
 
     def __init__(self, x: int, y: int, roomName: str) -> None:
+        """
+        NOTE: In order to use this, you must surround it with `__new__`: `__new__(RoomPosition(x, y, roomName))`
+        """
         self.x = x
         self.y = y
         self.roomName = roomName
@@ -24,16 +30,17 @@ class RoomPosition:
     def createConstructionSite(self, structureType: str) -> int:
         pass
 
-    def createFlag(self, name: str = None, color: str = None, secondaryColor: str = None) -> int:
+    def createFlag(self, name: str = None, color: int = None, secondaryColor: int = None) -> Union[str, int]:
         pass
 
-    def findClosestByPath(self, source: _FindParameter, opts: Dict[str, Any]) -> Optional[RoomObject]:
+    def findClosestByPath(self, source: _FindParameter, opts: Optional[Dict[str, Any]] = None) -> Optional[RoomObject]:
         pass
 
-    def findClosestByRange(self, source: _FindParameter, opts: Dict[str, Any]) -> Optional[RoomObject]:
+    def findClosestByRange(self, source: _FindParameter, opts: Optional[Dict[str, Any]] = None) -> Optional[RoomObject]:
         pass
 
-    def findInRange(self, source: _FindParameter, _range: int, opts: Dict[str, Any]) -> List[RoomObject]:
+    def findInRange(self, source: _FindParameter, _range: int, opts: Optional[Dict[str, Any]] = None) \
+            -> List[RoomObject]:
         pass
 
     def getDirectionTo(self, x: Union[int, 'RoomPosition', RoomObject], y: int = None) -> int:
@@ -61,9 +68,6 @@ class RoomPosition:
 
 RoomPosition.prototype = RoomPosition
 
-_HasPosition = Union['RoomPosition', 'RoomObject']
-_FindParameter = Union[int, List[_HasPosition]]
-
 
 class _Owner:
     """
@@ -71,6 +75,9 @@ class _Owner:
     """
 
     def __init__(self, username: str) -> None:
+        """
+        WARNING: This constructor is purely for type completion, and does not exist in the game.
+        """
         self.username = username
 
 
@@ -84,6 +91,9 @@ class _PathPos:
     """
 
     def __init__(self, x: int, y: int, dx: int, dy: int, direction: int) -> None:
+        """
+        WARNING: This constructor is purely for type completion, and does not exist in the game.
+        """
         self.x = x
         self.y = y
         self.dx = dx
@@ -108,22 +118,25 @@ class Room:
     def __init__(self, controller: Optional[StructureController], storage: Optional[StructureStorage],
                  terminal: Optional[StructureTerminal], energyAvailable: int, energyCapacityAvailable: int,
                  memory: _Memory, mode: str, name: str, visual: Any) -> None:
-        self.controller = controller
-        self.storage = storage
-        self.terminal = terminal
-        self.energyAvailable = energyAvailable
-        self.energyCapacityAvailable = energyCapacityAvailable
-        self.memory = memory
-        self.mode = mode
-        self.name = name
-        self.visual = visual
+        """
+        WARNING: This constructor is purely for type completion, and does not exist in the game.
+        """
+        self.controller = controller  # type: Optional[StructureController]
+        self.storage = storage  # type: Optional[StructureStorage]
+        self.terminal = terminal  # type: Optional[StructureTerminal]
+        self.energyAvailable = energyAvailable  # type: int
+        self.energyCapacityAvailable = energyCapacityAvailable  # type: int
+        self.memory = memory  # type: _Memory
+        self.mode = mode  # type: str
+        self.name = name  # type: str
+        self.visual = visual  # type: Any
 
     @classmethod
-    def serializePath(cls, path: List[Dict[str, Union[_PathPos, Dict[str, Any]]]]) -> str:
+    def serializePath(cls, path: List[Union[_PathPos, Dict[str, Any], RoomPosition]]) -> str:
         pass
 
     @classmethod
-    def deserializePath(cls, path: str) -> List[Union[_PathPos, Dict[str, Any]]]:
+    def deserializePath(cls, path: str) -> List[_PathPos]:
         pass
 
     def createConstructionSite(self, x: Union[int, RoomPosition, RoomObject], y: Union[int, str],
@@ -134,7 +147,9 @@ class Room:
                    secondaryColor: int = None) -> Union[str, int]:
         pass
 
-    def find(self, _type: _FindParameter, opts: Dict[str, Callable[[RoomObject], bool]] = None) -> List[RoomObject]:
+    def find(self, _type: _FindParameter,
+             opts: Optional[Dict[str, Union[Callable[[RoomObject], bool], Dict[str, Any]]]] = None) \
+            -> List[RoomObject]:
         pass
 
     def findExitTo(self, room: str) -> int:

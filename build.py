@@ -5,13 +5,17 @@ import subprocess
 import sys
 import urllib.parse
 import urllib.request
+from argparse import ArgumentParser
 
 import base64
 import os
 import shutil
-import time
 
-transcrypt_arguments = ['-n', '-b', '-p', '.none']
+import file_expander
+
+transcrypt_arguments = ['-n', '-p', '.none']
+transcrypt_dirty_args = transcrypt_arguments + []
+transcrypt_clean_args = transcrypt_arguments + ['-b']
 
 
 def possible_transcrypt_binary_paths(config):
@@ -37,6 +41,7 @@ def possible_pip_binary_paths(config):
     files = [
         os.path.join(config.base_dir, 'env', 'bin', 'pip'),
         os.path.join(config.base_dir, 'env', 'bin', 'pip.exe'),
+        os.path.join(config.base_dir, 'env', 'Scripts', 'pip.exe')
     ]
     if not config.enter_env:
         for path in [shutil.which('pip'), shutil.which('pip.exe')]:
@@ -57,7 +62,7 @@ class Configuration:
     :type ptr: bool
     """
 
-    def __init__(self, base_dir, config_json):
+    def __init__(self, base_dir, config_json, clean_build=True, flatten=False):
         """
         :type base_dir: str
         :type config_json: dict[str, str | bool]
@@ -66,8 +71,12 @@ class Configuration:
         self.username = config_json.get('username') or config_json.get('email')
         self.password = config_json['password']
         self.branch = config_json.get('branch', 'default')
+        self.url = config_json.get('url', 'https://screeps.com')
         self.ptr = config_json.get('ptr', False)
         self.enter_env = config_json.get('enter-env', True)
+
+        self.clean_build = clean_build
+        self.flatten = flatten
 
     def transcrypt_executable(self):
         """
@@ -91,6 +100,14 @@ class Configuration:
                 return path
         return None
 
+    @property
+    def source_dir(self):
+        """:rtype: str"""
+        if self.flatten:
+            return os.path.join(self.base_dir, 'src', '__py_build__')
+        else:
+            return os.path.join(self.base_dir, 'src')
+
 
 def load_config(base_dir):
     """
@@ -99,12 +116,23 @@ def load_config(base_dir):
     :type base_dir: str
     :rtype: Configuration
     """
+    parser = ArgumentParser()
+    parser.add_argument("-c", "--config-file", type=str, default='config.json',
+                        help="file to load configuration from")
+    parser.add_argument("-d", "--dirty-build", action='store_true',
+                        help="if true, use past built files for files who haven't changed")
+    parser.add_argument("-e", "--expand-files", action='store_true',
+                        help="""Alternative to Transcrypt's -xpath option for \
+                        finding nested modules.  Use this option if Transcrypt \
+                        is unable to import nested .py files""")
+    args = parser.parse_args()
+
     config_file = os.path.join(base_dir, 'config.json')
 
     with open(os.path.join(base_dir, config_file)) as f:
         config_json = json.load(f)
 
-    return Configuration(base_dir, config_json)
+    return Configuration(base_dir, config_json, clean_build=not args.dirty_build, flatten=args.expand_files)
 
 
 def run_transcrypt(config):
@@ -114,16 +142,21 @@ def run_transcrypt(config):
     :type config: Configuration
     """
     transcrypt_executable = config.transcrypt_executable()
-    source_main = os.path.join(config.base_dir, 'src', 'main.py')
 
-    args = [transcrypt_executable] + transcrypt_arguments + [source_main]
-    source_dir = os.path.join(config.base_dir, 'src')
+    source_main = os.path.join(config.source_dir, 'main.py')
 
-    ret = subprocess.Popen(args, cwd=source_dir).wait()
+    if config.clean_build:
+        cmd_args = transcrypt_clean_args
+    else:
+        cmd_args = transcrypt_dirty_args
+
+    args = [transcrypt_executable] + cmd_args + [source_main]
+
+    ret = subprocess.Popen(args, cwd=config.source_dir).wait()
 
     if ret != 0:
         raise Exception("transcrypt failed. exit code: {}. command line '{}'. working dir: '{}'."
-                        .format(ret, "' '".join(args), source_dir))
+                        .format(ret, "' '".join(args), config.source_dir))
 
 
 def copy_artifacts(config):
@@ -143,7 +176,7 @@ def copy_artifacts(config):
         else:
             raise
 
-    shutil.copyfile(os.path.join(config.base_dir, 'src', '__javascript__', 'main.js'),
+    shutil.copyfile(os.path.join(config.source_dir, '__javascript__', 'main.js'),
                     os.path.join(dist_directory, 'main.js'))
 
     js_directory = os.path.join(config.base_dir, 'js_files')
@@ -180,13 +213,13 @@ def upload(config):
     dist_dir = os.path.join(config.base_dir, 'dist')
 
     for file_name in os.listdir(dist_dir):
-        with open(os.path.join(dist_dir, file_name), encoding='UTF8') as f:
+        with open(os.path.join(dist_dir, file_name)) as f:
             module_files[os.path.splitext(file_name)[0]] = f.read()
 
     if config.ptr:
-        post_url = 'https://screeps.com/ptr/api/user/code'
+        post_url = '{}/ptr/api/user/code'.format(config.url)
     else:
-        post_url = 'https://screeps.com/api/user/code'
+        post_url = '{}/api/user/code'.format(config.url)
 
     post_data = json.dumps({'modules': module_files, 'branch': config.branch}).encode('utf-8')
 
@@ -198,7 +231,11 @@ def upload(config):
     }
     request = urllib.request.Request(post_url, post_data, headers)
 
-    print("uploading files to branch {}{}...".format(config.branch, " on PTR" if config.ptr else ""))
+    if config.url != 'https://screeps.com':
+        print("uploading files to {}, branch {}{}..."
+              .format(config.url, config.branch, " on PTR" if config.ptr else ""))
+    else:
+        print("uploading files to branch {}{}...".format(config.branch, " on PTR" if config.ptr else ""))
 
     # any errors will be thrown.
     with urllib.request.urlopen(request) as response:
@@ -240,7 +277,8 @@ def install_env(config):
                 raise Exception("virtualenv failed. exit code: {}. command line '{}'. working dir: '{}'."
                                 .format(ret, "' '".join(args), config.base_dir))
 
-        if not os.path.exists(os.path.join(env_dir, 'bin', 'transcrypt')):
+        if not os.path.exists(os.path.join(env_dir, 'bin', 'transcrypt')) and not os.path.exists(
+                os.path.join(env_dir, 'scripts', 'transcrypt.exe')):
             print("installing transcrypt into env...")
 
             requirements_file = os.path.join(config.base_dir, 'requirements.txt')
@@ -281,11 +319,14 @@ def install_env(config):
 def main():
     base_dir = os.path.dirname(os.path.abspath(__file__))
     config = load_config(base_dir)
-
     install_env(config)
+
+    if config.flatten:
+        expander_control = file_expander.FileExpander(base_dir)
+        expander_control.expand_files()
+
     build(config)
     upload(config)
-    print('완료시간: {}'.format(time.ctime()))
 
 
 if __name__ == "__main__":

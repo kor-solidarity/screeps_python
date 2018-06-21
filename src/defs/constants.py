@@ -946,9 +946,3 @@ COLORS_ALL = [
     COLOR_GREY,
     COLOR_WHITE,
 ]
-
-# 개인작업용 컨스탠트. 작업용이성 목적. 필요하긴 할까 근데?
-
-size = 'size'
-role = 'role'
-

@@ -6,6 +6,7 @@ import scout
 import carrier
 import soldier
 import structure_spawn
+import collector
 import random
 import miscellaneous
 
@@ -156,7 +157,7 @@ def main():
 
     if Memory.debug:
         # 0.05정도
-        print('base setup time: {} cpu'.format(round(Game.cpu.getUsed(), 2)))
+        print('base seㅐtup time: {} cpu'.format(round(Game.cpu.getUsed(), 2)))
 
     # cpu limit warning. only works when losing cpu and you have a 10 cpu limit
     if Game.cpu.bucket < cpu_bucket_emergency and Game.cpu.limit < 20:
@@ -347,6 +348,9 @@ def main():
                 upgrader.run_reserver(creep)
             elif creep.memory.role == 'demolition':
                 soldier.demolition(creep, all_structures)
+
+            elif creep.memory.role == 'g_collector':
+                collector.collector(creep, room_creeps, dropped_all, all_structures)
 
             # print('{} apswning: {}'.format(creep.name, creep.spawning))
             creep_cpu_end = Game.cpu.getUsed() - creep_cpu

@@ -1,0 +1,19 @@
+{
+    "root": "./book",
+    "plugins": ["theme-api", "code"],
+    "pluginsConfig": {
+        "theme-api": {
+            "languages": [
+                {
+                    "lang": "js",
+                    "name": "JavaScript"
+                },
+                {
+                    "lang": "py",
+                    "name": "Python",
+                    "default": true
+                }
+            ]
+        }
+    }
+}

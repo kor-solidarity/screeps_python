@@ -2,8 +2,9 @@ from typing import Any, Callable, Dict, List, Optional, Union
 
 from .creep import Creep
 from .misc_obj import Flag, RoomObject
+# noinspection PyProtectedMember
 from .room import Room, RoomPosition, _Owner
-from .structures import ConstructionSite, Structure, StructureSpawn
+from .structures import ConstructionSite, OwnedStructure, Structure, StructureSpawn
 
 
 # noinspection PyPep8Naming
@@ -12,15 +13,39 @@ class _GameCpu:
     :type limit: int
     :type tickLimit: int
     :type bucket: int
+    :type shardLimits: Dict[str, int]
     """
 
-    def __init__(self, limit: int, tickLimit: int, bucket: int) -> None:
+    def __init__(self, limit: int, tickLimit: int, bucket: int, shardLimits: Dict[str, int]) -> None:
+        """
+        WARNING: This constructor is purely for type completion, and does not exist in the game.
+        """
         self.limit = limit
         self.tickLimit = tickLimit
         self.bucket = bucket
+        self.shardLimits = shardLimits
 
     def getUsed(self) -> float:
         pass
+
+    def setShardLimits(self, shardLimits: Dict[str, int]) -> int:
+        pass
+
+
+class _GameShard:
+    """
+    :type name: str
+    :type type: str
+    :type ptr: bool
+    """
+
+    def __init__(self, name: str, type: str, ptr: bool) -> None:
+        """
+        WARNING: This constructor is purely for type completion, and does not exist in the game.
+        """
+        self.name = name
+        self.type = type
+        self.ptr = ptr
 
 
 # noinspection PyPep8Naming
@@ -32,6 +57,9 @@ class _GameGcl:
     """
 
     def __init__(self, level: int, progress: int, progressTotal: int) -> None:
+        """
+        WARNING: This constructor is purely for type completion, and does not exist in the game.
+        """
         self.level = level
         self.progress = progress
         self.progressTotal = progressTotal
@@ -39,7 +67,7 @@ class _GameGcl:
 
 # noinspection PyPep8Naming
 class _GameMap:
-    def describeExits(self, roomName: str) -> Dict[str, str]:
+    def describeExits(self, roomName: str) -> Dict[int, str]:
         pass
 
     def findExit(self, fromRoom: str, toRoom: str, opts: Dict[str, Any]) -> int:
@@ -66,6 +94,9 @@ class _MarketTransactionOrder:
     """
 
     def __init__(self, _id: str, _type: str, price: int) -> None:
+        """
+        WARNING: This constructor is purely for type completion, and does not exist in the game.
+        """
         self.id = _id
         self.type = _type
         self.price = price
@@ -89,6 +120,9 @@ class _MarketTransaction:
     def __init__(self, transactionId: str, time: int, sender: _Owner, recipient: _Owner, resourceType: str,
                  amount: int, js_from: str, to: str, description: str, order: Optional[_MarketTransactionOrder]) \
             -> None:
+        """
+        WARNING: This constructor is purely for type completion, and does not exist in the game.
+        """
         self.transactionId = transactionId
         self.time = time
         self.sender = sender
@@ -116,6 +150,9 @@ class _MarketOrder:
 
     def __init__(self, _id: str, created: int, _type: str, resourceType: str, roomName: str, amount: int,
                  remainingAmount: int, price: float) -> None:
+        """
+        WARNING: This constructor is purely for type completion, and does not exist in the game.
+        """
         self.id = _id
         self.created = created
         self.type = _type
@@ -135,6 +172,9 @@ class _OwnedMarketOrder(_MarketOrder):
 
     def __init__(self, _id: str, created: int, _type: str, resourceType: str, roomName: str, amount: int,
                  remainingAmount: int, price: float, active: bool, totalAmount: int) -> None:
+        """
+        WARNING: This constructor is purely for type completion, and does not exist in the game.
+        """
         super().__init__(_id, created, _type, resourceType, roomName, amount, remainingAmount, price)
         self.active = active
         self.totalAmount = totalAmount
@@ -151,6 +191,9 @@ class _GameMarket:
 
     def __init__(self, _credits: int, incomingTransactions: List[_MarketTransaction],
                  outgoingTransactions: List[_MarketTransaction], orders: Dict[str, _OwnedMarketOrder]) -> None:
+        """
+        WARNING: This constructor is purely for type completion, and does not exist in the game.
+        """
         self.credits = _credits
         self.incomingTransactions = incomingTransactions
         self.outgoingTransactions = outgoingTransactions
@@ -162,7 +205,7 @@ class _GameMarket:
     def cancelOrder(self, orderId: str) -> int:
         pass
 
-    def changeOrderPrice(self, orderId: str, newPrice: int) -> int:
+    def changeOrderPrice(self, orderId: str, newPrice: float) -> int:
         pass
 
     def createOrder(self, _type: str, resourceType: str, price: float, totalAmount: int, roomName: str = None) \
@@ -208,16 +251,17 @@ class Game:
     market = None  # type: _GameMarket
     resources = {}  # type: Dict[str, int]
     rooms = {}  # type: Dict[str, Room]
+    shard = None  # type: _GameShard
     spawns = {}  # type: Dict[str, StructureSpawn]
-    structures = {}  # type: Dict[str, Structure]
+    structures = {}  # type: Dict[str, OwnedStructure]
     time = 0  # type: int
 
     @classmethod
-    def getObjectById(cls, _id: str) -> RoomObject:
+    def getObjectById(cls, _id: str) -> Optional[RoomObject]:
         pass
 
     @classmethod
-    def notify(cls, message: str, groupInterval: int = 0):
+    def notify(cls, message: str, groupInterval: int = 0) -> None:
         pass
 
 
@@ -229,7 +273,10 @@ class _PathFinderResult:
     :type incomplete: bool
     """
 
-    def __init__(self, path: List[RoomPosition], ops: int, cost: int, incomplete: bool):
+    def __init__(self, path: List[RoomPosition], ops: int, cost: int, incomplete: bool) -> None:
+        """
+        WARNING: This constructor is purely for type completion, and does not exist in the game.
+        """
         self.path = path
         self.ops = ops
         self.cost = cost
@@ -241,3 +288,26 @@ class PathFinder:
     def search(origin: RoomPosition, goal: Union[Dict[str, Any], List[Dict[str, Any]]],
                opts: Optional[Dict[str, Any]] = None) -> _PathFinderResult:
         pass
+
+    class CostMatrix:
+        def __init__(self) -> None:
+            """
+            NOTE: In order to use this, you must surround it with `__new__`: `__new__(CostMatrix())`
+            """
+            pass
+
+        def set(self, x: int, y: int, cost: int) -> None:
+            pass
+
+        def get(self, x: int, y: int) -> int:
+            pass
+
+        def clone(self) -> 'PathFinder.CostMatrix':
+            pass
+
+        def serialize(self) -> List[int]:
+            pass
+
+        @staticmethod
+        def deserialize(x: List[int]) -> 'PathFinder.CostMatrix':
+            pass
