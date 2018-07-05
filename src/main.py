@@ -129,21 +129,6 @@ def main():
     except:
         pass
 
-    # NULLIFIED
-    # if not Memory.debug and not Memory.debug == False:
-    #     Memory.debug = True
-    # try:
-    #     if Memory.debug:
-    #         print(JSON.stringify(Memory.rooms))
-    #
-    #         # 각 방 이름. 방 통째로 삭제하는거 때문에 넣음.
-    #         for rooms in Object.keys(Memory.rooms):
-    #             structure_list = Memory.rooms[rooms]
-    #
-    #         Memory.debug = False
-    # except:
-    #     print('error in Memory.debug part')
-
     if Memory.dropped_sources:
         del Memory.dropped_sources
 
@@ -179,6 +164,17 @@ def main():
         chambro_cpu = Game.cpu.getUsed()
         chambro = Game.rooms[chambra_nomo]
 
+        # todo 게임 내 수동조작을 위한 초기화 설정. 단, 방이 우리꺼일 경우에만 적용.
+        # if chambro.controller:
+        #     if chambro.controller.my:
+        #         if not Memory.rooms[chambra_nomo]:
+        #             Memory.rooms[chambra_nomo] = {}
+        #         if not Memory.rooms[chambra_nomo].options:
+        #             Memory.rooms[chambra_nomo] = {'options': {}}
+        #         # repair level - 벽, 방어막에만 적용
+        #         if not Memory.rooms[chambra_nomo].options.repair:
+        #             Memory.rooms[chambra_nomo].options.push({'repair': 5})
+
         # ALL .find() functions are done in here. THERE SHOULD BE NONE INSIDE CREEP FUNCTIONS!
         # filters are added in between to lower cpu costs.
         all_structures = chambro.find(FIND_STRUCTURES)
@@ -189,6 +185,11 @@ def main():
 
         constructions = chambro.find(FIND_CONSTRUCTION_SITES)
         dropped_all = chambro.find(FIND_DROPPED_RESOURCES)
+        tomes = chambro.find(FIND_TOMBSTONES)
+        if tomes:
+            for t in tomes:
+                if _.sum(t.store) != 0:
+                    dropped_all.push(t)
 
         hostile_creeps = chambro.find(FIND_HOSTILE_CREEPS)
         nukes = chambro.find(FIND_NUKES)
@@ -198,6 +199,8 @@ def main():
             hostile_creeps = miscellaneous.filter_allies(hostile_creeps)
 
         if chambro.controller:
+            # 수리점수는 방별 레벨제를 쓴다. 기본값은 5, 최대 60까지 가능.
+
             # 단계별 제곱근값
             square = chambro.controller.level
             if square < 4:
@@ -205,7 +208,8 @@ def main():
             if bool(nukes) and square > 5:
                 repair_pts = 5200000
             else:
-                repair_pts = square ** square
+
+                repair_pts = square ** square * 2
         else:
             square = 4
             repair_pts = square ** square

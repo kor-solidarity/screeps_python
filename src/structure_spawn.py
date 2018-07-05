@@ -168,7 +168,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
             else:
                 # if harvest_target.energy == harvest_target.energyCapacity and harvest_target.cooldown == 0:
                 #     plus += 1
-                if harvest_target.energy <= harvest_target.energyCapacity * .8 or harvest_target.cooldown != 0:
+                if harvest_target.energy <= harvest_target.energyCapacity - 1 or harvest_target.cooldown != 0:
                     plus -= 1
 
         # 건물이 아예 없을 시
@@ -496,25 +496,6 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                                                lambda s: s.structureType == STRUCTURE_CONTAINER)
                     flag_constructions = Game.flags[flag].room.find(FIND_CONSTRUCTION_SITES)
 
-                    # todo 새 작업. - 만일 소스가 너무 가까워서 가운데에 컨테이너 하나 공동으로 놔도 되는 경우?
-                    # NUIILFIED. STILL NEED MORE EFFORT
-                    # # 만일 컨테이너 수가 소스보다 적은 경우
-                    # if len(flag_containers) < len(flag_energy_sources):
-                    #     # 먼져 소스중에 서로 5칸이내에 있는지 확인해본다.
-                    #     for es in flag_energy_sources:
-                    #         for es_a in flag_energy_sources:
-                    #             if es.pos.inRangeTo(es_a, 5) and not es_a == es:
-                    #                 # 있으면 이제 상호간의 실질 이동거리가 6칸 이내인지 확인해본다.
-                    #                 path = es.pos.findPathTo(es_a, {'ignoreCreeps': True})
-                    #                 if len(path) <= 6:
-                    #
-                    #                     # 조건에 맞으면
-                    #
-                    #     # if len(flag_containers) > 0:
-                    #     #     for s in flag_containers:
-                    #     #         if s.pos.inRangeTo(flag_energy_sources, 5)
-                    #     pass
-
                     # 캐리어가 소스 수만큼 있는가?
                     if len(flag_energy_sources) > len(remote_carriers):
                         print('flag carrier?')
@@ -568,7 +549,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                             if no_container_sites:
                                 # 찍을 위치정보. 소스에서 본진방향으로 세번째칸임.
                                 const_loc = target_source.pos.findPathTo(spawn.room.controller
-                                                                         , {'ignoreCreeps': True})[2]
+                                                                         , {'ignoreCreeps': True})[0]
 
                                 print('const_loc:', const_loc)
                                 print('const_loc.x {}, const_loc.y {}'.format(const_loc.x, const_loc.y))

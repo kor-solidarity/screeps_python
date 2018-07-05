@@ -29,6 +29,8 @@ from .constants import *
 from .classes import *
 from .transcrypt import *
 
+# todo TOMESTONES
+
 # Generated manually using regexes on the sub files
 __all__ = [
     # constants
@@ -72,6 +74,7 @@ __all__ = [
     "FIND_HOSTILE_CONSTRUCTION_SITES",
     "FIND_MINERALS",
     "FIND_NUKES",
+    "FIND_TOMBSTONES",
 
     "TOP",
     "TOP_RIGHT",
@@ -103,6 +106,7 @@ __all__ = [
     "LOOK_CONSTRUCTION_SITES",
     "LOOK_NUKES",
     "LOOK_TERRAIN",
+    "LOOK_TOMBSTONES",
 
     "OBSTACLE_OBJECT_TYPES",
 
@@ -295,6 +299,8 @@ __all__ = [
     "NUKE_LAND_TIME",
     "NUKE_RANGE",
     "NUKE_DAMAGE",
+
+    "TOMBSTONE_DECAY_PER_PART",
 
     "PORTAL_DECAY",
 

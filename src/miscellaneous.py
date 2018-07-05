@@ -143,9 +143,10 @@ def pick_pickup(creep, creeps, storages, terminal_capacity=10000, upgrade=False)
         return ERR_INVALID_TARGET
 
 
-def roomCallback(creeps, roomName, structures, constructions=None, ignoreRoads=False, ignoreCreeps=False):
+def roomCallback(creeps, roomName, structures, constructions=None
+                 , ignoreRoads=False, ignoreCreeps=False):
     """
-    PathFinder 관련.
+    PathFinder 관련. 원래 도로까는 용도로 짠거라 그거 위주로 돼있음.
     :param structures:
     :param constructions:
     :param creeps: 모든 크립
