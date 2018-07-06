@@ -165,15 +165,15 @@ def main():
         chambro = Game.rooms[chambra_nomo]
 
         # todo 게임 내 수동조작을 위한 초기화 설정. 단, 방이 우리꺼일 경우에만 적용.
-        # if chambro.controller:
-        #     if chambro.controller.my:
-        #         if not Memory.rooms[chambra_nomo]:
-        #             Memory.rooms[chambra_nomo] = {}
-        #         if not Memory.rooms[chambra_nomo].options:
-        #             Memory.rooms[chambra_nomo] = {'options': {}}
-        #         # repair level - 벽, 방어막에만 적용
-        #         if not Memory.rooms[chambra_nomo].options.repair:
-        #             Memory.rooms[chambra_nomo].options.push({'repair': 5})
+        if chambro.controller:
+            if chambro.controller.my:
+                if not Memory.rooms[chambra_nomo]:
+                    Memory.rooms[chambra_nomo] = {}
+                if not Memory.rooms[chambra_nomo].options:
+                    Memory.rooms[chambra_nomo] = {'options': {}}
+                # repair level - 벽, 방어막에만 적용
+                if not Memory.rooms[chambra_nomo].options.repair:
+                    Memory.rooms[chambra_nomo]['options'].repair = 5
 
         # ALL .find() functions are done in here. THERE SHOULD BE NONE INSIDE CREEP FUNCTIONS!
         # filters are added in between to lower cpu costs.
@@ -188,7 +188,7 @@ def main():
         tomes = chambro.find(FIND_TOMBSTONES)
         if tomes:
             for t in tomes:
-                if _.sum(t.store) != 0:
+                if _.sum(t.store) > 0:
                     dropped_all.push(t)
 
         hostile_creeps = chambro.find(FIND_HOSTILE_CREEPS)
@@ -208,7 +208,6 @@ def main():
             if bool(nukes) and square > 5:
                 repair_pts = 5200000
             else:
-
                 repair_pts = square ** square * 2
         else:
             square = 4

@@ -162,7 +162,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
             if harvest_target.structureType == STRUCTURE_CONTAINER:
                 if _.sum(harvest_target.store) > harvest_target.storeCapacity * .9:
                     plus += 1
-                elif _.sum(harvest_target.store) <= harvest_target.storeCapacity * .3:
+                elif _.sum(harvest_target.store) < harvest_target.storeCapacity * .5:
                     plus -= 1
             # 링크.
             else:
@@ -407,18 +407,16 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                                     != spawn.owner.username:
                                 flag_room_reserved_by_other = True
 
+                    # todo 렙8 되면 항시 상주한다. 단, 설정에 따라 투입자체를 안할수도 있게끔 해야함.
                     # to filter out the allies.
-                    if len(hostiles) > 0:
+                    if len(hostiles) > 0 or chambro.controller.level == 8:
                         hostiles = miscellaneous.filter_allies(hostiles)
-                        # print('len(hostiles) == {} and len(remote_troops) == {}'
-                        #       .format(len(hostiles), len(remote_troops)))
-                        # if len(hostiles) > 1:
-                        #     plus = 1
-                        #
-                        # else:
+
                         plus = 0
                         # print(Game.flags[flag].room.name, 'remote_troops', len(remote_troops))
-                        if len(hostiles) + plus > len(remote_troops):
+                        # 적이 있거나 10년
+                        if len(hostiles) + plus > len(remote_troops)\
+                                or (len(remote_troops) < 1 + plus and chambro.controller.level == 8):
                             # 렙7 이하면 스폰 안한다.
                             if spawn.room.controller.level < 7:
                                 continue

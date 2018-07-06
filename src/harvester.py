@@ -1,5 +1,6 @@
 from defs import *
 import harvest_stuff
+import miscellaneous
 
 __pragma__('noalias', 'name')
 __pragma__('noalias', 'undefined')
@@ -36,10 +37,9 @@ def run_harvester(creep, all_structures, constructions, creeps, dropped_all):
     vis_key = "visualizePathStyle"
     stroke_key = "stroke"
 
-    # 소속된 깃발이 있는 방에 없으면 있는 방으로 우선 가고 본다.
-    if creep.memory.flag_name and Game.flags[creep.memory.flag_name].pos.roomName != creep.pos.roomName:
-        creep.moveTo(Game.flags[creep.memory.flag_name], {'visualizePathStyle':
-                                                              {'stroke': '#ADD8E6', 'opacity': .25}})
+    # 할당된 방에 없으면 방으로 우선 가고 본다.
+    if creep.room.name != creep.memory.assigned_room:
+        miscellaneous.get_to_da_room(creep, creep.memory.assigned_room)
         return
 
     # no memory.laboro? make one.
@@ -53,12 +53,16 @@ def run_harvester(creep, all_structures, constructions, creeps, dropped_all):
     # if there's no source_num, need to distribute it.
     if not creep.memory.source_num:
         # added ifs for remotes
-        if creep.memory.flag_name and creep.room.name != Game.flags[creep.memory.flag_name].room.name:
+        # if creep.memory.flag_name and creep.room.name != Game.flags[creep.memory.flag_name].room.name:
+        if creep.memory.assigned_room and creep.room.name != creep.memory.assigned_room:
             try:
                 # normale, kripos ne devus havi .find() en la skripto, sed ĉi tio estas por malproksima regiono do...
-                sources = Game.flags[creep.memory.flag_name].room.find(FIND_SOURCES)
-                my_area = Game.flags[creep.memory.flag_name].room.name
-                creeps = Game.flags[creep.memory.flag_name].room.find(FIND_MY_CREEPS)
+                # sources = Game.flags[creep.memory.flag_name].room.find(FIND_SOURCES)
+                sources = Game.rooms[creep.memory.assigned_room].find(FIND_SOURCES)
+                # my_area = Game.flags[creep.memory.flag_name].room.name
+                my_area = creep.memory.assigned_room
+                # creeps = Game.flags[creep.memory.flag_name].room.find(FIND_MY_CREEPS)
+                creeps = Game.rooms[creep.memory.assigned_room].find(FIND_MY_CREEPS)
                 rikoltist_kripoj = _.filter(creeps,
                                             lambda c: (c.spawning or c.ticksToLive > 100)
                                                       and c.memory.role == 'harvester'
@@ -67,7 +71,7 @@ def run_harvester(creep, all_structures, constructions, creeps, dropped_all):
                 remote_containers = _.filter(remote_structures, lambda s: s.structureType == STRUCTURE_CONTAINER)
                 print('???', remote_structures )
             except:
-                print('no creeps in the remote at flag {}!'.format(creep.memory.flag_name))
+                print('no creeps in the remote at room {}!'.format(creep.memory.assigned_room))
                 return
         else:
             sources = creep.room.find(FIND_SOURCES)

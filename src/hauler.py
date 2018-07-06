@@ -121,8 +121,16 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
         # if there is a dropped target and it's there.
         if creep.memory.dropped_target:
             item = Game.getObjectById(creep.memory.dropped_target)
+            if not item:
+                creep.say('')
+                del creep.memory.dropped_target
+                return
             # if the target is a tombstone
             if item.creep:
+                if _.sum(item.store) == 0:
+                    creep.say("💢 텅 비었잖아!", True)
+                    del creep.memory.dropped_target
+                    return
                 # for resource in Object.keys(item.store):
                 grab = harvest_stuff.grab_energy(creep, creep.memory.dropped_target, False, 0)
             else:
@@ -305,8 +313,8 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                 creep.memory.priority = 4
 
         # todo 여기서 작업해야 하는 일:
-        # 2. 스토리지에서 에너지 뽑았을 시 무조건 그냥 배분부터 한다. 수리고 뭐고 알바아님.
-        # 3. 배분할게 없으면 건설확인후 전환, 그것도 없으면 수리조치. 수리할것도 없으면 업글보탠다.
+        # 2. 스토리지에서 에너지 뽑았을 시 무조건 그냥 배분부터 한다. 수리고 뭐고 알바아님. - done
+        # 3. 배분할게 없으면 건설확인후 전환, 그것도 없으면 수리조치. 수리할것도 없으면 업글보탠다. - done
         # 4. 위에 전환하기 전에 배분중인 크립의 수를 확인한다. 모든 크립이 배분 외 다른걸 하고있으면
         #   누구 하나는 최소한의 이송은 하고 있어야함.
         # priority 1: transfer

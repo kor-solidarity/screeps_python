@@ -77,7 +77,21 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
         # if there is a dropped target and it's there.
         if creep.memory.dropped_target:
             item = Game.getObjectById(creep.memory.dropped_target)
-            grab = creep.pickup(item)
+            if not item:
+                creep.say('')
+                del creep.memory.dropped_target
+                return
+            # if the target is a tombstone
+            if item.creep:
+                if _.sum(item.store) == 0:
+                    creep.say("💢 텅 비었잖아!", True)
+                    del creep.memory.dropped_target
+                    return
+                # for resource in Object.keys(item.store):
+                grab = harvest_stuff.grab_energy(creep, creep.memory.dropped_target, False, 0)
+            else:
+                grab = creep.pickup(item)
+
             if grab == 0:
                 del creep.memory.dropped_target
                 creep.say('♻♻♻', True)
@@ -136,10 +150,12 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
 
         # no pickup target? then it's a start!
         else:
-            # 이게 안뜬다는건 방이 비었다는 소리. 우선 가고본다.
-            if not Game.flags[creep.memory.flag_name].room:
-                creep.moveTo(Game.flags[creep.memory.flag_name]
-                             , {'visualizePathStyle': {'stroke': '#ffffff'}, 'reusePath': 25})
+            # 이게 안뜬다는건 방이 안보인다는 소리. 우선 가고본다.
+            # 캐리어가 소스 없는 방으로 갈리가....
+            if not Game.rooms[creep.memory.assigned_room].find(FIND_MINERALS):
+                miscellaneous.get_to_da_room(creep, creep.memory.assigned_room)
+                # creep.moveTo(Game.flags[creep.memory.flag_name]
+                #              , {'visualizePathStyle': {'stroke': '#ffffff'}, 'reusePath': 25})
                 return
 
             # 여기로 왔다는건 할당 컨테이너가 없다는 소리. 한마디로 not creep.memory.pickup == True
@@ -160,7 +176,7 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                 return
             # 매 틱마다 픽업이 있는지 확인한다. 있으면 바로 등록.
             # 같은 방일때만 확인한다.
-            if creep.room.name == Game.flags[creep.memory.flag_name].room.name:
+            if creep.room.name == Game.rooms[creep.memory.assigned_room]:
                 for s in all_structures:
                     if s.structureType == STRUCTURE_CONTAINER:
                         if Game.getObjectById(creep.memory.source_num).pos.inRangeTo(s, 3):
@@ -180,8 +196,8 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
 
             try:
                 # construction sites. only find if creep is not in its flag location.
-                if creep.room.name != Game.flags[creep.memory.flag_name].room.name:
-                    constructions = Game.flags[creep.memory.flag_name].room.find(FIND_CONSTRUCTION_SITES)
+                if creep.room.name != creep.memory.assigned_room:
+                    constructions = Game.rooms[creep.memory.assigned_room].find(FIND_CONSTRUCTION_SITES)
             except:
                 # 이게 걸리면 지금 반대쪽 방에 아무것도 없어서 시야확보 안됐단 소리.
                 return
@@ -230,15 +246,15 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
 
             try:
                 # dont have a build_target and not in proper room - get there firsthand.
-                if Game.flags[creep.memory.flag_name].room.name != creep.room.name and not creep.memory.build_target:
+                if creep.memory.assigned_room != creep.room.name and not creep.memory.build_target:
                     # constructions = Game.flags[creep.memory.flag_name].room.find(FIND_CONSTRUCTION_SITES)
                     # print('?', constructions)
-
-                    creep.moveTo(Game.flags[creep.memory.flag_name], {'visualizePathStyle': {'stroke': '#ffffff'}
-                        , 'reusePath': 25})
+                    miscellaneous.get_to_da_room(creep, creep.memory.assigned_room)
+                    # creep.moveTo(Game.flags[creep.memory.flag_name], {'visualizePathStyle': {'stroke': '#ffffff'}
+                    #     , 'reusePath': 25})
                     return
             except:
-                print('no visual in flag {}'.format(creep.memory.flag_name))
+                print('no visual in room {}'.format(creep.memory.assigned_room))
                 return
 
             # print('construction:', construction)
@@ -312,9 +328,43 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
             if transfer_result == ERR_NOT_IN_RANGE:
                 if len(repairs) > 0 and creep.memory.work:
                     creep.repair(repair)
-                creep.moveTo(Game.getObjectById(creep.memory.haul_target)
-                             , {'visualizePathStyle': {'stroke': '#ffffff'}
-                                 , 'ignoreCreeps': True, 'reusePath': 40})
+
+                # counter for checking the current location
+                if not creep.memory.move_ticks:
+                    creep.memory.move_ticks = 1
+
+                # checking current location - only needed when check in par with move_ticks
+                if not creep.memory.cur_Location:
+                    creep.memory.cur_Location = creep.pos
+                else:
+                    # 만약 있으면 현재 크립위치와 대조해본다. 동일하면 move_ticks 에 1 추가 아니면 1로 초기화.
+
+                    if JSON.stringify(creep.memory.cur_Location) \
+                            == JSON.stringify(creep.pos):
+                        creep.memory.move_ticks += 1
+                    else:
+                        creep.memory.move_ticks = 1
+                # renew
+                creep.memory.cur_Location = creep.pos
+
+                # 5보다 더 올라갔다는건 앞에 뭔가에 걸렸다는 소리.
+                if creep.memory.move_ticks > 5:
+                    for c in creeps:
+                        if creep.pos.inRangeTo(c, 1) and not c.name == creep.name:
+                            creep.say('GTFO', True)
+                            # 바꿔치기.
+                            mv = c.moveTo(creep)
+                            creep.moveTo(c)
+                            creep.memory.move_ticks = 1
+                            return
+                        # 여기까지 왔으면 틱이 5 넘겼는데 주변에 크립이 없는거임...
+                        creep.memory.move_ticks = 1
+
+                # 해당사항 없으면 그냥 평소처럼 움직인다.
+                else:
+                    creep.moveTo(Game.getObjectById(creep.memory.haul_target)
+                                 , {'visualizePathStyle': {'stroke': '#ffffff'}
+                                     , 'ignoreCreeps': True, 'reusePath': 40})
 
                 return
                 # creep.moveTo(link_or_container, {'visualizePathStyle': {'stroke': '#ffffff'}, 'reusePath': 10})
