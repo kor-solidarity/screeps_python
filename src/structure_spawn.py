@@ -114,7 +114,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                 # 1 - small sized: 2 in each. regardless of actual capacity. for lvl 3 or less
                 # 2 - real standards. suitable for 3k. 4500 not implmented yet.
                 harvester_points += harvester_creep.memory.size
-
+            # print('harvester_points', harvester_points)
             if harvester_points < num_o_sources * 2:
                 harvesters_bool = True
             else:
@@ -407,33 +407,30 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                                     != spawn.owner.username:
                                 flag_room_reserved_by_other = True
 
-                    # todo 렙8 되면 항시 상주한다. 단, 설정에 따라 투입자체를 안할수도 있게끔 해야함.
+                    # todo 렙7<= 되면 항시 상주한다. 단, 설정에 따라 투입자체를 안할수도 있게끔 해야함.
                     # to filter out the allies.
                     if len(hostiles) > 0 or chambro.controller.level == 8:
                         hostiles = miscellaneous.filter_allies(hostiles)
 
                         plus = 0
-                        # print(Game.flags[flag].room.name, 'remote_troops', len(remote_troops))
-                        # 적이 있거나 10년
+
+                        # 적이 있거나 방이 만렙이고 상주인원이 없을 시.
                         if len(hostiles) + plus > len(remote_troops)\
                                 or (len(remote_troops) < 1 + plus and chambro.controller.level == 8):
-                            # 렙7 이하면 스폰 안한다.
+                            # 렙7 아래면 스폰 안한다.
                             if spawn.room.controller.level < 7:
                                 continue
-                            # todo 인베이더일 경우에만 잡으러 간다. npc가 아닐 경우... 카운터를 새로 세야할듯.
-                            # 상대방이 AI인가? AI일때만 건드린다.
-                            npc_hostile = False
-                            for h in hostiles:
-                                print("hostiles: {}".format(JSON.stringify(hostiles)))
-                                print('h.owner: {}'.format(h.owner.username))
-                                if h.owner.username == 'Invader':
-                                    print('INVADER ALERT at {}'.format(Game.flags[flag].room.name))
-                                    npc_hostile = True
+
+                            # for h in hostiles:
+                            #     print("hostiles: {}".format(JSON.stringify(hostiles)))
+                            #     print('h.owner: {}'.format(h.owner.username))
+                            #     if h.owner.username == 'Invader':
+                            #         print('INVADER ALERT at {}'.format(Game.flags[flag].room.name))
 
                             # second one is the BIG GUY. made in case invader's too strong.
                             # 임시로 0으로 놨음. 구조 자체를 뜯어고쳐야함.
                             # 원래 두 크립이 연동하는거지만 한번 없이 해보자.
-                            if len(remote_troops) == 0 and npc_hostile and not keeper_lair:
+                            if len(remote_troops) == 0 and not keeper_lair:
                                 spawn_res = spawn.createCreep(
                                     [TOUGH, TOUGH, TOUGH, TOUGH, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE,
                                      MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE,

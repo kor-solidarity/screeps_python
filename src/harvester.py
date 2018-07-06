@@ -39,7 +39,7 @@ def run_harvester(creep, all_structures, constructions, creeps, dropped_all):
 
     # 할당된 방에 없으면 방으로 우선 가고 본다.
     if creep.room.name != creep.memory.assigned_room:
-        miscellaneous.get_to_da_room(creep, creep.memory.assigned_room)
+        miscellaneous.get_to_da_room(creep, creep.memory.assigned_room, False)
         return
 
     # no memory.laboro? make one.

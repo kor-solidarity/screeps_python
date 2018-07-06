@@ -27,10 +27,12 @@ def run_remote_defender(all_structures, creep, creeps, hostile_creeps):
 
     try:  # incase there's no creep for visual
         if creep.room.name != creep.memory.assigned_room:
-            miscellaneous.get_to_da_room(creep, creep.memory.assigned_room)
+            creep.heal(Game.getObjectById(creep.id))
+            miscellaneous.get_to_da_room(creep, creep.memory.assigned_room, False)
             return
     except:
-        miscellaneous.get_to_da_room(creep, creep.memory.assigned_room)
+        creep.heal(Game.getObjectById(creep.id))
+        miscellaneous.get_to_da_room(creep, creep.memory.assigned_room, False)
         return
 
     if not creep.memory.keeper_lair and not creep.memory.keeper_lair == 0:
@@ -116,17 +118,21 @@ def run_remote_defender(all_structures, creep, creeps, hostile_creeps):
                              , 'range': 3, 'reusePath': 10})
 
         else:
-            # todo what if there's no containers??
-            if not creep.memory.recycle_loc:
-                containers = _.filter(all_structures, lambda s: s.structureType == STRUCTURE_CONTAINER)
-                closest_container = creep.pos.findClosestByRange(containers)
-                creep.memory.recycle_loc = closest_container.id
-            if Game.getObjectById(creep.memory.recycle_loc):
-                if creep.pos.inRangeTo(Game.getObjectById(creep.memory.recycle_loc), 0):
-                    creep.suicide()
-                else:
-                    creep.moveTo(Game.getObjectById(creep.memory.recycle_loc)
-                                 , {'visualizePathStyle': {'stroke': '#ffffff'}, 'reusePath': 50})
+            # 아무것도 없으면 대기탄다
+            if creep.pos.inRangeTo(__new__(RoomPosition(25, 25, creep.memory.assigned_room)), 20):
+                miscellaneous.get_to_da_room(creep, creep.memory.assigned_room, False)
+
+            # NULLIFIED - 에너지 저장을 위해 컨테이너로 가서 자살!
+            # if not creep.memory.recycle_loc:
+            #     containers = _.filter(all_structures, lambda s: s.structureType == STRUCTURE_CONTAINER)
+            #     closest_container = creep.pos.findClosestByRange(containers)
+            #     creep.memory.recycle_loc = closest_container.id
+            # if Game.getObjectById(creep.memory.recycle_loc):
+            #     if creep.pos.inRangeTo(Game.getObjectById(creep.memory.recycle_loc), 0):
+            #         creep.suicide()
+            #     else:
+            #         creep.moveTo(Game.getObjectById(creep.memory.recycle_loc)
+            #                      , {'visualizePathStyle': {'stroke': '#ffffff'}, 'reusePath': 50})
             # just to get the creep off the road
             # creep.moveTo(Game.flags[creep.memory.flag_name], {'visualizePathStyle': {'stroke': '#ffffff'},
             #                                                   'reusePath': 50})

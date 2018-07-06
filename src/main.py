@@ -208,6 +208,7 @@ def main():
             if bool(nukes) and square > 5:
                 repair_pts = 5200000
             else:
+                # todo option.repair 등급에 맞춰 올린다.
                 repair_pts = square ** square * 2
         else:
             square = 4

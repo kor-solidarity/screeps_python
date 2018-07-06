@@ -152,8 +152,8 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
         else:
             # 이게 안뜬다는건 방이 안보인다는 소리. 우선 가고본다.
             # 캐리어가 소스 없는 방으로 갈리가....
-            if not Game.rooms[creep.memory.assigned_room].find(FIND_MINERALS):
-                miscellaneous.get_to_da_room(creep, creep.memory.assigned_room)
+            if not Game.rooms[creep.memory.assigned_room]:
+                miscellaneous.get_to_da_room(creep, creep.memory.assigned_room, False)
                 # creep.moveTo(Game.flags[creep.memory.flag_name]
                 #              , {'visualizePathStyle': {'stroke': '#ffffff'}, 'reusePath': 25})
                 return
@@ -249,7 +249,7 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                 if creep.memory.assigned_room != creep.room.name and not creep.memory.build_target:
                     # constructions = Game.flags[creep.memory.flag_name].room.find(FIND_CONSTRUCTION_SITES)
                     # print('?', constructions)
-                    miscellaneous.get_to_da_room(creep, creep.memory.assigned_room)
+                    miscellaneous.get_to_da_room(creep, creep.memory.assigned_room, False)
                     # creep.moveTo(Game.flags[creep.memory.flag_name], {'visualizePathStyle': {'stroke': '#ffffff'}
                     #     , 'reusePath': 25})
                     return

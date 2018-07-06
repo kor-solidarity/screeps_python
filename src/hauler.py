@@ -56,6 +56,10 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
     if not creep.memory.upgrade_target:
         creep.memory.upgrade_target = Game.rooms[creep.memory.assigned_room].controller['id']
 
+    if creep.room.name != creep.memory.assigned_room:
+        miscellaneous.get_to_da_room(creep, creep.memory.assigned_room, False)
+        return
+
     end_is_near = 30
     # in case it's gonna die soon. this noble act is only allowed if there's a storage in the room.
     if creep.ticksToLive < end_is_near and _.sum(creep.carry) != 0 and creep.room.storage:
@@ -657,6 +661,11 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                 del creep.memory.build_target
                 return
 
+            elif build_result == ERR_NO_BODYPART:
+                creep.say('운송이 본분!', True)
+                creep.memory.priority = 1
+                return
+
             # if having anything other than energy when not on priority 1 switch to 1
             if _.sum(creep.carry) != 0 and creep.carry[RESOURCE_ENERGY] == 0:
                 creep.memory.priority = 1
@@ -685,6 +694,11 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
             elif repair_result == ERR_INVALID_TARGET:
                 del creep.memory.repair_target
 
+            elif repair_result == ERR_NO_BODYPART:
+                creep.say('운송이 본분!', True)
+                creep.memory.priority = 1
+                return
+
             # 어쨌건 운송이 주다. 다만 레벨 8이면 수리에 전념할 수 있다.
             if (_.sum(creep.carry) < creep.carryCapacity * outer_work_perc and creep.room.controller.level != 8) \
                     or creep.carry[RESOURCE_ENERGY] == 0:
@@ -696,6 +710,12 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
             if upgrade_result == ERR_NOT_IN_RANGE:
                 creep.moveTo(Game.getObjectById(creep.memory.upgrade_target)
                              , {'visualizePathStyle': {'stroke': '#ffffff'}, 'range': 3, 'reusePath': 10})
+
+            elif upgrade_result == ERR_NO_BODYPART:
+                creep.say('운송이 본분!', True)
+                creep.memory.priority = 1
+                return
+
             # if having anything other than energy when not on priority 1 switch to 1
             # 운송크립은 발전에 심혈을 기울이면 안됨.
             if (creep.carry[RESOURCE_ENERGY] <= 0 or _.sum(creep.carry) <= creep.carryCapacity * outer_work_perc) \

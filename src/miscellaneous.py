@@ -23,6 +23,7 @@ def filter_allies(hostile_creeps):
     """
     ally_list = Memory.allianceArray
     for hostile in hostile_creeps:
+        enemy = True
         # this is an NPC
         if hostile.owner.username == 'Invader':
             continue
@@ -32,7 +33,20 @@ def filter_allies(hostile_creeps):
             # if hostile's name is equal to ally's name it's excluded
             if hostile.owner.username == ally.username:
                 hostile_creeps.splice(hostile_creeps.indexOf(hostile), 1)
+                enemy = False
                 break
+        # filter out creeps without any harm.
+        if enemy:
+            is_civilian = True
+            # print('hostile.body', hostile.body)
+            for body in hostile.body:
+                # print('enemybody {}, {}'.format(body, body['type']))
+                if body['type'] == ATTACK \
+                  or body['type'] == RANGED_ATTACK or body['type'] == HEAL:
+                    is_civilian = False
+                    break
+            if is_civilian:
+                hostile_creeps.splice(hostile_creeps.indexOf(hostile), 1)
 
     return hostile_creeps
 
@@ -84,7 +98,7 @@ def pick_pickup(creep, creeps, storages, terminal_capacity=10000, upgrade=False)
             stored_energy = loop_storage.energy
         # 컨트롤러 근처에 있는 컨테이너는 수확에서 제외한다. 다만 업그레이더가 아닐때만!
         elif not upgrade and loop_storage.structureType == STRUCTURE_CONTAINER \
-                and loop_storage.pos.inRangeTo(loop_storage.room.controller, 6):
+            and loop_storage.pos.inRangeTo(loop_storage.room.controller, 6):
             if loop_storage.pos.inRangeTo(loop_storage.room.controller, 6):
                 sources = loop_storage.room.find(FIND_SOURCES)
                 sources.push(loop_storage.room.find(FIND_MINERALS)[0])
@@ -168,14 +182,14 @@ def roomCallback(creeps, roomName, structures, constructions=None
 
     # 컨트롤러 근처엔 절대! 도로를 깔지 않는다.
     if room.controller:
-        costs.set(room.controller.pos.x, room.controller.pos.y+1, 0xff)
-        costs.set(room.controller.pos.x, room.controller.pos.y-1, 0xff)
-        costs.set(room.controller.pos.x+1, room.controller.pos.y, 0xff)
-        costs.set(room.controller.pos.x+1, room.controller.pos.y+1, 0xff)
-        costs.set(room.controller.pos.x+1, room.controller.pos.y-1, 0xff)
-        costs.set(room.controller.pos.x-1, room.controller.pos.y, 0xff)
-        costs.set(room.controller.pos.x-1, room.controller.pos.y+1, 0xff)
-        costs.set(room.controller.pos.x-1, room.controller.pos.y-1, 0xff)
+        costs.set(room.controller.pos.x, room.controller.pos.y + 1, 0xff)
+        costs.set(room.controller.pos.x, room.controller.pos.y - 1, 0xff)
+        costs.set(room.controller.pos.x + 1, room.controller.pos.y, 0xff)
+        costs.set(room.controller.pos.x + 1, room.controller.pos.y + 1, 0xff)
+        costs.set(room.controller.pos.x + 1, room.controller.pos.y - 1, 0xff)
+        costs.set(room.controller.pos.x - 1, room.controller.pos.y, 0xff)
+        costs.set(room.controller.pos.x - 1, room.controller.pos.y + 1, 0xff)
+        costs.set(room.controller.pos.x - 1, room.controller.pos.y - 1, 0xff)
 
     for struct in structures:
         if struct.structureType == STRUCTURE_ROAD and not ignoreRoads:
@@ -184,7 +198,8 @@ def roomCallback(creeps, roomName, structures, constructions=None
             # 도로 최우선
             costs.set(struct.pos.x, struct.pos.y, 1)
 
-        elif struct.structureType != STRUCTURE_CONTAINER and (struct.structureType != STRUCTURE_RAMPART or not struct.my):
+        elif struct.structureType != STRUCTURE_CONTAINER and (
+            struct.structureType != STRUCTURE_RAMPART or not struct.my):
             costs.set(struct.pos.x, struct.pos.y, 0xff)
 
     if not ignoreCreeps:
@@ -247,11 +262,11 @@ def clear_orders():
             continue
         print('DELETING OLD ORDER: room {}, id {}, remaining amount {}'.format(
             my_orders[order]['roomName'], my_orders[order]['id']
-                      , my_orders[order]['remainingAmount']))
+            , my_orders[order]['remainingAmount']))
         Game.market.cancelOrder(order)
 
 
-def get_to_da_room(creep, roomName):
+def get_to_da_room(creep, roomName, ignoreRoads=True):
     """
 
     :param creep:
@@ -259,8 +274,6 @@ def get_to_da_room(creep, roomName):
     :return:
     """
     result = creep.moveTo(__new__(RoomPosition(25, 25, roomName))
-                 , {'visualizePathStyle': {'stroke': '#ffffff'}, 'reusePath': 20, 'range': 20
-                     , 'maxOps': 1000, 'ignoreRoads': True})
+                          , {'visualizePathStyle': {'stroke': '#ffffff'}, 'reusePath': 20, 'range': 20
+                              , 'maxOps': 1000, 'ignoreRoads': ignoreRoads})
     return result
-
-
