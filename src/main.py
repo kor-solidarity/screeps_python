@@ -10,6 +10,7 @@ import collector
 import random
 import miscellaneous
 
+
 # defs is a package which claims to export all constants and some JavaScript objects, but in reality does
 #  nothing. This is useful mainly when using an editor like PyCharm, so that it 'knows' that things like Object, Creep,
 #  Game, etc. do exist.
@@ -79,27 +80,53 @@ def main():
 
     try:
         # adding alliance. um.... this code use 0.05 CPU o.O
-        if Game.time % 997 == 0 and Memory.updateAlliance:
+        if Game.time % 1001 == 0 or Memory.updateAlliance:
+            ally_start = Game.cpu.getUsed()
+            Memory.updateAlliance = False
             shard_name = Game.shard.name
-            if shard_name == 'shard0':
-                hostUsername = 'kirk'
-            else:
-                hostUsername = 'Shibdib'
+            shards = ['shard0', 'shard1', 'shard2']
+            official_server = False
+            for s in shards:
+                if s == shard_name:
+                    official_server = True
+                    break
 
-            hostSegmentId = 1  # 1 for a {}, 2 for a [] or names
-            segment = RawMemory.foreignSegment
-            if not segment or segment.username.lower() != hostUsername.lower() \
-                    or segment.id != hostSegmentId:
-                # Replace log() with your logger
-                print('Updating activeForeignSegment to:', hostUsername, ':', hostSegmentId)
+            if official_server:
+                hostSegmentId = 99
+                hostUsername = 'LeagueOfAutomatedNations'
                 RawMemory.setActiveForeignSegment(hostUsername, hostSegmentId)
-                Memory.updateAlliance = True
+                data = JSON.parse(RawMemory.foreignSegment.data)
+
+                my_rooms = _.filter(Game.rooms, lambda r: r.controller and r.controller.my)
+                # JSON으로 된 얼라목록을 반환함.
+                my_name = my_rooms[0].controller.owner.username
+                # 내 얼라명
+                alliance_name = None
+
+                # 안에 얼라목록으로 도배된게 좌르르르 있음.
+                for d in Object.keys(data):
+                    # 하나하나 뜯어본다.
+                    for nomo in data[d]:
+                        # 내이름이 있으면 그걸로 처리.
+                        if nomo == my_name:
+                            alliance_name = d
+                            break
+                    if alliance_name:
+                        break
+                if alliance_name:
+                    Memory.allianceArray = data[alliance_name]
+                    print('alliance list for {} '
+                          'updated using {} CPUs'.format(alliance_name, round(Game.cpu.getUsed() - ally_start, 2)))
+                else:
+                    Memory.allianceArray = []
+                    print('alliance not updated. not alligned with any.'
+                          ' {} CPU used'.format(round(Game.cpu.getUsed() - ally_start, 2)))
+
             else:
-                print(JSON.parse(RawMemory.foreignSegment['data']))
-                Memory.allianceArray = JSON.parse(RawMemory.foreignSegment['data'])
-                # Replace log() with your logger
-                print('Updating Alliance friendlies to:', JSON.stringify(Memory.allianceArray))
-                Memory.updateAlliance = False
+                Memory.allianceArray = []
+                print('alliance not updated - private server. '
+                      '{} CPU used'.format(round(Game.cpu.getUsed() - ally_start, 2)))
+
     except Exception as err:
         print('Error in RawMemory.foreignSegment handling (alliance):', err)
 
@@ -142,7 +169,7 @@ def main():
 
     if Memory.debug:
         # 0.05정도
-        print('base seㅐtup time: {} cpu'.format(round(Game.cpu.getUsed(), 2)))
+        print('base setup time: {} cpu'.format(round(Game.cpu.getUsed(), 2)))
 
     # cpu limit warning. only works when losing cpu and you have a 10 cpu limit
     if Game.cpu.bucket < cpu_bucket_emergency and Game.cpu.limit < 20:
@@ -174,6 +201,27 @@ def main():
                 # repair level - 벽, 방어막에만 적용
                 if not Memory.rooms[chambra_nomo].options.repair:
                     Memory.rooms[chambra_nomo]['options'].repair = 5
+                # 운송크립의 수. 기본수가 숫자만큼 많아진다. 물론 최대치는 무조건 4
+                if not Memory.rooms[chambra_nomo].options.haulers \
+                        and not Memory.rooms[chambra_nomo].options.haulers == 0:
+                    Memory.rooms[chambra_nomo].options.haulers = 0
+                # 핵사일로 채울거임? 채우면 1 아님 0. 안채울 경우 핵미사일 안에 에너지 빼감.
+                if not Memory.rooms[chambra_nomo].options.fill_nuke \
+                        and not Memory.rooms[chambra_nomo].options.fill_nuke == 0:
+                    Memory.rooms[chambra_nomo].options.fill_nuke = 1
+                # 연구소 에너지 채울거임?
+                if not Memory.rooms[chambra_nomo].options.fill_labs \
+                        and not Memory.rooms[chambra_nomo].options.fill_labs == 0:
+                    Memory.rooms[chambra_nomo].options.fill_labs = 1
+
+                # 방어막 열건가? 0 = 통과, 1 = 연다, 2 = 닫는다.
+                if not Memory.rooms[chambra_nomo].options.ramparts \
+                        and not Memory.rooms[chambra_nomo].options.ramparts == 0:
+                    Memory.rooms[chambra_nomo].options.ramparts = 0
+                # 방어막이 열려있는지 확인. 0이면 닫힌거. 위에꺼랑 같이 연동함.
+                if not Memory.rooms[chambra_nomo].options.ramparts_open \
+                        and not Memory.rooms[chambra_nomo].options.ramparts_open == 0:
+                    Memory.rooms[chambra_nomo].options.ramparts_open = 0
 
         # ALL .find() functions are done in here. THERE SHOULD BE NONE INSIDE CREEP FUNCTIONS!
         # filters are added in between to lower cpu costs.
@@ -191,28 +239,25 @@ def main():
                 if _.sum(t.store) > 0:
                     dropped_all.push(t)
 
-        hostile_creeps = chambro.find(FIND_HOSTILE_CREEPS)
+        # 필터하면서 목록을 삭제하는거 같음.... 그래서 이리 초기화
+        foreign_creeps = chambro.find(FIND_HOSTILE_CREEPS)
         nukes = chambro.find(FIND_NUKES)
 
         # to filter out the allies.
-        if len(hostile_creeps) > 0:
-            hostile_creeps = miscellaneous.filter_allies(hostile_creeps)
+        if len(foreign_creeps) > 0:
+            hostile_creeps = miscellaneous.filter_enemies(foreign_creeps)
+            allied_creeps = miscellaneous.filter_friends(foreign_creeps)
 
         if chambro.controller:
             # 수리점수는 방별 레벨제를 쓴다. 기본값은 5, 최대 60까지 가능.
 
-            # 단계별 제곱근값
-            square = chambro.controller.level
-            if square < 4:
-                square = 4
-            if bool(nukes) and square > 5:
+            if bool(nukes):
                 repair_pts = 5200000
             else:
-                # todo option.repair 등급에 맞춰 올린다.
-                repair_pts = square ** square * 2
+                repair_pts = 500
         else:
             square = 4
-            repair_pts = square ** square
+            repair_pts = 500
 
         # 방 안의 터미널 내 에너지 최소값.
         if chambro.controller:
@@ -248,39 +293,49 @@ def main():
                                                          or s.structureType == STRUCTURE_LAB
                                                          or s.structureType == STRUCTURE_CONTAINER
                                                          or s.structureType == STRUCTURE_STORAGE)
-                                                        and s.hits < s.hitsMax)
-                                                       or ((s.structureType == STRUCTURE_WALL
-                                                            and s.hits < int(repair_pts))
-                                                           or (s.structureType == STRUCTURE_RAMPART
-                                                               and (s.hits < int(repair_pts)
-                                                                    and chambro.controller.level > 1)))))
+                                                        and s.hits < s.hitsMax)))
+
+            # 확인작업: 루프문을 돌려서 5M 단위로 끊는다. 최저는 300.
+            wall_repairs = all_structures.filter(lambda s: ((s.structureType == STRUCTURE_WALL
+                                                             and s.hits < 300)
+                                                            or (s.structureType == STRUCTURE_RAMPART
+                                                                and (s.hits < 300 and chambro.controller.level > 1))))
+            # 이게 참이 아니라면 내 방이 아니기 때문에 아래 옵션필터가 없음. 그거 걸러내기.
+            my_room = True
+            # 방에 컨트롤러가 있는가?
+            if chambro.controller:
+                # 그게 내껀가?
+                if not chambro.controller.my:
+                    my_room = False
+            else:
+                my_room = False
+
+            # 최저에 해당하는 벽이 있으면 그걸 최우선으로 잡는다.
+            if len(wall_repairs) or not my_room:
+                repairs.extend(wall_repairs)
+            else:
+                # 루프문을 돌려서 5M 단위로 끊는다.
+                for i in range(1, Memory.rooms[chambra_nomo]['options'].repair + 1):
+                    repair_pts = i * 5000000
+                    wall_repairs = all_structures.filter(lambda s: ((s.structureType == STRUCTURE_WALL
+                                                                     and s.hits < int(repair_pts))
+                                                                    or (s.structureType == STRUCTURE_RAMPART
+                                                                        and (s.hits < int(repair_pts)
+                                                                             and chambro.controller.level > 1))))
+
+                    # 뭔가 있으면 그대로 넣고 끝.
+                    if len(wall_repairs) > 0:
+                        repairs.extend(wall_repairs)
+                        break
 
         if not repairs or len(repairs) == 0:
             repairs = []
 
         my_structures = chambro.find(FIND_MY_STRUCTURES)
 
-        # ext_cpu = Game.cpu.getUsed()
-        # extractor = None
         extractor = _.filter(my_structures, lambda s: s.structureType == STRUCTURE_EXTRACTOR)
-        # print('extractor:', extractor)
-        # if my_structures:
-        #     for structure in my_structures:
-        #         # print('structure.structureType: {}'.format(structure.structureType))
-        #         if structure.structureType == STRUCTURE_EXTRACTOR:
-        #             extractor = structure
-        #             # print('ext?', extractor)
-        #             break
-
-        # print('ext cpu: {}'.format(round(Game.cpu.getUsed() - ext_cpu, 3)))
-
-        # print('room {} extr? {}'.format(chambra_nomo, extractor))
-
-        # my_structures = _.filter(all_structures, lambda s: s.my == True)
 
         spawns = chambro.find(FIND_MY_SPAWNS)
-
-        # print("preparation time for room {}: {} cpu".format(chambro.name, round(Game.cpu.getUsed() - chambro_cpu, 2)))
 
         # Run each creeps
         for chambro_creep in room_creeps:
@@ -291,7 +346,6 @@ def main():
             if creep.spawning:
                 if not creep.memory.age and creep.memory.age != 0:
                     creep.memory.age = 0
-                # print("{} spawning speed : {} cpu".format(creep.name, round(Game.cpu.getUsed() - creep_cpu, 3)))
                 continue
 
             # but if a soldier/harvester.... nope. they're must-be-run creeps
@@ -431,6 +485,50 @@ def main():
                 print("{} structures ran in {} total with avg. {} cpu, tot. {} cpu"
                       .format(room_cpu_num, room_name, round(room_cpu_avg, 2), round(end - room_cpu, 2)))
 
+        # 아군만 있으면 방어막을 연다. 역으로 적이 보이면 열린거 닫는다.
+        rampart_bool = False
+        if Game.rooms[chambra_nomo].controller:
+            if Game.rooms[chambra_nomo].controller.my:
+                if len(hostile_creeps) > 0:
+                    Memory.rooms[chambra_nomo].options.ramparts = 2
+                elif len(allied_creeps) > 0:
+                    Memory.rooms[chambra_nomo].options.ramparts = 1
+                rampart_bool = True
+
+        if rampart_bool and Memory.rooms[chambra_nomo].options:
+            tm = Game.cpu.getUsed()
+            if Memory.rooms[chambra_nomo].options.ramparts:
+                # 몇개 건드렸는지 확인용도.
+                ramparts_used = 0
+                # 1이면 방어막 연다.
+                if Memory.rooms[chambra_nomo].options.ramparts == 1:
+                    # ramparts_open은 1이면 다 열렸다는 소리. 아님 닫힌거.
+                    if not Memory.rooms[chambra_nomo].options.ramparts_open:
+                        ramparts = all_structures.filter(lambda s: (s.structureType == STRUCTURE_RAMPART))
+                        for r in ramparts:
+                            if not r.isPublic:
+                                ramparts_used += 1
+                                r.setPublic(True)
+                        Memory.rooms[chambra_nomo].options.ramparts_open = 1
+                        print('opening {} ramparts in {}. {} CPU used.'.format(ramparts_used, chambra_nomo,
+                                                                               round(Game.cpu.getUsed() - tm, 2)))
+                # 2면 방어막 닫는다.
+                elif Memory.rooms[chambra_nomo].options.ramparts == 2:
+                    # 방식은 위의 정반대
+                    if Memory.rooms[chambra_nomo].options.ramparts_open:
+                        ramparts = all_structures.filter(lambda s: (s.structureType == STRUCTURE_RAMPART))
+                        for r in ramparts:
+                            if r.isPublic:
+                                ramparts_used += 1
+                                r.setPublic(False)
+                        Memory.rooms[chambra_nomo].options.ramparts_open = 0
+                        print('closing {} ramparts in {}. {} CPU used.'
+                              .format(ramparts_used, chambra_nomo, round(Game.cpu.getUsed() - tm, 2)))
+                else:
+                    print('invalid value set on ramparts. initializing...')
+                # 끝나면 초기화.
+                Memory.rooms[chambra_nomo].options.ramparts = 0
+
         # 스폰 여럿이어서 생길 중복방지.
         room_names = []
 
@@ -510,8 +608,12 @@ def main():
             if Memory.debug or Game.time % interval == 0 or Memory.tick_check:
                 print('방 {} 루프에서 스폰 {} 준비시간 : {} cpu'.format(nesto.room.name, nesto.name
                                                              , round(Game.cpu.getUsed() - spawn_cpu, 2)))
-
-            structure_spawn.run_spawn(nesto, all_structures, room_creeps, hostile_creeps, divider, counter
+            # 한놈만 우선 팬다
+            if len(hostile_creeps) > 0:
+                enemy = hostile_creeps[0]
+            else:
+                enemy = hostile_creeps
+            structure_spawn.run_spawn(nesto, all_structures, room_creeps, enemy, divider, counter
                                       , cpu_bucket_emergency, cpu_bucket_emergency_spawn_start, extractor
                                       , terminal_capacity, chambro, interval)
 

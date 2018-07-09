@@ -154,8 +154,6 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
             # 캐리어가 소스 없는 방으로 갈리가....
             if not Game.rooms[creep.memory.assigned_room]:
                 miscellaneous.get_to_da_room(creep, creep.memory.assigned_room, False)
-                # creep.moveTo(Game.flags[creep.memory.flag_name]
-                #              , {'visualizePathStyle': {'stroke': '#ffffff'}, 'reusePath': 25})
                 return
 
             # 여기로 왔다는건 할당 컨테이너가 없다는 소리. 한마디로 not creep.memory.pickup == True
@@ -292,7 +290,7 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
 
         # PRIORITY 2: carry 'em
         elif creep.memory.priority == 2:
-
+            # print(creep.name)
             # fixed container/link target to move to.
             if not creep.memory.haul_target:
                 # all_structures in the home room
@@ -310,8 +308,7 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                 # at first it was to move to controller. but somehow keep getting an error, so let's try
                 if len(repairs) > 0 and creep.memory.work:
                     creep.repair(repair)
-                creep.moveTo(outside_links_and_containers[0],
-                             {'visualizePathStyle': {'stroke': '#ffffff'}, 'ignoreCreeps': True, 'reusePath': 40})
+                miscellaneous.get_to_da_room(creep, creep.memory.home_room, False)
                 return
 
             if not creep.memory.haul_target:
@@ -322,17 +319,16 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
 
             # transfer_result = creep.transfer(link_or_container, RESOURCE_ENERGY)
             transfer_result = creep.transfer(Game.getObjectById(creep.memory.haul_target), RESOURCE_ENERGY)
-            # creep.say(transfer_result)
+            # creep.say("tr" + transfer_result)
             # print(creep.name, 'transfer_result', transfer_result)
 
             if transfer_result == ERR_NOT_IN_RANGE:
+                # creep.say(ERR_NOT_IN_RANGE)
                 if len(repairs) > 0 and creep.memory.work:
                     creep.repair(repair)
-
                 # counter for checking the current location
                 if not creep.memory.move_ticks:
                     creep.memory.move_ticks = 1
-
                 # checking current location - only needed when check in par with move_ticks
                 if not creep.memory.cur_Location:
                     creep.memory.cur_Location = creep.pos
@@ -348,9 +344,10 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                 creep.memory.cur_Location = creep.pos
 
                 # 5보다 더 올라갔다는건 앞에 뭔가에 걸렸다는 소리.
-                if creep.memory.move_ticks > 5:
+                if creep.memory.move_ticks > 3:
                     for c in creeps:
-                        if creep.pos.inRangeTo(c, 1) and not c.name == creep.name:
+                        if creep.pos.inRangeTo(c, 1) and not c.name == creep.name\
+                                and not c.memory.role == 'carrier':
                             creep.say('GTFO', True)
                             # 바꿔치기.
                             mv = c.moveTo(creep)

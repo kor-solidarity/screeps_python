@@ -12,6 +12,7 @@ import os
 import shutil
 
 import file_expander
+import time
 
 transcrypt_arguments = ['-n', '-p', '.none']
 transcrypt_dirty_args = transcrypt_arguments + []
@@ -326,8 +327,9 @@ def main():
         expander_control.expand_files()
 
     build(config)
-    # upload(config)
-
+    upload(config)
 
 if __name__ == "__main__":
+    a = time.time()
     main()
+    print('elapsed time: {}'.format(time.time() - a))

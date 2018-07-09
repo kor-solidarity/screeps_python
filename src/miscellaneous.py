@@ -15,24 +15,31 @@ __pragma__('noalias', 'update')
 """
 
 
-def filter_allies(hostile_creeps):
+def filter_enemies(foreign_creeps, count_ai=True):
     """
     filter out allies(ones must not be killed) from FIND_HOSTILE_CREEPS
-    :param hostile_creeps:
+    :param foreign_creeps:
+    :param count_ai:
     :return:
     """
     ally_list = Memory.allianceArray
-    for hostile in hostile_creeps:
+    enemy_list = []
+    for hostile in foreign_creeps:
         enemy = True
         # this is an NPC
         if hostile.owner.username == 'Invader':
+            # 평소엔 필요없는거지만 가끔가다 NPC를 세면 안되는 경우가 있음...
+            # if not count_ai:
+            #     foreign_creeps.splice(foreign_creeps.indexOf(hostile), 1)
+            if count_ai:
+                enemy_list.append(hostile)
             continue
+
         # print('hostile.owner.username:', hostile.owner.username)
         for ally in ally_list:
             # print('ally.username:', ally.username)
             # if hostile's name is equal to ally's name it's excluded
-            if hostile.owner.username == ally.username:
-                hostile_creeps.splice(hostile_creeps.indexOf(hostile), 1)
+            if hostile.owner.username == ally:
                 enemy = False
                 break
         # filter out creeps without any harm.
@@ -45,10 +52,32 @@ def filter_allies(hostile_creeps):
                   or body['type'] == RANGED_ATTACK or body['type'] == HEAL:
                     is_civilian = False
                     break
-            if is_civilian:
-                hostile_creeps.splice(hostile_creeps.indexOf(hostile), 1)
+            # if not is_civilian:
+            #     foreign_creeps.splice(foreign_creeps.indexOf(hostile), 1)
+            if not is_civilian:
+                enemy_list.append(hostile)
+        # else:
+        #     foreign_creeps.splice(foreign_creeps.indexOf(hostile), 1)
 
-    return hostile_creeps
+    # return foreign_creeps
+    return enemy_list
+
+
+def filter_friends(foreign_creeps):
+    """
+    find allies(ones must not be killed) from FIND_HOSTILE_CREEPS
+    :param foreign_creeps:
+    :return:
+    """
+    ally_list = Memory.allianceArray
+    friends = []
+    for foreigns in foreign_creeps:
+        for ally in ally_list:
+            # if it's one of our allies add to list
+            if foreigns.owner.username == ally:
+                friends.append(foreigns)
+
+    return friends
 
 
 def pick_pickup(creep, creeps, storages, terminal_capacity=10000, upgrade=False):
@@ -78,23 +107,14 @@ def pick_pickup(creep, creeps, storages, terminal_capacity=10000, upgrade=False)
         if len(storages) == 0:
             break
 
-        # no_full_container = True
-        # if not upgrade:
-        #     for s in storages:
-        #         if s.structureType == STRUCTURE_CONTAINER and _.sum(s.store) > s.storeCapacity * .85:
-        #             if random.randint(0, 1):
-        #                 loop_storage = s
-        #                 no_full_container = False
-        #                 break
-        # if no_full_container:
         # to distinguish storage var. with storages inside while loop.
         loop_storage = creep.pos.findClosestByRange(storages)
 
         if not loop_storage:
             break
 
-        # if storage is a link, which only holds energy
-        if loop_storage.structureType == STRUCTURE_LINK:
+        # if loop_storage only holds energy
+        if loop_storage.energy:
             stored_energy = loop_storage.energy
         # 컨트롤러 근처에 있는 컨테이너는 수확에서 제외한다. 다만 업그레이더가 아닐때만!
         elif not upgrade and loop_storage.structureType == STRUCTURE_CONTAINER \
@@ -274,6 +294,6 @@ def get_to_da_room(creep, roomName, ignoreRoads=True):
     :return:
     """
     result = creep.moveTo(__new__(RoomPosition(25, 25, roomName))
-                          , {'visualizePathStyle': {'stroke': '#ffffff'}, 'reusePath': 20, 'range': 20
+                          , {'visualizePathStyle': {'stroke': '#ffffff'}, 'reusePath': 20, 'range': 21
                               , 'maxOps': 1000, 'ignoreRoads': ignoreRoads})
     return result

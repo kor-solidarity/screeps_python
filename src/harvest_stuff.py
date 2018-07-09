@@ -69,8 +69,7 @@ def grab_energy(creep, pickup, only_energy, min_capacity=.4):
 
     # if there's no energy in the pickup target, delete it
     try:
-        # print(pickup, 'type:', Game.getObjectById(pickup).structureType)
-        if Game.getObjectById(pickup).structureType != STRUCTURE_LINK:
+        if Game.getObjectById(pickup).store:
             if _.sum(Game.getObjectById(pickup).store) < (creep.carryCapacity - _.sum(creep.carry)) * min_capacity:
                 del pickup
                 # print('checkpoint?')
@@ -89,16 +88,20 @@ def grab_energy(creep, pickup, only_energy, min_capacity=.4):
         creep.say('ERROR!')
         return ERR_INVALID_TARGET
 
-    # check if memory.pickup is link or not.
-    if Game.getObjectById(pickup).structureType == STRUCTURE_CONTAINER \
-            or Game.getObjectById(pickup).structureType == STRUCTURE_STORAGE:
+    # check if memory.pickup has store API or not
+    if Game.getObjectById(pickup).store:
         carry_objects = Game.getObjectById(pickup).store
     else:
         carry_objects = Game.getObjectById(pickup).energy
 
+    # print('len(carry_objects)', len(carry_objects))
+
     if len(carry_objects) == 0:
+        # print('pick it up.')
+        result = creep.withdraw(Game.getObjectById(pickup), RESOURCE_ENERGY)
+        # print(result)
         # pick it up.
-        return creep.withdraw(Game.getObjectById(pickup), RESOURCE_ENERGY)
+        return result
 
     # else == STRUCTURE_CONTAINER || STRUCTURE_STORAGE
     else:

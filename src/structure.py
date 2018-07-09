@@ -29,7 +29,8 @@ def run_tower(tower, hostile_creeps, repairs, malsana_amikoj):
 
     # print('hostile: ', hostile_creeps)
 
-    if tower.energy < tower.energyCapacity * 0.25 and len(hostile_creeps) == 0:
+    if tower.energy < tower.energyCapacity * 0.25 and len(hostile_creeps) == 0\
+            and len(malsana_amikoj) == 0:
         return
 
     if len(hostile_creeps) > 0 and len(malsana_amikoj) > 0:

@@ -45,10 +45,11 @@ def run_remote_defender(all_structures, creep, creeps, hostile_creeps):
             creep.memory.keeper_lair = 0
 
     # find the goddamn enemies
-    if creep.room.name != Game.flags[creep.memory.flag_name].room.name:
+    if creep.room.name == creep.memory.assigned_room:
         enemies = hostile_creeps
     else:
-        enemies = Game.flags[creep.memory.flag_name].room.find(FIND_HOSTILE_CREEPS)
+        enemies = Game.rooms[creep.memory.assigned_room].find(FIND_HOSTILE_CREEPS)
+        enemies = miscellaneous.filter_enemies(enemies)
 
     if len(enemies) > 0:
 
@@ -57,6 +58,7 @@ def run_remote_defender(all_structures, creep, creeps, hostile_creeps):
 
         # 거리안에 없으면 무조건 펑펑 터친다
         creep.rangedMassAttack()
+
         enemy = creep.pos.findClosestByRange(enemies)
 
         distance = creep.pos.getRangeTo(enemy)
@@ -76,7 +78,7 @@ def run_remote_defender(all_structures, creep, creeps, hostile_creeps):
             if creep.rangedAttack(enemy) == ERR_NO_BODYPART:
                 creep.heal(Game.getObjectById(creep.id))
         else:
-            if creep.hits < creep.hitsMax and not distance < 5:
+            if creep.hits < creep.hitsMax:
                 creep.cancelOrder('rangedMassAttack')
                 creep.heal(Game.getObjectById(creep.id))
             creep.moveTo(enemy, {'visualizePathStyle': {'stroke': '#FF0000'}, 'ignoreCreeps': False})
@@ -119,7 +121,7 @@ def run_remote_defender(all_structures, creep, creeps, hostile_creeps):
 
         else:
             # 아무것도 없으면 대기탄다
-            if creep.pos.inRangeTo(__new__(RoomPosition(25, 25, creep.memory.assigned_room)), 20):
+            if not creep.pos.inRangeTo(__new__(RoomPosition(25, 25, creep.memory.assigned_room)), 20):
                 miscellaneous.get_to_da_room(creep, creep.memory.assigned_room, False)
 
             # NULLIFIED - 에너지 저장을 위해 컨테이너로 가서 자살!
@@ -158,6 +160,7 @@ def defender(creep, hostile_creeps):
     # hostile_creeps
     return
 
+
 def demolition(creep, structures):
     """
     건물 철거반. 도로와 컨테이너 빼고 다 부순다. 컨테이너는 메모리 유무.
@@ -167,7 +170,7 @@ def demolition(creep, structures):
     """
 
     try:
-        if Game.flags[creep.memory.flag_name].room.name != creep.room.name:
+        if creep.memory.assigned_room != creep.room.name:
             creep.moveTo(Game.flags[creep.memory.flag_name], {'visualizePathStyle': {'stroke': '#ffffff'},
                                                                   'reusePath': 50})
             return

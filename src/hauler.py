@@ -168,8 +168,18 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                                                      and s.energy >= creep.carryCapacity * .45
                                                      and not
                                                      (s.pos.x < 5 or s.pos.x > 44 or s.pos.y < 5 or s.pos.y > 44)))
-                # 위 목록 중에서 가장 가까이 있는 컨테이너를 뽑아간다. 만약 뽑아갈 대상이 없을 시 터미널, 스토리지를 각각 찾는다.
+                # 위 목록 중에서 가장 가까이 있는 컨테이너를 뽑아간다.
+                # 만약 뽑아갈 대상이 없을 시 터미널, 스토리지를 각각 찾는다.
+                # 만일 연구소를 안채우기로 했으면 거기서도 뽑는다.
+                if Memory.rooms[creep.room.name].options.fill_labs == 0:
+                    # print('no nuke')
+                    labs = all_structures.filter(lambda s: s.structureType == STRUCTURE_LAB
+                                                                     and s.energy >= creep.carryCapacity * .45)
+                    storages.extend(labs)
+                    # print(storages)
+
                 pickup_id = miscellaneous.pick_pickup(creep, creeps, storages, terminal_capacity)
+                # print('pickupId', pickup_id)
                 if pickup_id == ERR_INVALID_TARGET:
                     pass
                 else:
@@ -191,10 +201,11 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                     only_energy = False
                 # grabs any resources left in the storage if there are any.
                 result = harvest_stuff.grab_energy(creep, creep.memory.pickup, only_energy)
+                # print(creep.name, creep.memory.pickup, result)
                 if result == ERR_NOT_IN_RANGE:
                     move_it = creep.moveTo(Game.getObjectById(creep.memory.pickup),
                                            {'visualizePathStyle': {'stroke': '#ffffff'}, 'reusePath': 25})
-
+                    # print('moveIt', move_it)
                     if move_it == ERR_NO_PATH:
                         for c in creeps:
                             if creep.pos.inRangeTo(c, 1) and not c.name == creep.name:
@@ -254,9 +265,7 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
             # defining structures to fill the energy on. originally above of this spot but replaced for cpu eff.
             # towers only fills 80% since it's gonna repair here and there all the time.
             structures = all_structures.filter(lambda s: ((s.structureType == STRUCTURE_SPAWN
-                                                           or s.structureType == STRUCTURE_EXTENSION
-                                                           or s.structureType == STRUCTURE_NUKER
-                                                           or s.structureType == STRUCTURE_LAB)
+                                                           or s.structureType == STRUCTURE_EXTENSION)
                                                           and s.energy < s.energyCapacity)
                                                          or (s.structureType == STRUCTURE_TOWER
                                                              and s.energy < s.energyCapacity * 0.8)
@@ -264,6 +273,16 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                                                              and s.store[RESOURCE_ENERGY] < max_energy_in_storage)
                                                          or (s.structureType == STRUCTURE_TERMINAL
                                                              and s.store[RESOURCE_ENERGY] < terminal_capacity))
+            # 핵을 넣는걸로 함?
+            if Memory.rooms[creep.room.name].options.fill_nuke:
+                nuke_structure_add = all_structures.filter(lambda s: s.structureType == STRUCTURE_NUKER
+                                                           and s.energy < s.energyCapacity)
+                structures.extend(nuke_structure_add)
+            # 핵을 넣는걸로 함?
+            if Memory.rooms[creep.room.name].options.fill_labs:
+                structure_add = all_structures.filter(lambda s: s.structureType == STRUCTURE_LAB
+                                                           and s.energy < s.energyCapacity)
+                structures.extend(structure_add)
 
             # 업글용 컨테이너. 스토리지가 컨트롤러에서 많이 떨어져 있을때 대비해 두는 컨테이너.
             container = all_structures.filter(lambda s:
@@ -359,12 +378,20 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                     if not passed_priority_0:
 
                         structures = all_structures.filter(lambda s: ((s.structureType == STRUCTURE_SPAWN
-                                                                       or s.structureType == STRUCTURE_EXTENSION
-                                                                       or s.structureType == STRUCTURE_NUKER
-                                                                       or s.structureType == STRUCTURE_LAB)
+                                                                       or s.structureType == STRUCTURE_EXTENSION)
                                                                       and s.energy < s.energyCapacity)
                                                                      or (s.structureType == STRUCTURE_TOWER
                                                                          and s.energy < s.energyCapacity * 0.8))
+                        # 핵을 넣는걸로 함?
+                        if Memory.rooms[creep.room.name].options.fill_nuke:
+                            nuke_structure_add = all_structures.filter(lambda s: s.structureType == STRUCTURE_NUKER
+                                                                                 and s.energy < s.energyCapacity)
+                            structures.extend(nuke_structure_add)
+                        # 핵을 넣는걸로 함?
+                        if Memory.rooms[creep.room.name].options.fill_labs:
+                            structure_add = all_structures.filter(lambda s: s.structureType == STRUCTURE_LAB
+                                                                            and s.energy < s.energyCapacity)
+                            structures.extend(structure_add)
 
                         container = all_structures.filter(lambda s:
                                                           s.structureType == STRUCTURE_CONTAINER

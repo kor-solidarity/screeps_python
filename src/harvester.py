@@ -220,12 +220,15 @@ def run_harvester(creep, all_structures, constructions, creeps, dropped_all):
 
         # pickup any dropped resources on the way
         if not creep.memory.pickup:
-            dropped = _.filter(dropped_all, lambda c: c.resourceType == RESOURCE_ENERGY)
-            if dropped:
-                for drop in dropped:
+            dropped_all = _.filter(dropped_all, lambda c: c.resourceType == RESOURCE_ENERGY)
+            if dropped_all:
+                for drop in dropped_all:
                     # not energy? pass
                     if drop.resourceType != RESOURCE_ENERGY:
-                        pass
+                        continue
+                    elif drop.store:
+                        if drop.store.energy == 0:
+                            continue
                     if creep.pos.inRangeTo(drop, 3):
                         creep.memory.pickup = drop.id
                         creep.moveTo(creep.memory.pickup, {'visualizePathStyle':
@@ -233,7 +236,8 @@ def run_harvester(creep, all_structures, constructions, creeps, dropped_all):
                         return
         else:
 
-            grab_result = creep.pickup(Game.getObjectById(creep.memory.pickup))
+            # grab_result = creep.pickup(Game.getObjectById(creep.memory.pickup))
+            grab_result = harvest_stuff.grab_energy(creep, creep.memory.pickup, True, 0)
             # print(creep.memory.pickup)
             # creep.say(grab_result)
             if grab_result == ERR_NOT_IN_RANGE:

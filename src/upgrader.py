@@ -117,10 +117,8 @@ def run_reserver(creep):
     try:
 
         # if creep is not in it's flag's room.
-        if creep.room.name != Game.flags[creep.memory.flag_name].room.name:
-            # go.
-            creep.moveTo(Game.flags[creep.memory.flag_name]
-                         , {'visualizePathStyle': {'stroke': '#ffffff'}, 'reusePath': 20})
+        if creep.room.name != creep.memory.assigned_room:
+            miscellaneous.get_to_da_room(creep, creep.memory.assigned_room, False)
         # if in.
         else:
             # reserve the room
@@ -129,7 +127,7 @@ def run_reserver(creep):
                 creep.moveTo(creep.room.controller, {'visualizePathStyle': {'stroke': '#ffffff'}, 'reusePath': 20})
             elif creep_action == OK:
                 if Game.time % 2 == 0:
-                    creep.say('🏴🏴🏴🏴🏴', True)
+                    creep.say('🇰🇵 🇰🇷', True)
                 else:
                     creep.say('ONWARD!!', True)
             else:
