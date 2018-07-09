@@ -56,9 +56,6 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
     if not creep.memory.upgrade_target:
         creep.memory.upgrade_target = Game.rooms[creep.memory.assigned_room].controller['id']
 
-    if creep.room.name != creep.memory.assigned_room:
-        miscellaneous.get_to_da_room(creep, creep.memory.assigned_room, False)
-        return
 
     end_is_near = 30
     # in case it's gonna die soon. this noble act is only allowed if there's a storage in the room.
@@ -126,7 +123,6 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
         if creep.memory.dropped_target:
             item = Game.getObjectById(creep.memory.dropped_target)
             if not item:
-                creep.say('')
                 del creep.memory.dropped_target
                 return
             # if the target is a tombstone
@@ -248,6 +244,10 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
         # in order for these phases to work, we need to label their each works and don't let them do
         # something else other than this one.
 
+        if creep.room.name != creep.memory.assigned_room:
+            miscellaneous.get_to_da_room(creep, creep.memory.assigned_room, False)
+            return
+
         if not creep.memory.priority:
             creep.memory.priority = 0
 
@@ -273,12 +273,12 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                                                              and s.store[RESOURCE_ENERGY] < max_energy_in_storage)
                                                          or (s.structureType == STRUCTURE_TERMINAL
                                                              and s.store[RESOURCE_ENERGY] < terminal_capacity))
-            # 핵을 넣는걸로 함?
+            # 핵에 에너지 넣는걸로 함?
             if Memory.rooms[creep.room.name].options.fill_nuke:
                 nuke_structure_add = all_structures.filter(lambda s: s.structureType == STRUCTURE_NUKER
                                                            and s.energy < s.energyCapacity)
                 structures.extend(nuke_structure_add)
-            # 핵을 넣는걸로 함?
+            # 연구소에 에너지 넣는걸로 함?
             if Memory.rooms[creep.room.name].options.fill_labs:
                 structure_add = all_structures.filter(lambda s: s.structureType == STRUCTURE_LAB
                                                            and s.energy < s.energyCapacity)

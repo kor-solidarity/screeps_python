@@ -1,12 +1,12 @@
-import harvester
-import hauler
-import upgrader
+import role_harvester
+import role_hauler
+import role_upgrader
 import structure as building_action
-import scout
-import carrier
-import soldier
+import role_scout
+import role_carrier
+import role_soldier
 import structure_spawn
-import collector
+import role_collector
 import random
 import miscellaneous
 

@@ -13,7 +13,7 @@ __pragma__('noalias', 'update')
 
 
 # only for defending the remote room from ai
-def run_remote_defender(all_structures, creep, creeps, hostile_creeps):
+def run_remote_defender(all_structures, creep, creeps, hostile_creeps, lairs):
     """
     blindly search and kills npc invaders
     :param creep:
@@ -75,27 +75,15 @@ def run_remote_defender(all_structures, creep, creeps, hostile_creeps):
             evading = True
         elif distance == 3:
             creep.cancelOrder('rangedMassAttack')
-            if creep.rangedAttack(enemy) == ERR_NO_BODYPART:
-                creep.heal(Game.getObjectById(creep.id))
+            creep.rangedAttack(enemy)
+            # if creep.rangedAttack(enemy) == ERR_NO_BODYPART:
+            creep.heal(Game.getObjectById(creep.id))
         else:
             if creep.hits < creep.hitsMax:
                 creep.cancelOrder('rangedMassAttack')
                 creep.heal(Game.getObjectById(creep.id))
-            creep.moveTo(enemy, {'visualizePathStyle': {'stroke': '#FF0000'}, 'ignoreCreeps': False})
+            creep.moveTo(enemy, {'visualizePathStyle': {'stroke': '#FF0000'}, 'ignoreCreeps': False, 'range': 3})
 
-        # attack result NULLIFIED
-        # atk_res = creep.attack(enemy)
-        #
-        # if atk_res == ERR_NOT_IN_RANGE:
-        #
-        #     rand_int = random.randint(0, len(listo)-1)
-        #     creep.say(listo[rand_int], True)
-        #     creep.heal(Game.getObjectById(creep.id))
-        #     creep.moveTo(enemy, {'visualizePathStyle': {'stroke': '#FF0000'}, 'ignoreCreeps': False})
-        # elif atk_res == OK:
-        #     return
-        # else:
-        #     print(creep.name, 'ATK ERR:', atk_res)
     # no enemies? heal the comrades and gtfo of the road
     else:
         wounded = _.filter(creeps, lambda c: c.hits < c.hitsMax)
@@ -107,7 +95,8 @@ def run_remote_defender(all_structures, creep, creeps, hostile_creeps):
             if heal != 0:
                 creep.moveTo(closest, {'visualizePathStyle': {'stroke': '#FF0000', 'opacity': .25}})
 
-        elif creep.memory.keeper_lair:
+        # elif creep.memory.keeper_lair:
+        elif not creep.room.controller:
             # 스폰시간이 가장 낮은 키퍼레어로 다가가서 대기탄다.
             if not creep.memory.keeper_lair_spawning:
                 lairs = _.filter(all_structures, lambda s: s.structureType == STRUCTURE_KEEPER_LAIR)
@@ -118,26 +107,12 @@ def run_remote_defender(all_structures, creep, creeps, hostile_creeps):
             if not creep.pos.inRangeTo(closest_lair_obj, 3):
                 creep.moveTo(closest_lair_obj, {'visualizePathStyle': {'stroke': '#FF0000', 'opacity': .25}
                              , 'range': 3, 'reusePath': 10})
-
         else:
             # 아무것도 없으면 대기탄다
+            print('huh??')
             if not creep.pos.inRangeTo(__new__(RoomPosition(25, 25, creep.memory.assigned_room)), 20):
+                print('wut')
                 miscellaneous.get_to_da_room(creep, creep.memory.assigned_room, False)
-
-            # NULLIFIED - 에너지 저장을 위해 컨테이너로 가서 자살!
-            # if not creep.memory.recycle_loc:
-            #     containers = _.filter(all_structures, lambda s: s.structureType == STRUCTURE_CONTAINER)
-            #     closest_container = creep.pos.findClosestByRange(containers)
-            #     creep.memory.recycle_loc = closest_container.id
-            # if Game.getObjectById(creep.memory.recycle_loc):
-            #     if creep.pos.inRangeTo(Game.getObjectById(creep.memory.recycle_loc), 0):
-            #         creep.suicide()
-            #     else:
-            #         creep.moveTo(Game.getObjectById(creep.memory.recycle_loc)
-            #                      , {'visualizePathStyle': {'stroke': '#ffffff'}, 'reusePath': 50})
-            # just to get the creep off the road
-            # creep.moveTo(Game.flags[creep.memory.flag_name], {'visualizePathStyle': {'stroke': '#ffffff'},
-            #                                                   'reusePath': 50})
 
 
 def remote_healer(creep, creeps, hostile_creeps):

@@ -27,8 +27,6 @@ def run_tower(tower, hostile_creeps, repairs, malsana_amikoj):
     # 2. heal creeps. and then 3
     # 3. se tie ne estas malamikojn, serĉas por konstruaĵoj kiu bezonas repari kaj repari ĝin.
 
-    # print('hostile: ', hostile_creeps)
-
     if tower.energy < tower.energyCapacity * 0.25 and len(hostile_creeps) == 0\
             and len(malsana_amikoj) == 0:
         return

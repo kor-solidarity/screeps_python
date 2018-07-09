@@ -1,12 +1,12 @@
-import harvester
-import hauler
-import upgrader
+import role_harvester
+import role_hauler
+import role_upgrader
 import structure as building_action
-import scout
-import carrier
-import soldier
+import role_scout
+import role_carrier
+import role_soldier
 import structure_spawn
-import collector
+import role_collector
 import random
 import miscellaneous
 
@@ -350,10 +350,10 @@ def main():
 
             # but if a soldier/harvester.... nope. they're must-be-run creeps
             if creep.memory.role == 'soldier':
-                soldier.run_remote_defender(all_structures, creep, room_creeps, hostile_creeps)
+                role_soldier.run_remote_defender(all_structures, creep, room_creeps, hostile_creeps)
 
             elif creep.memory.role == 'harvester':
-                harvester.run_harvester(creep, all_structures, constructions, room_creeps, dropped_all)
+                role_harvester.run_harvester(creep, all_structures, constructions, room_creeps, dropped_all)
                 """
                 Runs a creep as a generic harvester.
                 :param creep: The creep to run
@@ -364,8 +364,8 @@ def main():
                 """
 
             elif creep.memory.role == 'hauler':
-                hauler.run_hauler(creep, all_structures, constructions,
-                                  room_creeps, dropped_all, repairs, terminal_capacity)
+                role_hauler.run_hauler(creep, all_structures, constructions,
+                                       room_creeps, dropped_all, repairs, terminal_capacity)
                 """
                 :param creep:
                 :param all_structures: creep.room.find(FIND_STRUCTURES)
@@ -375,7 +375,7 @@ def main():
                 :return:
                 """
             elif creep.memory.role == 'carrier':
-                carrier.run_carrier(creep, room_creeps, all_structures, constructions, dropped_all, repairs)
+                role_carrier.run_carrier(creep, room_creeps, all_structures, constructions, dropped_all, repairs)
                 """
                 technically same with hauler, but more concentrated in carrying itself.
                     and it's for remote mining ONLY.
@@ -396,19 +396,19 @@ def main():
                     continue
 
             if creep.memory.role == 'upgrader':
-                upgrader.run_upgrader(creep, room_creeps, all_structures)
+                role_upgrader.run_upgrader(creep, room_creeps, all_structures)
 
             elif creep.memory.role == 'miner':
-                harvester.run_miner(creep, all_structures)
+                role_harvester.run_miner(creep, all_structures)
             elif creep.memory.role == 'scout':
-                scout.run_scout(creep)
+                role_scout.run_scout(creep)
             elif creep.memory.role == 'reserver':
-                upgrader.run_reserver(creep)
+                role_upgrader.run_reserver(creep)
             elif creep.memory.role == 'demolition':
-                soldier.demolition(creep, all_structures)
+                role_soldier.demolition(creep, all_structures)
 
             elif creep.memory.role == 'g_collector':
-                collector.collector(creep, room_creeps, dropped_all, all_structures)
+                role_collector.collector(creep, room_creeps, dropped_all, all_structures)
 
             # print('{} apswning: {}'.format(creep.name, creep.spawning))
             creep_cpu_end = Game.cpu.getUsed() - creep_cpu
@@ -465,12 +465,19 @@ def main():
                                         repairs = [repair_obj]
                                         break
 
+                            # 한놈만 팬다.
+                            if len(hostile_creeps) > 1:
+                                enemy = [hostile_creeps[0]]
+                            else:
+                                enemy = hostile_creeps
+
                             for tower in structure_list[building_name]:
                                 # sometimes these could die you know....
                                 the_tower = Game.getObjectById(tower)
                                 if the_tower:
                                     room_cpu_num += 1
-                                    building_action.run_tower(the_tower, hostile_creeps, repairs, malsana_amikoj)
+                                    building_action.run_tower(the_tower, enemy, repairs, malsana_amikoj)
+
                         elif building_name == STRUCTURE_LINK:
                             for link in structure_list[building_name]:
                                 if Game.getObjectById(link):
@@ -608,12 +615,8 @@ def main():
             if Memory.debug or Game.time % interval == 0 or Memory.tick_check:
                 print('방 {} 루프에서 스폰 {} 준비시간 : {} cpu'.format(nesto.room.name, nesto.name
                                                              , round(Game.cpu.getUsed() - spawn_cpu, 2)))
-            # 한놈만 우선 팬다
-            if len(hostile_creeps) > 0:
-                enemy = hostile_creeps[0]
-            else:
-                enemy = hostile_creeps
-            structure_spawn.run_spawn(nesto, all_structures, room_creeps, enemy, divider, counter
+
+            structure_spawn.run_spawn(nesto, all_structures, room_creeps, hostile_creeps, divider, counter
                                       , cpu_bucket_emergency, cpu_bucket_emergency_spawn_start, extractor
                                       , terminal_capacity, chambro, interval)
 
