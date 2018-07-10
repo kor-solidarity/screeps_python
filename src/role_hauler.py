@@ -90,8 +90,8 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
         del creep.memory.repair_target
 
     elif _.sum(creep.carry) > creep.carryCapacity * .90 and creep.memory.laboro == 0:
-        if creep.memory.dropped_target:
-            del creep.memory.dropped_target
+        # if creep.memory.dropped_target:
+        #     del creep.memory.dropped_target
             # Memory.initialize_count += 2
         if creep.memory.pickup:
             del creep.memory.pickup

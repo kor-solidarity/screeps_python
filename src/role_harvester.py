@@ -220,7 +220,6 @@ def run_harvester(creep, all_structures, constructions, creeps, dropped_all):
 
         # pickup any dropped resources on the way
         if not creep.memory.pickup:
-            dropped_all = _.filter(dropped_all, lambda c: c.resourceType == RESOURCE_ENERGY)
             if dropped_all:
                 for drop in dropped_all:
                     # not energy? pass

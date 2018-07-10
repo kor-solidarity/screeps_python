@@ -8,6 +8,7 @@ import role_soldier
 import structure_spawn
 import role_collector
 import random
+import pathfinding
 import miscellaneous
 
 
@@ -49,6 +50,8 @@ creep.memory.flag:
 
 
 """
+
+js_global._costs = {'base': {}, 'rooms': {}, 'creeps': {}}
 
 
 def main():
@@ -191,7 +194,7 @@ def main():
         chambro_cpu = Game.cpu.getUsed()
         chambro = Game.rooms[chambra_nomo]
 
-        # todo 게임 내 수동조작을 위한 초기화 설정. 단, 방이 우리꺼일 경우에만 적용.
+        # 게임 내 수동조작을 위한 초기화 설정. 단, 방이 우리꺼일 경우에만 적용.
         if chambro.controller:
             if chambro.controller.my:
                 if not Memory.rooms[chambra_nomo]:
@@ -649,6 +652,8 @@ def main():
     # there's a reason I made it this way...
     if not Memory.tick_check and Memory.tick_check != False:
         Memory.tick_check = False
+
+    pathfinding.run_maintenance()
 
     if Game.time % interval == 0 or Memory.tick_check:
         cpu_total = 0
