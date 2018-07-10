@@ -16,9 +16,11 @@ __pragma__('noalias', 'update')
 def run_remote_defender(all_structures, creep, creeps, hostile_creeps, lairs):
     """
     blindly search and kills npc invaders
+    :param all_structures:
     :param creep:
     :param creeps: creep.room.find(FIND_MY_CREEPS)
     :param hostile_creeps: 적
+    :param lairs:
     :return:
     """
 
@@ -109,9 +111,7 @@ def run_remote_defender(all_structures, creep, creeps, hostile_creeps, lairs):
                              , 'range': 3, 'reusePath': 10})
         else:
             # 아무것도 없으면 대기탄다
-            print('huh??')
-            if not creep.pos.inRangeTo(__new__(RoomPosition(25, 25, creep.memory.assigned_room)), 20):
-                print('wut')
+            if not creep.pos.inRangeTo(__new__(RoomPosition(25, 25, creep.memory.assigned_room)), 22):
                 miscellaneous.get_to_da_room(creep, creep.memory.assigned_room, False)
 
 

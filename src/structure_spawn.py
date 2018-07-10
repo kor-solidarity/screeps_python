@@ -444,6 +444,27 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                     flags[flag_name].room.memory.options.repair = number
                     delete_flag = True
 
+            # 방의 운송크립수 설정.
+            if flag_name.includes('-hl'):
+                # 내 방 맞음?
+                controlled = False
+                if flags[flag_name].room.controller:
+                    if flags[flag_name].room.controller.my:
+                        controlled = True
+
+                # 내 방이 아니면 이걸 돌리는 이유가없음....
+                if controlled:
+                    included = name_list.index('-hl')
+                    # 트라이에 걸린다는건 숫자 빼먹었거나 숫자가 아니라는거.
+                    try:
+                        number = name_list[included + 1]
+                        number = int(number)
+                    except:
+                        print("error for flag {}: no number for -hl".format(flag_name))
+                    # 설정 끝.
+                    flags[flag_name].room.memory.options.haulers = number
+                    delete_flag = True
+
             # remote 배정된 방 삭제조치.
             if flag_name.includes('-del'):
                 print("includes('-del')")
