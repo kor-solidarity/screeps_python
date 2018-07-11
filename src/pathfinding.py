@@ -56,7 +56,7 @@ class Costs:
                 reflect creep positions in a room.
 
         `rooms` and `creeps` are emptied at the end of each tick
-     """
+        """
 
         if (self.id not in self.costs.base) or self.opts.refreshMatrix:
             self.generate_new_matrix()

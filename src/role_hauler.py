@@ -103,7 +103,6 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
         # 1. look for dropped resources and get them
         # 2. if 1 == False, look for storage|containers to get the energy from.
         # 3. if 2 == False, you harvest on ur own.
-        dropped = creep.pos.findClosestByRange(dropped_all)
 
         # if there's no dropped_target and there's dropped_all
         if not creep.memory.dropped_target and len(dropped_all) > 0:
@@ -164,6 +163,7 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                                                      and s.energy >= creep.carryCapacity * .45
                                                      and not
                                                      (s.pos.x < 5 or s.pos.x > 44 or s.pos.y < 5 or s.pos.y > 44)))
+                # print('storages', storages)
                 # 위 목록 중에서 가장 가까이 있는 컨테이너를 뽑아간다.
                 # 만약 뽑아갈 대상이 없을 시 터미널, 스토리지를 각각 찾는다.
                 # 만일 연구소를 안채우기로 했으면 거기서도 뽑는다.
@@ -285,10 +285,14 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                 structures.extend(structure_add)
 
             # 업글용 컨테이너. 스토리지가 컨트롤러에서 많이 떨어져 있을때 대비해 두는 컨테이너.
-            container = all_structures.filter(lambda s:
-                                              s.structureType == STRUCTURE_CONTAINER
-                                              and s.pos.inRangeTo(creep.room.controller, 6)
-                                              and _.sum(s.store) < s.storeCapacity)
+            # 그런게 있다고 설정해둘때만 센다.
+            if creep.room.memory.options.upgrade_cont:
+                container = all_structures.filter(lambda s:
+                                                  s.structureType == STRUCTURE_CONTAINER
+                                                  and len(s.pos.findPathTo(creep.room.controller)) >= 6
+                                                  and _.sum(s.store) < s.storeCapacity)
+            else:
+                container = []
             # 추가 컨테이너 채워진 양
             extra_container_filled = 0
             # 추가 컨테이너 총 크기(당연하지만 개당 2000)

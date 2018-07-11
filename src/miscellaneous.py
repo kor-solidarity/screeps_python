@@ -112,19 +112,19 @@ def pick_pickup(creep, creeps, storages, terminal_capacity=10000, upgrade=False)
 
         if not loop_storage:
             break
-
         # if loop_storage only holds energy
         if loop_storage.energy:
             stored_energy = loop_storage.energy
         # 컨트롤러 근처에 있는 컨테이너는 수확에서 제외한다. 다만 업그레이더가 아닐때만!
+        # todo 이 컨테이너 확인을 메모리가 존재할때만 하고 거리도 실질적으로 맞게 변환해야한다.
         elif not upgrade and loop_storage.structureType == STRUCTURE_CONTAINER \
-            and loop_storage.pos.inRangeTo(loop_storage.room.controller, 6):
+                and creep.room.memory.options.upgrade_cont \
+                and loop_storage.pos.inRangeTo(loop_storage.room.controller, 6):
             if loop_storage.pos.inRangeTo(loop_storage.room.controller, 6):
                 sources = loop_storage.room.find(FIND_SOURCES)
                 sources.push(loop_storage.room.find(FIND_MINERALS)[0])
                 # 컨테이너가 소스 옆에 있을 경우 삭제한다. 둘이 있을 경우 좀 골때린데...
                 for s in sources:
-                    # if s.pos.inRangeTo(loop_storage, 3):
                     # 직접거리도 세칸 이내인가? 맞으면 그걸 없앤다.
                     if len(loop_storage.pos.findPathTo(s, {'ignoreCreeps': True})) <= 3:
                         loop_index = storages.indexOf(loop_storage)
@@ -160,11 +160,9 @@ def pick_pickup(creep, creeps, storages, terminal_capacity=10000, upgrade=False)
         # if leftover stored_energy has enough energy for carry, set pickup.
         if stored_energy >= int((creep.carryCapacity - _.sum(creep.carry)) * .45):
             return loop_storage.id
-            # creep.memory.pickup = loop_storage.id
-            # break
+
         else:
             index = storages.indexOf(loop_storage)
-            # storages.remove(loop_storage)
             storages.splice(index, 1)
 
     # 여기까지 왔다면 현재 남은 빼갈 자원이 없다는거임. 그럼 터미널 스토리지를 각각 확인해서 거기 빈게있으면 빼간다.
@@ -293,6 +291,10 @@ def get_to_da_room(creep, roomName, ignoreRoads=True):
     :param roomName:
     :return:
     """
+    # 이 명령은 단순히 시야확보 등의 발령목적으로 보내버리는거기 때문에
+    # 방 안에 있으면 무조건 ignoreRoads가 참이여야함
+    if creep.room.name == roomName:
+        ignoreRoads = True
     result = creep.moveTo(__new__(RoomPosition(25, 25, roomName))
                           , {'visualizePathStyle': {'stroke': '#ffffff'}, 'reusePath': 20, 'range': 21
                               , 'maxOps': 1000, 'ignoreRoads': ignoreRoads})

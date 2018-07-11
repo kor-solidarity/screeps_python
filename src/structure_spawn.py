@@ -469,6 +469,77 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                     flags[flag_name].room.memory.options.haulers = number
                     delete_flag = True
 
+            # 방내 설정값 표기.
+            if flag_name.includes('-dsp'):
+                print("includes('-dsp')")
+                # 내 방 맞음?
+                controlled = False
+                if flags[flag_name].room.controller:
+                    if flags[flag_name].room.controller.my:
+                        controlled = True
+
+                # 내 방이 아니면 이걸 돌리는 이유가없음....
+                if controlled:
+                    # 만일 비어있으면 값 초기화.
+                    if not flags[flag_name].room.memory.options.display:
+                        flags[flag_name].room.memory.options.display = {}
+                    # 깃발꽂힌 위치값 등록.
+                    print('flagpos {}, {}'.format(flags[flag_name].pos.x, flags[flag_name].pos.y))
+                    flags[flag_name].room.memory.options.display['x'] = flags[flag_name].pos.x
+                    flags[flag_name].room.memory.options.display['y'] = flags[flag_name].pos.y
+                    print('flags[{}].room.memory.options.display {}'
+                          .format(flag_name, flags[flag_name].room.memory.options.display))
+
+                    delete_flag = True
+
+            # 방 내 핵채우기 트리거. 예·아니오 토글
+            if flag_name.includes('-fln'):
+                delete_flag = True
+                # 내 방 맞음?
+                controlled = False
+                if flags[flag_name].room.controller:
+                    if flags[flag_name].room.controller.my:
+                        controlled = True
+
+                if controlled:
+                    if flags[flag_name].room.memory.options.fill_nuke == 1:
+                        flags[flag_name].room.memory.options.fill_nuke = 0
+                    elif flags[flag_name].room.memory.options.fill_nuke == 0:
+                        flags[flag_name].room.memory.options.fill_nuke = 1
+                    else:
+                        flags[flag_name].room.memory.options.fill_nuke = 0
+
+            # 방 내 연구소 채우기 트리거. 예·아니오 토글
+            if flag_name.includes('-fll'):
+                delete_flag = True
+                # 내 방 맞음?
+                controlled = False
+                if flags[flag_name].room.controller:
+                    if flags[flag_name].room.controller.my:
+                        controlled = True
+
+                if controlled:
+                    if flags[flag_name].room.memory.options.fill_labs == 1:
+                        flags[flag_name].room.memory.options.fill_labs = 0
+                    elif flags[flag_name].room.memory.options.fill_labs == 0:
+                        flags[flag_name].room.memory.options.fill_labs = 1
+                    else:
+                        flags[flag_name].room.memory.options.fill_labs = 0
+
+            # 디스플레이 제거. 쓸일은 없을듯 솔까.
+            if flag_name.includes('-dsprm'):
+                # 내 방 맞음?
+                controlled = False
+                if flags[flag_name].room.controller:
+                    if flags[flag_name].room.controller.my:
+                        controlled = True
+
+                # 내 방이 아니면 이걸 돌리는 이유가없음....
+                if controlled:
+                    # 깃발꽂힌 위치값 제거.
+                    flags[flag_name].room.memory.options.display = {}
+                    delete_flag = True
+
             # 방 안 건설장 다 삭제..
             if flag_name.includes('-clr'):
                 print("includes('-clr')")
@@ -487,7 +558,6 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                 # 방을 돌린다.
                 for i in Object.keys(Memory.rooms):
                     found = False
-
                     if Memory.rooms[i].options:
                         # print('Memory.rooms[{}].options.remotes {}'.format(i, Memory.rooms[i].options.remotes))
                         # 옵션안에 리모트가 없을수도 있음.. 특히 확장 안했을때.
@@ -739,18 +809,14 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                                 constr_roads_pos = \
                                     PathFinder.search(constr_pos, spawn.pos
                                                       , {
-                                                          'plainCost': 3
-                                                          , 'swampCost': 3
+                                                          'plainCost': 2
+                                                          , 'swampCost': 2
                                                           , 'roomCallback': lambda room_name:
                                                             pathfinding.Costs(room_name, None).load_matrix()
                                                       }, ).path
                                 print('PATH:', JSON.stringify(constr_roads_pos))
-                                # 길 찾은 후 도로건설
+                                # 길 찾은 후 스폰이 있는곳까지 도로건설
                                 for pos in constr_roads_pos:
-                                    # 원래 방안에서만 했지만 어디 싹 다 깔아보자.
-                                    # # 방 밖까지 확인할 필요는 없음.
-                                    # if pos.roomName != constr_pos.roomName:
-                                    #     break
                                     pos.createConstructionSite(STRUCTURE_ROAD)
 
                         # 대충 해야하는일: 캐리어의 픽업위치에서 본진거리 확인. 그 후 거리만큼 추가.
@@ -760,20 +826,15 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
 
                             path = PathFinder.search(Game.getObjectById(carrier_pickup_id).pos, spawn.pos
                                               , {
-                                                  'plainCost': 3
-                                                  , 'swampCost': 3
+                                                  'plainCost': 2
+                                                  , 'swampCost': 2
                                                   , 'roomCallback': lambda room_name:
                                                 pathfinding.Costs(room_name, None).load_matrix()
                                               }, ).path
-
                             for p in path:
-                                # print(JSON.stringify(p))
-                                # print(spawn.room.name)
                                 if p.roomName == spawn.room.name:
                                     break
                                 distance += 1
-
-                            distance = len(path)
 
                             if Game.getObjectById(carrier_pickup_id).hits \
                                     <= Game.getObjectById(carrier_pickup_id).hitsMax * .6 \

@@ -230,6 +230,39 @@ def main():
                         and not Memory.rooms[chambra_nomo].options.ramparts_open == 0:
                     Memory.rooms[chambra_nomo].options.ramparts_open = 0
 
+                # 화면안에 위에 설정값들 표기.
+                if Memory.rooms[chambra_nomo].options.display \
+                    and len(Memory.rooms[chambra_nomo].options.display) > 0:
+                    remotes_txt = ''
+                    if Memory.rooms[chambra_nomo].options.remotes:
+                        check_num = 0
+                        for r in Memory.rooms[chambra_nomo].options.remotes:
+                            remotes_txt += r.roomName
+                            check_num += 1
+                            if check_num != len(Memory.rooms[chambra_nomo].options.remotes):
+                                remotes_txt += ', '
+                    # 각 메모리 옵션별 값.
+                    hauler_txt = Memory.rooms[chambra_nomo].options.haulers
+                    repair_txt = Memory.rooms[chambra_nomo]['options'].repair
+                    ramparts_txt = Memory.rooms[chambra_nomo].options.ramparts
+                    ramp_open_txt = Memory.rooms[chambra_nomo].options.ramparts_open
+                    nuke_txt = Memory.rooms[chambra_nomo].options.fill_nuke
+                    lab_txt = Memory.rooms[chambra_nomo].options.fill_labs
+
+                    # 찍힐 좌표
+                    disp_x = Memory.rooms[chambra_nomo].options.display.x
+                    disp_y = Memory.rooms[chambra_nomo].options.display.y
+
+                    # \n doesnt work
+                    chambro.visual.text('remotes: {}'.format(remotes_txt),
+                                        disp_x, disp_y-1)
+                    chambro.visual.text('haulers: {} | 수리: {} | 방벽(open): {}({})'
+                                        .format(hauler_txt, repair_txt, ramparts_txt, ramp_open_txt),
+                                        disp_x, disp_y)
+                    chambro.visual.text('fillNuke/Labs: {}/{}'.format(nuke_txt, lab_txt),
+                                        disp_x, disp_y+1)
+                    # chambro.visual.text(display_txt, disp_x, disp_y+2)
+
         # ALL .find() functions are done in here. THERE SHOULD BE NONE INSIDE CREEP FUNCTIONS!
         # filters are added in between to lower cpu costs.
         all_structures = chambro.find(FIND_STRUCTURES)
