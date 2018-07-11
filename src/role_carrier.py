@@ -312,10 +312,13 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                 return
 
             if not creep.memory.haul_target:
-                # print('this going here?')
                 link_or_container = creep.pos.findClosestByRange(outside_links_and_containers)
-
                 creep.memory.haul_target = link_or_container.id
+
+            # 캐리어는 기본적으로 링크로 운송하는게 원칙이다. 해당 아이디값 확인하는거.
+            if not creep.memory.link_target \
+                    and Game.getObjectById(creep.memory.haul_target).structureType == STRUCTURE_LINK:
+                creep.memory.link_target = creep.memory.haul_target
 
             # transfer_result = creep.transfer(link_or_container, RESOURCE_ENERGY)
             transfer_result = creep.transfer(Game.getObjectById(creep.memory.haul_target), RESOURCE_ENERGY)
@@ -373,9 +376,14 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                 del creep.memory.haul_target
             elif transfer_result == 0:
                 creep.memory.err_full = 0
+
                 # 이동 완료했는데 픽업도없고 그렇다고 일할수있는것도 아니면 죽어야함.
                 if not Game.getObjectById(creep.memory.pickup) and not creep.memory.work:
                     creep.suicide()
+                # 옮긴 대상이 링크인지? 아니면 링크로 교체.
+                elif not Game.getObjectById(creep.memory.haul_target).structureType == STRUCTURE_LINK:
+                    creep.memory.haul_target = creep.memory.link_target
+                    creep.memory.err_full = 3
             # only happens inside the home room
             elif transfer_result == ERR_FULL:
                 if not creep.memory.err_full and creep.memory.err_full != 0:
@@ -404,7 +412,6 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                         creep.say('꽉참...{}'.format(creep.memory.err_full))
                 else:
                     creep.say('꽉참...{}'.format(creep.memory.err_full))
-
 
         # 수리
         elif creep.memory.priority == 3:
