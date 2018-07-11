@@ -323,6 +323,7 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
             # print(creep.name, 'transfer_result', transfer_result)
 
             if transfer_result == ERR_NOT_IN_RANGE:
+                creep.memory.err_full = 0
                 # creep.say(ERR_NOT_IN_RANGE)
                 if len(repairs) > 0 and creep.memory.work:
                     creep.repair(repair)
@@ -367,12 +368,43 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                 # creep.moveTo(link_or_container, {'visualizePathStyle': {'stroke': '#ffffff'}, 'reusePath': 10})
             # if done, check if there's anything left. if there isn't then priority resets.
             elif transfer_result == ERR_INVALID_TARGET:
+                creep.memory.err_full = 0
                 creep.memory.priority = 0
                 del creep.memory.haul_target
             elif transfer_result == 0:
+                creep.memory.err_full = 0
                 # 이동 완료했는데 픽업도없고 그렇다고 일할수있는것도 아니면 죽어야함.
                 if not Game.getObjectById(creep.memory.pickup) and not creep.memory.work:
                     creep.suicide()
+            # only happens inside the home room
+            elif transfer_result == ERR_FULL:
+                if not creep.memory.err_full and creep.memory.err_full != 0:
+                    creep.memory.err_full = 0
+                creep.memory.err_full += 1
+
+                if creep.memory.err_full > 3:
+                    # find links outside the filter and containers
+                    home_links_and_containers = \
+                        _.filter(all_structures, lambda s: (s.structureType == STRUCTURE_CONTAINER
+                                                            and _.sum(s.store) < s.storeCapacity)
+                                                            or (s.structureType == STRUCTURE_LINK and
+                                                                (s.pos.x < 5 or s.pos.x > 44
+                                                                 or s.pos.y < 5 or s.pos.y > 44)
+                                                                and s.energy < s.energyCapacity))
+                    # 근처에 있는걸로 갈아탄다.
+                    link_or_container = creep.pos.findClosestByPath(home_links_and_containers)
+
+                    if link_or_container and \
+                            len(creep.room.findPath(creep.pos, link_or_container.pos, {'ignoreCreeps': True})) < 5:
+                        creep.memory.haul_target = link_or_container.id
+                        creep.say('교체!', True)
+                        creep.memory.err_full = 0
+                    else:
+                        creep.memory.err_full = -10
+                        creep.say('꽉참...{}'.format(creep.memory.err_full))
+                else:
+                    creep.say('꽉참...{}'.format(creep.memory.err_full))
+
 
         # 수리
         elif creep.memory.priority == 3:

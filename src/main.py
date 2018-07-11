@@ -191,6 +191,9 @@ def main():
 
     # run everything according to each rooms.
     for chambra_nomo in Object.keys(Game.rooms):
+        # print('test')
+        # print(JSON.stringify(pathfinding.Costs(chambra_nomo, None).load_matrix()))
+        # print('----------------------')
         chambro_cpu = Game.cpu.getUsed()
         chambro = Game.rooms[chambra_nomo]
 
@@ -202,7 +205,8 @@ def main():
                 if not Memory.rooms[chambra_nomo].options:
                     Memory.rooms[chambra_nomo] = {'options': {}}
                 # repair level - 벽, 방어막에만 적용
-                if not Memory.rooms[chambra_nomo].options.repair:
+                if not Memory.rooms[chambra_nomo].options.repair\
+                        and not Memory.rooms[chambra_nomo].options.repair == 0:
                     Memory.rooms[chambra_nomo]['options'].repair = 5
                 # 운송크립의 수. 기본수가 숫자만큼 많아진다. 물론 최대치는 무조건 4
                 if not Memory.rooms[chambra_nomo].options.haulers \
@@ -245,7 +249,9 @@ def main():
         # 필터하면서 목록을 삭제하는거 같음.... 그래서 이리 초기화
         foreign_creeps = chambro.find(FIND_HOSTILE_CREEPS)
         nukes = chambro.find(FIND_NUKES)
-
+        # init. list
+        hostile_creeps = []
+        allied_creeps = []
         # to filter out the allies.
         if len(foreign_creeps) > 0:
             hostile_creeps = miscellaneous.filter_enemies(foreign_creeps)
@@ -286,7 +292,6 @@ def main():
                                                                     or (s.pos == nukes[0].pos
                                                                         and (s.hits < int(repair_pts * 2))))
                                                                and chambro.controller.level > 1))))
-
         else:
             # list of ALL repairs in the room.
             repairs = all_structures.filter(lambda s: (((s.structureType == STRUCTURE_ROAD
@@ -317,9 +322,23 @@ def main():
             if len(wall_repairs) or not my_room:
                 repairs.extend(wall_repairs)
             else:
-                # 루프문을 돌려서 5M 단위로 끊는다.
-                for i in range(1, Memory.rooms[chambra_nomo]['options'].repair + 1):
-                    repair_pts = i * 5000000
+                if Memory.rooms[chambra_nomo]['options'].repair > 0:
+                    # 루프문을 돌려서 5M 단위로 끊는다.
+                    for i in range(1, Memory.rooms[chambra_nomo]['options'].repair + 1):
+                        repair_pts = i * 5000000
+                        wall_repairs = all_structures.filter(lambda s: ((s.structureType == STRUCTURE_WALL
+                                                                         and s.hits < int(repair_pts))
+                                                                        or (s.structureType == STRUCTURE_RAMPART
+                                                                            and (s.hits < int(repair_pts)
+                                                                                 and chambro.controller.level > 1))))
+
+                        # 뭔가 있으면 그대로 넣고 끝.
+                        if len(wall_repairs) > 0:
+                            repairs.extend(wall_repairs)
+                            break
+                else:
+                    # 리페어 레벨이 1 아래면 당장 돈이 없단 소리므로 최소한의 값만 채운다.
+                    repair_pts = 50000
                     wall_repairs = all_structures.filter(lambda s: ((s.structureType == STRUCTURE_WALL
                                                                      and s.hits < int(repair_pts))
                                                                     or (s.structureType == STRUCTURE_RAMPART

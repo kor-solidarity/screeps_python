@@ -36,7 +36,6 @@ def run_harvester(creep, all_structures, constructions, creeps, dropped_all):
     """
     vis_key = "visualizePathStyle"
     stroke_key = "stroke"
-
     # 할당된 방에 없으면 방으로 우선 가고 본다.
     if creep.room.name != creep.memory.assigned_room:
         miscellaneous.get_to_da_room(creep, creep.memory.assigned_room, False)
@@ -217,7 +216,7 @@ def run_harvester(creep, all_structures, constructions, creeps, dropped_all):
 
     # harvesting job. if on harvest(laboro == 0) and carrying energy is smaller than carryCapacity
     if creep.memory.laboro == 0:
-
+        # print(creep.name, creep.memory.pickup)
         # pickup any dropped resources on the way
         if not creep.memory.pickup:
             if dropped_all:
@@ -228,22 +227,23 @@ def run_harvester(creep, all_structures, constructions, creeps, dropped_all):
                     elif drop.store:
                         if drop.store.energy == 0:
                             continue
+                    # print('drop', drop)
                     if creep.pos.inRangeTo(drop, 3):
                         creep.memory.pickup = drop.id
                         creep.moveTo(creep.memory.pickup, {'visualizePathStyle':
                                                            {'stroke': '#0000FF', 'opacity': .25}})
                         return
         else:
-
             # grab_result = creep.pickup(Game.getObjectById(creep.memory.pickup))
-            grab_result = harvest_stuff.grab_energy(creep, creep.memory.pickup, True, 0)
+            grab_result = harvest_stuff.pick_drops(creep, creep.memory.pickup, True)
             # print(creep.memory.pickup)
-            # creep.say(grab_result)
+            # print(creep.name, grab_result)
+            creep.say('cc{}'.format(grab_result))
             if grab_result == ERR_NOT_IN_RANGE:
                 creep.moveTo(Game.getObjectById(creep.memory.pickup), {'visualizePathStyle':
                                                                        {'stroke': '#0000FF', 'opacity': .25}})
                 return
-            elif grab_result == ERR_INVALID_TARGET:
+            elif grab_result == ERR_INVALID_TARGET :
                 del creep.memory.pickup
 
         if _.sum(creep.carry) > creep.carryCapacity - 10:

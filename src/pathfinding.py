@@ -79,7 +79,6 @@ class Costs:
         """
 
         new_matrix = __new__(PathFinder.CostMatrix)
-        print('new_matrix: ', JSON.stringify(new_matrix))
         if self.add_structures(new_matrix) == OK:
             self.costs.base[self.id] = self.pack(new_matrix)
 
@@ -132,18 +131,30 @@ class Costs:
 
         return self.costs.creeps[self.id]
 
-    @staticmethod
-    def unpack(matrix):
+    def unpack(self, matrix):
         """Returns a deserialized form of matrix that can be used by
         PathFinder.search()"""
 
         return PathFinder.CostMatrix.deserialize(JSON.parse(matrix))
 
-    @staticmethod
-    def pack(matrix):
+    def pack(self, matrix):
         """Returns serialized form of matrix that can be cached"""
-        print('pack(matrix)', JSON.stringify(matrix))
+
         return JSON.stringify(matrix.serialize())
+
+    # 신버전 transcrypt에서만 작동함.
+    # @staticmethod
+    # def unpack(matrix):
+    #     """Returns a deserialized form of matrix that can be used by
+    #     PathFinder.search()"""
+    #
+    #     return PathFinder.CostMatrix.deserialize(JSON.parse(matrix))
+    #
+    # @staticmethod
+    # def pack(matrix):
+    #     """Returns serialized form of matrix that can be cached"""
+    #     print('pack(matrix)', JSON.stringify(matrix))
+    #     return JSON.stringify(matrix.serialize())
 
 
 # Place these anywhere and run them at the end of main.py, they just need to be run last

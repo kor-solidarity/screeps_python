@@ -370,6 +370,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                         continue
                     found_and_deleted = False
                     if Memory.rooms[i].options:
+                        print('? yolo?')
                         if Memory.rooms[i].options.remotes:
                             for r in Memory.rooms[i].options.remotes:
                                 if r.roomName == Game.flags[flag_name].room.name:
@@ -426,6 +427,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
 
             # 방의 수리단계 설정.
             if flag_name.includes('-rp'):
+                print("includes('-rp')")
                 # 내 방 맞음?
                 controlled = False
                 if flags[flag_name].room.controller:
@@ -439,6 +441,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                     try:
                         number = name_list[included + 1]
                         number = int(number)
+                        print('repair', number)
                     except:
                         print("error for flag {}: no number for -rp".format(flag_name))
                     # 설정 끝.
@@ -484,27 +487,33 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                 # 방을 돌린다.
                 for i in Object.keys(Memory.rooms):
                     found = False
-                    # 옵션안에 리모트가 없을수도 있음.. 특히 확장 안했을때.
-                    if Memory.rooms[i].options.remotes:
-                        # 리모트 안에 배정된 방이 있는지 확인한다.
-                        for r in Memory.rooms[i].options.remotes:
-                            # 배정된 방을 찾으면 이제 방정보 싹 다 날린다.
-                            if r.roomName == flag_room_name:
-                                del_number = Memory.rooms[i].options.remotes.index(r)
-                                print('deleting roomInfo Memory.rooms[{}].options.remotes[{}]'.format(i, del_number))
-                                Memory.rooms[i].options.remotes.splice(del_number, 1)
-                                found = True
-                    cons = Game.flags[flag_name].room.find(FIND_CONSTRUCTION_SITES)
 
-                    for c in cons:
-                        c.remove()
+                    if Memory.rooms[i].options:
+                        # print('Memory.rooms[{}].options.remotes {}'.format(i, Memory.rooms[i].options.remotes))
+                        # 옵션안에 리모트가 없을수도 있음.. 특히 확장 안했을때.
+                        if len(Memory.rooms[i].options.remotes) > 0:
+                            # 리모트 안에 배정된 방이 있는지 확인한다.
+                            for r in Memory.rooms[i].options.remotes:
+                                # print('r', r)
+                                # 배정된 방을 찾으면 이제 방정보 싹 다 날린다.
+                                if r.roomName == flag_room_name:
+                                    del_number = Memory.rooms[i].options.remotes.index(r)
+                                    print('deleting roomInfo Memory.rooms[{}].options.remotes[{}]'.format(i, del_number))
+                                    Memory.rooms[i].options.remotes.splice(del_number, 1)
+                                    found = True
+
+                                    # 방에 짓고있는것도 다 취소
+                                    cons = Game.flags[flag_name].room.find(FIND_CONSTRUCTION_SITES)
+                                    for c in cons:
+                                        c.remove()
                     # 원하는거 찾았으면 더 할 이유가 없으니.
                     if found:
                         break
                 delete_flag = True
 
             if delete_flag:
-                flags[flag_name].remove()
+                aa = flags[flag_name].remove()
+                print(aa)
 
         if len(Memory.rooms[spawn.room.name].options.remotes) > 0:
             # 깃발로 돌렸던걸 메모리로 돌린다.
@@ -685,7 +694,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                                         break
 
                         # creep.memory.pickup
-                        carrier_pickup = ''
+                        carrier_pickup_id = ''
 
                         # 에너지소스에 담당 컨테이너가 존재하는가?
                         containter_exist = False
@@ -698,7 +707,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                                 # 소스 세칸 이내에 컨테이너가 있는가? 있으면 carrier_pickup으로 배정
                                 if target_source.pos.inRangeTo(st, 3):
                                     containter_exist = True
-                                    carrier_pickup = st.id
+                                    carrier_pickup_id = st.id
                                     break
                         # 컨테이너가 존재하지 않는 경우.
                         if not containter_exist:
@@ -732,13 +741,8 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                                                       , {
                                                           'plainCost': 3
                                                           , 'swampCost': 3
-                                                # todo NOT WORKING. MUST BE FIXED ASAP
-                                                #           , 'roomCallback': lambda room_name: miscellaneous.roomCallback(
-                                                # creeps, room_name, flag_structures
-                                                # , flag_constructions, False,
-                                                # True)
                                                           , 'roomCallback': lambda room_name:
-                                            pathfinding.Costs(room_name, None).load_matrix()
+                                                            pathfinding.Costs(room_name, None).load_matrix()
                                                       }, ).path
                                 print('PATH:', JSON.stringify(constr_roads_pos))
                                 # 길 찾은 후 도로건설
@@ -750,13 +754,29 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                                     pos.createConstructionSite(STRUCTURE_ROAD)
 
                         # 대충 해야하는일: 캐리어의 픽업위치에서 본진거리 확인. 그 후 거리만큼 추가.
-                        if Game.getObjectById(carrier_pickup):
-                            path = Game.getObjectById(carrier_pickup).room.findPath(
-                                Game.getObjectById(carrier_pickup).pos, spawn.pos, {'ignoreCreeps': True})
+                        if Game.getObjectById(carrier_pickup_id):
+                            # 크립의 크기는 본진까지의 거리에 따라 좌우된다.
+                            distance = 0
+
+                            path = PathFinder.search(Game.getObjectById(carrier_pickup_id).pos, spawn.pos
+                                              , {
+                                                  'plainCost': 3
+                                                  , 'swampCost': 3
+                                                  , 'roomCallback': lambda room_name:
+                                                pathfinding.Costs(room_name, None).load_matrix()
+                                              }, ).path
+
+                            for p in path:
+                                # print(JSON.stringify(p))
+                                # print(spawn.room.name)
+                                if p.roomName == spawn.room.name:
+                                    break
+                                distance += 1
+
                             distance = len(path)
 
-                            if Game.getObjectById(carrier_pickup).hits \
-                                    <= Game.getObjectById(carrier_pickup).hitsMax * .6 \
+                            if Game.getObjectById(carrier_pickup_id).hits \
+                                    <= Game.getObjectById(carrier_pickup_id).hitsMax * .6 \
                                     or len(flag_constructions) > 0:
 
                                 work_chance = 1
@@ -787,8 +807,8 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                             if distance % 6 > 2:
                                 body.push(MOVE)
                                 body.push(CARRY)
-                            if _.sum(Game.getObjectById(carrier_pickup).store) \
-                                    >= Game.getObjectById(carrier_pickup).storeCapacity * .8:
+                            if _.sum(Game.getObjectById(carrier_pickup_id).store) \
+                                    >= Game.getObjectById(carrier_pickup_id).storeCapacity * .8:
                                 print('extra')
                                 if distance % 6 <= 2:
                                     body.push(MOVE)
@@ -822,7 +842,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                                                          {'role': 'carrier',
                                                           'assigned_room': room_name,
                                                           'home_room': spawn.room.name,
-                                                          'pickup': carrier_pickup
+                                                          'pickup': carrier_pickup_id
                                                              , 'work': working_part,
                                                           'source_num': carrier_source})
                             print('spawning', spawning)
@@ -853,7 +873,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                                     body,
                                     undefined,
                                     {'role': 'carrier', 'assigned_room': room_name,
-                                     'pickup': carrier_pickup, 'work': working_part
+                                     'pickup': carrier_pickup_id, 'work': working_part
                                         , 'home_room': spawn.room.name, 'source_num': carrier_source})
 
                                 print('spawning {}'.format(spawning))

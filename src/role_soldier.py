@@ -13,7 +13,7 @@ __pragma__('noalias', 'update')
 
 
 # only for defending the remote room from ai
-def run_remote_defender(all_structures, creep, creeps, hostile_creeps, lairs):
+def run_remote_defender(all_structures, creep, creeps, hostile_creeps, lairs=None):
     """
     blindly search and kills npc invaders
     :param all_structures:
