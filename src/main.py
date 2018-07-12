@@ -271,7 +271,7 @@ def main():
 
         malsana_amikoj = _.filter(room_creeps, lambda c: c.hits < c.hitsMax)
 
-        constructions = chambro.find(FIND_CONSTRUCTION_SITES)
+        constructions = chambro.find(FIND_MY_CONSTRUCTION_SITES)
         dropped_all = chambro.find(FIND_DROPPED_RESOURCES)
         tomes = chambro.find(FIND_TOMBSTONES)
         if tomes:

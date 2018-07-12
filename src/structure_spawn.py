@@ -56,7 +56,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                                                    and (c.spawning or c.ticksToLive > 150)))
         # cpu 비상시 고려 자체를 안한다. 세이프모드일때도 마찬가지.
         if Game.cpu.bucket > cpu_bucket_emergency + cpu_bucket_emergency_spawn_start \
-            or spawn.room.controller.safeModeCooldown:
+                or spawn.room.controller.safeModeCooldown:
             creep_upgraders = _.filter(creeps, lambda c: (c.memory.role == 'upgrader'
                                                           and c.memory.assigned_room == spawn.pos.roomName
                                                           and (c.spawning or c.ticksToLive > 100)))
@@ -130,10 +130,10 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
             if regular_spawn == -6:
                 # one for 1500 cap == need 2
                 if spawn.createCreep(
-                    [WORK, WORK, WORK, WORK, WORK, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE],
-                    undefined,
-                    {'role': 'harvester', 'assigned_room': spawn.pos.roomName,
-                     'size': 1}) == -6:
+                        [WORK, WORK, WORK, WORK, WORK, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE],
+                        undefined,
+                        {'role': 'harvester', 'assigned_room': spawn.pos.roomName,
+                         'size': 1}) == -6:
                     spawn.createCreep([MOVE, WORK, WORK, CARRY], undefined,
                                       {'role': 'harvester', 'assigned_room': spawn.pos.roomName,
                                        'size': 1})  # final barrier
@@ -526,6 +526,20 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                     else:
                         flags[flag_name].room.memory.options.fill_labs = 0
 
+            # 램파트 토글.
+            if flag_name.includes('-ram'):
+                # 내 방 맞음?
+                controlled = False
+                if flags[flag_name].room.controller:
+                    if flags[flag_name].room.controller.my:
+                        controlled = True
+
+                # 내 방이 아니면 이걸 돌리는 이유가없음....
+                if controlled:
+                    # 깃발꽂힌 위치값 제거.
+                    flags[flag_name].room.memory.options.display = {}
+                    delete_flag = True
+
             # 디스플레이 제거. 쓸일은 없을듯 솔까.
             if flag_name.includes('-dsprm'):
                 # 내 방 맞음?
@@ -635,7 +649,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                         elif flag_room_controller.reservation:
                             # 내가 예약한것이 아닌가?
                             if flag_room_controller.reservation.username \
-                                != spawn.owner.username:
+                                    != spawn.owner.username:
                                 flag_room_reserved_by_other = True
 
                     #  렙 8부터 항시 상주한다. 단, 설정에 따라 투입자체를 안할수도 있게끔 해야함.
@@ -721,6 +735,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
 
                     flag_lairs = _.filter(flag_structures,
                                           lambda s: s.structureType == STRUCTURE_KEEPER_LAIR)
+                    flag_mineral = Game.rooms[room_name].find(FIND_MINERALS)
                     flag_constructions = Game.rooms[room_name].find(FIND_CONSTRUCTION_SITES)
 
                     if flag_room_controller and len(remote_reservers) == 0:
@@ -815,16 +830,18 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                                 if flag_room_controller:
                                     objs.push(flag_room_controller)
                                 # does this room have keeper lairs?
-                                if len(flag_lairs) > 0:
-                                    objs.extend(flag_lairs)
+                                # if len(flag_lairs) > 0:
+                                #     objs.extend(flag_lairs)
+                                if len(flag_mineral) > 0:
+                                    objs.extend(flag_mineral)
 
                                 # 키퍼가 있으면 중간에 크립도 있는지라.
                                 if keeper_lair:
                                     opts = {'trackCreeps': True,
-                                            'costByArea': {'objects': [objs], 'size': 1, 'cost': 5}}
+                                            'costByArea': {'objects': [objs], 'size': 1, 'cost': 6}}
                                 else:
                                     opts = {'trackCreeps': False,
-                                            'costByArea': {'objects': [objs], 'size': 1, 'cost': 5}}
+                                            'costByArea': {'objects': [objs], 'size': 1, 'cost': 6}}
 
                                 # RoomPosition 목록. 컨테이너 건설한 김에 길도 깐다.
                                 constr_roads_pos = \
@@ -985,7 +1002,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                     # 하베스터도 소스 수 만큼!
                     elif len(flag_energy_sources) > len(remote_harvesters):
                         # 4000 for keeper lairs
-                        if len(keeper_lair):
+                        if keeper_lair:
                             regular_spawn = spawn.createCreep(
                                 [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, WORK,
                                  CARRY, CARRY, CARRY, CARRY])
@@ -1037,7 +1054,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                                 # -dem : 철거지역. 이게 들어가면 이 방에 있는 모든 벽이나 잡건물 다 부수겠다는 소리.
                                 # print("Game.flags[flag].name {} | fn {}".format(Game.flags[flag].name, fn))
                                 if Game.flags[flag].room.name == Game.flags[fn].room.name \
-                                    and fn.includes(regex_dem):
+                                        and fn.includes(regex_dem):
 
                                     # 여기 걸리면 컨테이너도 박살낼지 결정. 근데 쓸일없을듯.
                                     regex_dem_container = '-dema'

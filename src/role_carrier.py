@@ -383,6 +383,16 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                     return
                 # 옮긴 대상이 링크인지? 아니면 링크로 교체.
                 elif not Game.getObjectById(creep.memory.haul_target).structureType == STRUCTURE_LINK:
+                    # 링크가 없으면 찾아서 만든다. 진짜 없으면... 걍 없는거...
+                    if not creep.memory.link_target and not creep.memory.no_link:
+                        links = _.filter(all_structures, lambda s: s.structureType == STRUCTURE_LINK)
+                        if len(links) > 0:
+                            closest_link = creep.pos.findClosestByPath(links)
+                            if len(creep.room.findPath(creep.pos, closest_link.pos, {'ignoreCreeps': True})) < 5:
+                                creep.memory.link_target = closest_link.id
+                            else:
+                                # 크립 주변에 링크가 없다는 소리. 위에 루프문 매번 반복 안하기 위해 생성.
+                                creep.memory.no_link = 1
                     creep.memory.haul_target = creep.memory.link_target
                     creep.memory.err_full = 3
             # only happens inside the home room

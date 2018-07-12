@@ -129,21 +129,22 @@ def run_harvester(creep, all_structures, constructions, creeps, dropped_all):
             # to check for sources not overlapping
             checker = 0
             for source in range(len(sources)):
-                # print('-----', source, '-----')
+                print('-----', source, '-----', sources[source])
                 for kripo in rikoltist_kripoj:
                     # if the creep is same with current creep, or dont have memory assigned, pass.
                     if not kripo.memory.source_num:
                         continue
-                    # print('creep:{} || TTL: {}'.format(kripo, kripo.ticksToLive))
-                    # print('creep.memory.source_num:', kripo.memory.source_num)
+                    print('creep:{} || TTL: {}'.format(kripo, kripo.ticksToLive))
+                    print('creep.memory.source_num:', kripo.memory.source_num)
                     # if memory.source_num == source, means it's already taken. pass.
                     if kripo.memory.source_num == sources[source].id:
-                        # print('kripo.memory.source_num({}) == source({})'.format(kripo.memory.source_num, source))
+                        print('kripo.memory.source_num({}) == source({})'.format(kripo.memory.source_num, source))
                         # add the number to check.
                         checker += 1
-                    # print('is checker({}) == source({})? : '.format(checker, source), bool(checker == source))
+                    print('is checker({}) == source({})? : '.format(checker, source), bool(checker == source))
+                    # todo 현 코드는 소스가 둘이라는 가정 하에 짜여져있음. 수정요망!!
                     if checker == source:
-                        # print('did it got in?')
+                        print('did it got in?')
                         creep.memory.source_num = sources[source].id
                         break
                 if creep.memory.source_num:

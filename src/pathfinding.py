@@ -234,43 +234,72 @@ def reset_cached_matrices():
         del js_global._costs.base[room]
 
 
-# todo 완성요망
-# def find_map_surroundings(room_name, all_corners=False):
-#     """
-#     :param room_name: 방이름 이 방이름 근방 상하좌우 또는 대각선까지 포함해서 지도목록 반환.
-#     :param all_corners: 대각선방도 반환? 아니면 4면만
-#     :return: [방이름들]
-#     """
-#     # 방 제대로 들어옮?
-#     if ('E' in room_name or 'W' in room_name) \
-#         and ('S' in room_name or 'N' in room_name):
-#         if 'E' in room_name:
-#             garo = 'E'
-#         else:
-#             garo = 'W'
-#         if 'S' in room_name:
-#             sero = 'S'
-#         else:
-#             sero = 'N'
-#         room_nums = re.split(r'[EWSN]', room_name)
-#         room_nums = list(filter(None, room_nums))
-#         arranged_room_nums = []
-#         print(room_nums)
-#         result = []
-#         # 0일때 동거 숫자 돌리고 있고 1일때 북거.
-#         counter = 0
-#         for r in room_nums:
-#             if r:
-#                 int_ = int(r)
-#                 for n in range(-1, 2):
-#                     if n == 0:
-#                         continue
-#                     int_ += n
-#
-#                     side =
-#
-#                     if counter == 0:
-#                         _add = sero
-#                     else:
-#                         _add = garo
-#         return
+def find_map_surroundings(room_name, all_corners=False):
+    """
+    :param room_name: 방이름 이 방이름 근방 상하좌우 또는 대각선까지 포함해서 지도목록 반환.
+    :param all_corners: 대각선방도 반환? 아니면 4면만
+    :return: [방이름들]
+    """
+    # 방 제대로 들어옮?
+    if ('E' in room_name or 'W' in room_name) \
+        and ('S' in room_name or 'N' in room_name):
+        if 'E' in room_name:
+            garo = 'E'
+        else:
+            garo = 'W'
+        if 'S' in room_name:
+            sero = 'S'
+        else:
+            sero = 'N'
+        room_nums = re.split(r'[EWSN]', room_name)
+        room_nums = list(filter(None, room_nums))
+        arranged_room_nums = []
+        # 0일때 동거 숫자 돌리고 있고 1일때 북거.
+        counter = 0
+        for r in room_nums:
+            if r:
+                for n in range(-1, 2):
+                    # 초기화
+                    int_ = int(r)
+                    # 0이면 현 방이니 통과
+                    if n == 0:
+                        continue
+                    # 포문에 따라 -1, +1
+                    int_ += n
+                    # 0보다 적을경우
+                    change_map_name = False
+                    if int_ < 0:
+                        change_map_name = True
+                        if counter == 0:
+                            if 'E' in garo:
+                                garo = 'W'
+                            else:
+                                garo = 'E'
+                        else:
+                            if 'S' in sero:
+                                sero = 'N'
+                            else:
+                                sero = 'S'
+                        int_ += 1
+                    # 카운터가 0일땐 W/E 부분을 세고있다. 한마디로 S/N부분이 고정.
+                    # 저 int_ 빼고는 나머지는 다 똑같아야 함...
+                    if counter == 0:
+                        result = garo + str(int_) + sero + room_nums[1]
+                        arranged_room_nums.append(result)
+                    else:
+                        result = garo + room_nums[0] + sero + str(int_)
+                        arranged_room_nums.append(result)
+                    # 이름 바꿨으면 초기화
+                    if change_map_name:
+                        if counter == 0:
+                            if 'E' in garo:
+                                garo = 'W'
+                            else:
+                                garo = 'E'
+                        else:
+                            if 'S' in sero:
+                                sero = 'N'
+                            else:
+                                sero = 'S'
+            counter += 1
+        return arranged_room_nums

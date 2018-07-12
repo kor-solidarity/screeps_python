@@ -65,6 +65,7 @@ def run_links(link, my_structures):
     else:
         align = 'left'
 
+    # todo 테두리로 확인하는게 아니라 내부에 진짜 에너지가 제대로 있는지 확인한다.
     # 내부(테두리 5칸 이상 이내)에 있는 링크는 작동을 안한다.
     if not (link.pos.x < 5 or link.pos.x > 44 or link.pos.y < 5 or link.pos.y > 44):
         if link.energy > 0:
@@ -72,11 +73,12 @@ def run_links(link, my_structures):
                                   link.pos.x + 0, link.pos.y, {'align': align, 'opacity': 0.8, 'font': 0.45})
         return
 
+    # 만일 링크에 에너지가 있으면 표시한다. 굳이 눌러볼 필요 없게.
     if link.energy:
-
         link.room.visual.text(' 💎{}|{}'.format(link.energy, link.cooldown),
                               link.pos.x + 0, link.pos.y, {'align': align, 'opacity': 0.8})
 
+    # 쏠준비 됨? 그럼 날려!
     if link.cooldown == 0 and link.energy >= 140:
         # links with any energy left in storage and inside the boundaries
         inside_links = my_structures.filter(lambda s: s.structureType == STRUCTURE_LINK
