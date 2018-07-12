@@ -56,7 +56,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                                                    and (c.spawning or c.ticksToLive > 150)))
         # cpu 비상시 고려 자체를 안한다. 세이프모드일때도 마찬가지.
         if Game.cpu.bucket > cpu_bucket_emergency + cpu_bucket_emergency_spawn_start \
-                or spawn.room.controller.safeModeCooldown:
+            or spawn.room.controller.safeModeCooldown:
             creep_upgraders = _.filter(creeps, lambda c: (c.memory.role == 'upgrader'
                                                           and c.memory.assigned_room == spawn.pos.roomName
                                                           and (c.spawning or c.ticksToLive > 100)))
@@ -130,10 +130,10 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
             if regular_spawn == -6:
                 # one for 1500 cap == need 2
                 if spawn.createCreep(
-                        [WORK, WORK, WORK, WORK, WORK, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE],
-                        undefined,
-                        {'role': 'harvester', 'assigned_room': spawn.pos.roomName,
-                         'size': 1}) == -6:
+                    [WORK, WORK, WORK, WORK, WORK, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE],
+                    undefined,
+                    {'role': 'harvester', 'assigned_room': spawn.pos.roomName,
+                     'size': 1}) == -6:
                     spawn.createCreep([MOVE, WORK, WORK, CARRY], undefined,
                                       {'role': 'harvester', 'assigned_room': spawn.pos.roomName,
                                        'size': 1})  # final barrier
@@ -312,9 +312,9 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
 
                 # 스폰렙 만땅이면 쿨다운 유지만 하면됨....
                 if spawn.room.controller.level == 8:
-                    if spawn.room.controller.ticksToDowngrade < CONTROLLER_DOWNGRADE[8] - 100000\
-                                or (spawn.room.controller.ticksToDowngrade < CONTROLLER_DOWNGRADE[8] - 4900
-                                    and len(hostile_creeps) > 0):
+                    if spawn.room.controller.ticksToDowngrade < CONTROLLER_DOWNGRADE[8] - 100000 \
+                        or (spawn.room.controller.ticksToDowngrade < CONTROLLER_DOWNGRADE[8] - 4900
+                            and len(hostile_creeps) > 0):
                         spawn.createCreep([WORK, WORK, CARRY, CARRY, MOVE, MOVE], undefined,
                                           {'role': 'upgrader', 'assigned_room': spawn.pos.roomName})
                 elif big == -6:
@@ -568,7 +568,8 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                                 # 배정된 방을 찾으면 이제 방정보 싹 다 날린다.
                                 if r.roomName == flag_room_name:
                                     del_number = Memory.rooms[i].options.remotes.index(r)
-                                    print('deleting roomInfo Memory.rooms[{}].options.remotes[{}]'.format(i, del_number))
+                                    print(
+                                        'deleting roomInfo Memory.rooms[{}].options.remotes[{}]'.format(i, del_number))
                                     Memory.rooms[i].options.remotes.splice(del_number, 1)
                                     found = True
 
@@ -634,7 +635,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                         elif flag_room_controller.reservation:
                             # 내가 예약한것이 아닌가?
                             if flag_room_controller.reservation.username \
-                                    != spawn.owner.username:
+                                != spawn.owner.username:
                                 flag_room_reserved_by_other = True
 
                     #  렙 8부터 항시 상주한다. 단, 설정에 따라 투입자체를 안할수도 있게끔 해야함.
@@ -649,7 +650,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                             hostiles = miscellaneous.filter_enemies(hostiles, True)
                         # 적이 있거나 방이 만렙이고 상주인원이 없을 시.
                         if len(hostiles) + plus > len(remote_troops) \
-                                or (len(remote_troops) < plus and chambro.controller.level == 8):
+                            or (len(remote_troops) < plus and chambro.controller.level == 8):
                             # 렙7 아래면 스폰 안한다.
                             if spawn.room.controller.level < 7:
                                 continue
@@ -699,7 +700,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                         else:
                             continue
 
-                    # todo 1. 리서버를 먼져 생산한다. 2. 컨트롤러 예약이 다른 플레이어에 의해 먹혔을 시 대응방안
+                    # 1. 리서버를 먼져 생산한다. 2. 컨트롤러 예약이 다른 플레이어에 의해 먹혔을 시 대응방안
                     # find creeps with assigned flag.
                     remote_carriers = _.filter(creeps, lambda c: c.memory.role == 'carrier'
                                                                  and c.memory.assigned_room == room_name
@@ -714,10 +715,12 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                     # resources in flag's room
                     # 멀티에 소스가 여럿일 경우 둘을 스폰할 필요가 있다.
                     flag_energy_sources = Game.rooms[room_name].find(FIND_SOURCES)
-                    # FIND_SOURCES가 필요없는 이유: 어차피 그걸 보지 않고 건설된 컨테이너 수로 따질거기 때문.
 
                     flag_containers = _.filter(flag_structures,
                                                lambda s: s.structureType == STRUCTURE_CONTAINER)
+
+                    flag_lairs = _.filter(flag_structures,
+                                          lambda s: s.structureType == STRUCTURE_KEEPER_LAIR)
                     flag_constructions = Game.rooms[room_name].find(FIND_CONSTRUCTION_SITES)
 
                     if flag_room_controller and len(remote_reservers) == 0:
@@ -725,9 +728,9 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                         # 컨트롤러의 예약시간이 1200 이하거나
                         # 컨트롤러가 다른사람꺼 + 아군 주둔중일때 만든다
                         if not Game.rooms[room_name].controller.reservation \
-                                or Game.rooms[room_name].controller.reservation.ticksToEnd < 1200 \
-                                or (Game.rooms[room_name].controller.reservation.username
-                                    != spawn.room.controller.owner.username and len(remote_troops) > 0):
+                            or Game.rooms[room_name].controller.reservation.ticksToEnd < 1200 \
+                            or (Game.rooms[room_name].controller.reservation.username
+                                != spawn.room.controller.owner.username and len(remote_troops) > 0):
                             spawning_creep = spawn.createCreep(
                                 [MOVE, MOVE, MOVE, MOVE, CLAIM, CLAIM, CLAIM, CLAIM]
                                 , undefined,
@@ -770,10 +773,10 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                         containter_exist = False
                         print('carrier_source 위치:', target_source.pos)
                         # loop all structures. I'm not gonna use filter. just loop it at once.
-                        for st in flag_structures:
+                        for st in flag_containers:
                             # 컨테이너만 따진다.
                             if st.structureType == STRUCTURE_CONTAINER:
-                                # todo 원래 가까이 있으면 하나의 컨테이너로 퉁치려고함....
+                                # 가까이 있으면 하나의 컨테이너로 퉁치기.
                                 # 소스 세칸 이내에 컨테이너가 있는가? 있으면 carrier_pickup으로 배정
                                 if target_source.pos.inRangeTo(st, 3):
                                     containter_exist = True
@@ -805,15 +808,31 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                                 print('constr_pos:', constr_pos)
                                 constr_pos.createConstructionSite(STRUCTURE_CONTAINER)
 
+                                # ignore placing roads around sources and controllers alike as much as possible.
+                                # 무조건 막을수는 없고, 정 다른길이 없으면 가게끔.
+                                objs = flag_energy_sources
+
+                                if flag_room_controller:
+                                    objs.push(flag_room_controller)
+                                # does this room have keeper lairs?
+                                if len(flag_lairs) > 0:
+                                    objs.extend(flag_lairs)
+
+                                # 키퍼가 있으면 중간에 크립도 있는지라.
+                                if keeper_lair:
+                                    opts = {'trackCreeps': True,
+                                            'costByArea': {'objects': [objs], 'size': 1, 'cost': 5}}
+                                else:
+                                    opts = {'trackCreeps': False,
+                                            'costByArea': {'objects': [objs], 'size': 1, 'cost': 5}}
+
                                 # RoomPosition 목록. 컨테이너 건설한 김에 길도 깐다.
                                 constr_roads_pos = \
-                                    PathFinder.search(constr_pos, spawn.pos
-                                                      , {
-                                                          'plainCost': 2
-                                                          , 'swampCost': 2
-                                                          , 'roomCallback': lambda room_name:
-                                                            pathfinding.Costs(room_name, None).load_matrix()
-                                                      }, ).path
+                                    PathFinder.search(constr_pos, spawn.pos,
+                                                      {'plainCost': 2, 'swampCost': 2,
+                                                       'roomCallback':
+                                                           lambda room_name:
+                                                           pathfinding.Costs(room_name, opts).load_matrix()},).path
                                 print('PATH:', JSON.stringify(constr_roads_pos))
                                 # 길 찾은 후 스폰이 있는곳까지 도로건설
                                 for pos in constr_roads_pos:
@@ -825,20 +844,24 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                             distance = 0
 
                             path = PathFinder.search(Game.getObjectById(carrier_pickup_id).pos, spawn.pos
-                                              , {
-                                                  'plainCost': 2
-                                                  , 'swampCost': 2
-                                                  , 'roomCallback': lambda room_name:
-                                                pathfinding.Costs(room_name, None).load_matrix()
-                                              }, ).path
+                                                     , {
+                                                         'plainCost': 2
+                                                         , 'swampCost': 2
+                                                         , 'roomCallback': lambda room_name:
+                                    pathfinding.Costs(room_name, None).load_matrix()
+                                                     }, ).path
                             for p in path:
                                 if p.roomName == spawn.room.name:
                                     break
                                 distance += 1
 
+                            # 만일 키퍼가 있으면 다 4000짜리니 그만큼 한번에 수확가능한 자원이 많아짐. 그거 반영.
+                            if keeper_lair:
+                                distance = int(distance * 1.3)
+
                             if Game.getObjectById(carrier_pickup_id).hits \
-                                    <= Game.getObjectById(carrier_pickup_id).hitsMax * .6 \
-                                    or len(flag_constructions) > 0:
+                                <= Game.getObjectById(carrier_pickup_id).hitsMax * .6 \
+                                or len(flag_constructions) > 0:
 
                                 work_chance = 1
                             else:
@@ -869,7 +892,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                                 body.push(MOVE)
                                 body.push(CARRY)
                             if _.sum(Game.getObjectById(carrier_pickup_id).store) \
-                                    >= Game.getObjectById(carrier_pickup_id).storeCapacity * .8:
+                                >= Game.getObjectById(carrier_pickup_id).storeCapacity * .8:
                                 print('extra')
                                 if distance % 6 <= 2:
                                     body.push(MOVE)
@@ -961,6 +984,14 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                     # elif len(flag_containers) > len(remote_harvesters):
                     # 하베스터도 소스 수 만큼!
                     elif len(flag_energy_sources) > len(remote_harvesters):
+                        # 4000 for keeper lairs
+                        if len(keeper_lair):
+                            regular_spawn = spawn.createCreep(
+                                [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, WORK,
+                                 CARRY, CARRY, CARRY, CARRY])
+                            if regular_spawn == 0:
+                                continue
+
                         # perfect for 3000 cap
                         regular_spawn = spawn.createCreep(
                             [WORK, WORK, WORK, WORK, WORK, WORK,
@@ -1006,7 +1037,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                                 # -dem : 철거지역. 이게 들어가면 이 방에 있는 모든 벽이나 잡건물 다 부수겠다는 소리.
                                 # print("Game.flags[flag].name {} | fn {}".format(Game.flags[flag].name, fn))
                                 if Game.flags[flag].room.name == Game.flags[fn].room.name \
-                                        and fn.includes(regex_dem):
+                                    and fn.includes(regex_dem):
 
                                     # 여기 걸리면 컨테이너도 박살낼지 결정. 근데 쓸일없을듯.
                                     regex_dem_container = '-dema'

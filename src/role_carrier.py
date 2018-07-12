@@ -380,6 +380,7 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                 # 이동 완료했는데 픽업도없고 그렇다고 일할수있는것도 아니면 죽어야함.
                 if not Game.getObjectById(creep.memory.pickup) and not creep.memory.work:
                     creep.suicide()
+                    return
                 # 옮긴 대상이 링크인지? 아니면 링크로 교체.
                 elif not Game.getObjectById(creep.memory.haul_target).structureType == STRUCTURE_LINK:
                     creep.memory.haul_target = creep.memory.link_target
