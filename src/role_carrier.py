@@ -195,7 +195,7 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
             try:
                 # construction sites. only find if creep is not in its flag location.
                 if creep.room.name != creep.memory.assigned_room:
-                    constructions = Game.rooms[creep.memory.assigned_room].find(FIND_CONSTRUCTION_SITES)
+                    constructions = Game.rooms[creep.memory.assigned_room].find(FIND_MY_CONSTRUCTION_SITES)
             except:
                 # 이게 걸리면 지금 반대쪽 방에 아무것도 없어서 시야확보 안됐단 소리.
                 return
