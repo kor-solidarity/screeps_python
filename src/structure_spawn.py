@@ -78,12 +78,17 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
         for rs in room_sources:
             for s in containers_and_links:
                 # 세칸이내에 존재하는가?
-                if rs.pos.inRangeTo(s, 3):
+                if s.structureType == STRUCTURE_CONTAINER and rs.pos.inRangeTo(s, 3):
                     # 실제 거리도 세칸 이내인가?
                     if len(rs.pos.findPathTo(s, {'ignoreCreeps': True})) <= 3:
                         # 여기까지 들어가있으면 요건충족한거.
                         harvest_carry_targets.push(s.id)
                         break
+                elif s.structureType == STRUCTURE_LINK:
+                    for m in chambro.memory[STRUCTURE_LINK]:
+                        if s.id == m.id and not m.for_store:
+                            harvest_carry_targets.push(s.id)
+                            break
 
         # print('harvest_carry_targets', harvest_carry_targets)
         # print('sources', sources)
@@ -152,7 +157,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
             # 링크.
             else:
                 # 링크가 꽉차고 + 쿨다운 0일때 1추가.
-                if harvest_target.energy <= harvest_target.energyCapacity - 1 and harvest_target.cooldown == 0:
+                if harvest_target.energy == harvest_target.energyCapacity and harvest_target.cooldown == 0:
                     plus += 1
 
         # 건물이 아예 없을 시
@@ -239,10 +244,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
         # if there's an extractor, make a miner.
         if bool(extractor):
             if bool(len(creep_miners) == 0):
-                # print('extractor', extractor)
-                # print("extractor: ", bool(extractor))
-                # print("len(creep_miners) == 0:", bool(len(creep_miners) == 0))
-                # continue
+
                 minerals = chambro.find(FIND_MINERALS)
                 if minerals[0].mineralAmount != 0 or minerals[0].ticksToRegeneration < 120:
                     # only one is needed
@@ -573,6 +575,21 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                     elif flags[flag_name].room.memory.options.ramparts_open == 0:
                         # 열어
                         flags[flag_name].room.memory.options.ramparts = 1
+                    delete_flag = True
+
+            # 타워공격 토글.
+            if flag_name.includes('-tow'):
+                # 내 방 맞음?
+                controlled = False
+                if flags[flag_name].room.controller:
+                    if flags[flag_name].room.controller.my:
+                        controlled = True
+                # 내 방이 아니면 이걸 돌리는 이유가없음....
+                if controlled:
+                    if flags[flag_name].room.memory.options.tow_atk == 1:
+                        flags[flag_name].room.memory.options.tow_atk = 0
+                    else:
+                        flags[flag_name].room.memory.options.tow_atk = 1
                     delete_flag = True
 
             # 디스플레이 제거. 쓸일은 없을듯 솔까.

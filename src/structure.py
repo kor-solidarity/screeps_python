@@ -31,7 +31,7 @@ def run_tower(tower, hostile_creeps, repairs, malsana_amikoj):
             and len(malsana_amikoj) == 0:
         return
 
-    if len(hostile_creeps) > 0 and len(malsana_amikoj) > 0:
+    if tower.room.memory.options.tow_atk and len(hostile_creeps) > 0 and len(malsana_amikoj) > 0:
         flip = random.randint(0, 1)
         if flip == 1:
             malsana_amiko = tower.pos.findClosestByRange(malsana_amikoj)
@@ -39,7 +39,7 @@ def run_tower(tower, hostile_creeps, repairs, malsana_amikoj):
         else:
             hostile_creep = tower.pos.findClosestByRange(hostile_creeps)
             tower.attack(hostile_creep)
-    elif len(hostile_creeps) > 0:
+    elif tower.room.memory.options.tow_atk and len(hostile_creeps) > 0:
         hostile_creep = tower.pos.findClosestByRange(hostile_creeps)
         tower.attack(hostile_creep)
     elif len(malsana_amikoj) > 0:
@@ -53,40 +53,50 @@ def run_tower(tower, hostile_creeps, repairs, malsana_amikoj):
             tower.repair(repair)
 
 
-def run_links(link, my_structures):
+def run_links(link_id):
     """
     distributing energy to links
-    :param link: _.filter(my_structures,  {'structureType': STRUCTURE_LINK})
-    :param my_structures: .find(FIND_MY_STRUCTURES)
+    :param link_id: room.memory[STRUCTURE_LINK][i].id
+    :old_param my_structures: .find(FIND_MY_STRUCTURES) - NULLIFIED
     :return:
     """
+
+    # todo 테두리로 확인하는게 아니라 내부에 진짜 에너지가 제대로 있는지 확인한다.
+    # 내부(테두리 5칸 이상 이내)에 있는 링크는 작동을 안한다.
+    link = Game.getObjectById(link_id)
+    # current link
+    me = _.filter(Game.getObjectById(link_id).room.memory[STRUCTURE_LINK], lambda l: l.id == link_id)[0]
+
     if link.pos.x > 44:
         align = 'right'
     else:
         align = 'left'
 
-    # todo 테두리로 확인하는게 아니라 내부에 진짜 에너지가 제대로 있는지 확인한다.
-    # 내부(테두리 5칸 이상 이내)에 있는 링크는 작동을 안한다.
-    if not (link.pos.x < 5 or link.pos.x > 44 or link.pos.y < 5 or link.pos.y > 44):
+    # 저장용 링크인건가?
+    if me.for_store:
+        # 만일 링크에 에너지가 있으면 표시한다. 굳이 눌러볼 필요 없게.
         if link.energy > 0:
             link.room.visual.text(' 💎{}'.format(link.energy),
                                   link.pos.x + 0, link.pos.y, {'align': align, 'opacity': 0.8, 'font': 0.45})
         return
 
-    # 만일 링크에 에너지가 있으면 표시한다. 굳이 눌러볼 필요 없게.
+    # 여기 밑으로 내려왔으면 해당 링크는 에너지 전송용이다.
+
     if link.energy:
         link.room.visual.text(' 💎{}|{}'.format(link.energy, link.cooldown),
                               link.pos.x + 0, link.pos.y, {'align': align, 'opacity': 0.8})
+    else:
+        return
+
+    # all links that are for_store and have energy store left
+    inside_links = _.filter(Game.getObjectById(link_id).room.memory[STRUCTURE_LINK],
+                            lambda l:
+                            l.for_store == 1
+                            and Game.getObjectById(l.id).energy < Game.getObjectById(l.id).energyCapacity - 100)
 
     # 쏠준비 됨? 그럼 날려!
-    if link.cooldown == 0 and link.energy >= 140:
-        # links with any energy left in storage and inside the boundaries
-        inside_links = my_structures.filter(lambda s: s.structureType == STRUCTURE_LINK
-                                            and not (s.pos.x < 5 or s.pos.x > 44 or s.pos.y < 5 or s.pos.y > 44)
-                                            and s.energy <= s.energyCapacity - 100)
-
-        if len(inside_links) > 0:
-            # 내부(테두리 5칸 이상 이내)에 있는 링크 중 무작위 하나를 고르고 거기에 보낸다.
-            # 만일 없으면? 애초부터 이 설계와 안맞게 만든거. 몰라ㅆㅂ
-            random_int = random.randint(0, len(inside_links) - 1)
-            transfer_result = link.transferEnergy(inside_links[random_int])
+    if link.cooldown == 0 and link.energy >= 140 and len(inside_links) > 0:
+        # 내부(테두리 5칸 이상 이내)에 있는 링크 중 무작위 하나를 고르고 거기에 보낸다.
+        # 만일 없으면? 애초부터 이 설계와 안맞게 만든거. 몰라ㅆㅂ
+        random_int = random.randint(0, len(inside_links) - 1)
+        transfer_result = link.transferEnergy(Game.getObjectById(inside_links[random_int].id))

@@ -329,6 +329,7 @@ def main():
     build(config)
     upload(config)
 
+
 if __name__ == "__main__":
     a = time.time()
     main()

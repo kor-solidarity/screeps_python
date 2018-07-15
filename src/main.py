@@ -197,9 +197,6 @@ def main():
 
     # run everything according to each rooms.
     for chambra_nomo in Object.keys(Game.rooms):
-        # print('test')
-        # print(JSON.stringify(pathfinding.Costs(chambra_nomo, None).load_matrix()))
-        # print('----------------------')
         chambro_cpu = Game.cpu.getUsed()
         chambro = Game.rooms[chambra_nomo]
 
@@ -217,7 +214,12 @@ def main():
                 # 운송크립의 수. 기본수가 숫자만큼 많아진다. 물론 최대치는 무조건 4
                 if not Memory.rooms[chambra_nomo].options.haulers \
                         and not Memory.rooms[chambra_nomo].options.haulers == 0:
-                    Memory.rooms[chambra_nomo].options.haulers = 1
+                    Memory.rooms[chambra_nomo].options.haulers = 2
+                # 타워 공격시킬건가? 1이면 공격. 또한 매 1만턴마다 리셋한다.
+                if (not Memory.rooms[chambra_nomo].options.tow_atk
+                        and not Memory.rooms[chambra_nomo].options.tow_atk == 0) \
+                        or Game.time % 10000 == 0:
+                    Memory.rooms[chambra_nomo].options.tow_atk = 1
                 # 핵사일로 채울거임? 채우면 1 아님 0. 안채울 경우 핵미사일 안에 에너지 빼감.
                 if not Memory.rooms[chambra_nomo].options.fill_nuke \
                         and not Memory.rooms[chambra_nomo].options.fill_nuke == 0:
@@ -265,6 +267,7 @@ def main():
                     ramp_open_txt = Memory.rooms[chambra_nomo].options.ramparts_open
                     nuke_txt = Memory.rooms[chambra_nomo].options.fill_nuke
                     lab_txt = Memory.rooms[chambra_nomo].options.fill_labs
+                    tow_txt = Memory.rooms[chambra_nomo].options.tow_atk
 
                     # 찍힐 좌표
                     disp_x = Memory.rooms[chambra_nomo].options.display.x
@@ -280,7 +283,7 @@ def main():
                     chambro.visual.text('haulers: {} | 수리: {} | 방벽(open): {}({})'
                                         .format(hauler_txt, repair_txt, ramparts_txt, ramp_open_txt),
                                         disp_x, disp_y)
-                    chambro.visual.text('fillNuke/Labs: {}/{}'.format(nuke_txt, lab_txt),
+                    chambro.visual.text('fillNuke/Labs: {}/{}, tow_atk: {}'.format(nuke_txt, lab_txt, tow_txt),
                                         disp_x, disp_y+1)
                     # chambro.visual.text(display_txt, disp_x, disp_y+2)
 
@@ -495,78 +498,78 @@ def main():
             #     print('{} the {} of room {} used {} cpu'
             #           .format(creep.name, creep.memory.role, creep.room.name, round(creep_cpu_end, 2)))
 
-        # 멀티자원방 관련 스크립트
-        if Game.time % structure_renew_count == 1 or not Memory.rooms:
-            for name in Object.keys(Game.flags):
-                try:
-                    # 깃발 위치가 현 방과 이름이 같은가?
-                    if Game.flags[name].room.name == chambra_nomo:
-                        # 깃발 하나만 꽂으면 끝남.
+        room_cpu = Game.cpu.getUsed()
+        room_cpu_num = 0
+
+        # renew structures
+        # todo ADD LABS
+        if Game.time % 1001 == 0 and chambro.controller and chambro.controller.my:
+            # 목록 초기화.
+            chambro.memory[STRUCTURE_TOWER] = []
+            chambro.memory[STRUCTURE_LINK] = []
+
+            str_towers = _.filter(all_structures, lambda s: s.structureType == STRUCTURE_TOWER)
+            if len(str_towers) > 0:
+                # 타워 추가.
+                for stt in str_towers:
+                    chambro.memory[STRUCTURE_TOWER].push(stt.id)
+            # add links
+            str_links = _.filter(all_structures, lambda s: s.structureType == STRUCTURE_LINK)
+            if len(str_links) > 0:
+                str_points = _.filter(all_structures, lambda s: s.structureType == STRUCTURE_STORAGE
+                                      or s.structureType == STRUCTURE_SPAWN or s.structureType == STRUCTURE_TERMINAL)
+                # 링크는 크게 두 종류가 존재한다. 하나는 보내는거, 또하난 안보내는거.
+                for stl in str_links:
+                    for_store = 0
+                    # 안보내는 조건은 주변 5칸거리내에 컨트롤러·스폰·스토리지가 있을 시.
+                    for stp in str_points:
+                        if len(stl.pos.findPathTo(stp, {{'ignoreCreeps': True}})) <= 5:
+                            for_store = 1
+                            break
+                    # 추가한다
+                    chambro.memory[STRUCTURE_LINK].push({'id': stl.id, 'for_store': for_store})
+                    for_send = 0
+
+        # running tower, links
+        if chambro.memory[STRUCTURE_TOWER] and len(chambro.memory[STRUCTURE_TOWER]) > 0:
+            # 수리작업을 할때 벽·방어막 체력 300 이하가 있으면 그걸 최우선으로 고친다.
+            # 적이 있을 시 수리 자체를 안하니 있으면 아예 무시.
+            if len(hostile_creeps) == 0 and chambro.controller.level > 4 and Game.cpu.bucket > cpu_bucket_emergency:
+                for repair_obj in repairs:
+                    if (repair_obj.structureType == STRUCTURE_WALL
+                        or repair_obj.structureType == STRUCTURE_RAMPART) \
+                            and repair_obj.hits < 300:
+                        repairs = [repair_obj]
                         break
-                except:
-                    pass
+                    elif (repair_obj.structureType == STRUCTURE_CONTAINER
+                          or repair_obj.structureType == STRUCTURE_ROAD) \
+                            and repair_obj.hits < repair_obj.hitsMax * .05:
+                        repairs = [repair_obj]
+                        break
+            # 한놈만 팬다.
+            if len(hostile_creeps) > 1:
+                enemy = [hostile_creeps[0]]
+            else:
+                enemy = hostile_creeps
+            for i in chambro.memory[STRUCTURE_TOWER]:
+                # sometimes these could die you know....
+                the_tower = Game.getObjectById(i)
+                if the_tower:
+                    room_cpu_num += 1
+                    building_action.run_tower(the_tower, enemy, repairs, malsana_amikoj)
 
-        # loop for ALL STRUCTURES
-        if Memory.rooms:
-            room_cpu = Game.cpu.getUsed()
-            room_cpu_num = 0
-            for room_name in Object.keys(Memory.rooms):
-                # 방 이름이 똑같아야만 돈다.
-                if room_name == chambra_nomo:
-                    # get json list by room name
-                    structure_list = Memory.rooms[room_name]
-                    # 현 방의 레벨
-                    current_lvl = Game.rooms[room_name].controller.level
+        if chambro.memory[STRUCTURE_LINK] and len(chambro.memory[STRUCTURE_LINK]) > 0:
+            for link in chambro.memory[STRUCTURE_LINK]:
+                if Game.getObjectById(link.id):
+                    room_cpu_num += 1
+                    building_action.run_links(link.id)
 
-                    # divide them by structure names
-                    for building_name in Object.keys(structure_list):
-                        if building_name == 'remote':
-                            # 재건 관련 지역
-                            if Game.time % 47 == 0:
-                                pass
-                            continue
-                        elif building_name == STRUCTURE_TOWER:
-                            # 수리작업을 할때 벽·방어막 체력 만 이하가 있으면 그걸 최우선으로 고친다.
-                            # 적이 있을 시 수리 자체를 안하니 있으면 아예 무시.
-                            if len(hostile_creeps) == 0 and current_lvl > 4 and Game.cpu.bucket > cpu_bucket_emergency:
-                                for repair_obj in repairs:
-                                    if (repair_obj.structureType == STRUCTURE_WALL
-                                        or repair_obj.structureType == STRUCTURE_RAMPART) \
-                                            and repair_obj.hits < 300:
-                                        repairs = [repair_obj]
-                                        break
-                                    elif (repair_obj.structureType == STRUCTURE_CONTAINER
-                                          or repair_obj.structureType == STRUCTURE_ROAD) \
-                                            and repair_obj.hits < repair_obj.hitsMax * .05:
-                                        repairs = [repair_obj]
-                                        break
-
-                            # 한놈만 팬다.
-                            if len(hostile_creeps) > 1:
-                                enemy = [hostile_creeps[0]]
-                            else:
-                                enemy = hostile_creeps
-
-                            for tower in structure_list[building_name]:
-                                # sometimes these could die you know....
-                                the_tower = Game.getObjectById(tower)
-                                if the_tower:
-                                    room_cpu_num += 1
-                                    building_action.run_tower(the_tower, enemy, repairs, malsana_amikoj)
-
-                        elif building_name == STRUCTURE_LINK:
-                            for link in structure_list[building_name]:
-                                if Game.getObjectById(link):
-                                    room_cpu_num += 1
-                                    building_action.run_links(Game.getObjectById(link), my_structures)
-                    break
-
-            if room_cpu_num > 0 and (Memory.debug or Game.time % interval == 0 or Memory.tick_check):
-                end = Game.cpu.getUsed()
-                # print("end {} start {}".format(round(end, 2), round(room_cpu, 2)))
-                room_cpu_avg = (end - room_cpu) / room_cpu_num
-                print("{} structures ran in {} total with avg. {} cpu, tot. {} cpu"
-                      .format(room_cpu_num, room_name, round(room_cpu_avg, 2), round(end - room_cpu, 2)))
+        if (Memory.debug or Game.time % interval == 0 or Memory.tick_check) and room_cpu_num > 0:
+            end = Game.cpu.getUsed()
+            # print("end {} start {}".format(round(end, 2), round(room_cpu, 2)))
+            room_cpu_avg = (end - room_cpu) / room_cpu_num
+            print("{} structures ran in {} total with avg. {} cpu, tot. {} cpu"
+                  .format(room_cpu_num, chambra_nomo, round(room_cpu_avg, 2), round(end - room_cpu, 2)))
 
         # 아군만 있으면 방어막을 연다. 역으로 적이 보이면 열린거 닫는다.
         rampart_bool = False
@@ -577,7 +580,6 @@ def main():
                 elif len(allied_creeps) > 0:
                     Memory.rooms[chambra_nomo].options.ramparts = 1
                 rampart_bool = True
-
         if rampart_bool and Memory.rooms[chambra_nomo].options:
             tm = Game.cpu.getUsed()
             if Memory.rooms[chambra_nomo].options.ramparts:
@@ -629,65 +631,6 @@ def main():
             if divider > counter:
                 divider -= counter
 
-            # this part is made to save memory and separate functional structures out of spawn loop.
-            if Game.time % structure_renew_count == 1 or not Memory.rooms:
-                # TESTING PART
-                # print('check')
-                # obj.property === obj['property']
-
-                push_bool = True
-
-                new_json = '{}'
-                new_json = JSON.parse(new_json)
-
-                new_towers = {STRUCTURE_TOWER: []}
-
-                new_links = {STRUCTURE_LINK: []}
-                new_labs = {STRUCTURE_LAB: []}
-
-                for room_name in room_names:
-                    print('room_name({}) || spawn.room.name({})'.format(room_name, spawn.room.name))
-                    # 순환 돌려서 하나라도 방이름 중복되면 아래 추가 안해야함.
-                    if room_name == spawn.room.name:
-                        # print('check')
-                        push_bool = False
-                        break
-
-                if push_bool:
-                    # find and add towers
-                    # 1. todo 새 방식 제안: 메모리에 있는 방을 한번 돌려서 없으면 삭제.
-                    # 2. 동시에 방 안에 있는 스트럭쳐들 돌려서 메모리에 있는지 확인.
-                    towers = _.filter(my_structures, {'structureType': STRUCTURE_TOWER})
-                    if len(towers) > 0:
-                        for tower in towers:
-                            new_towers[STRUCTURE_TOWER].push(tower.id)
-                        print('new_towers', new_towers[STRUCTURE_TOWER])
-                    # find and add links
-                    links = _.filter(my_structures, {'structureType': STRUCTURE_LINK})
-                    if len(links) > 0:
-                        for link in links:
-                            new_links[STRUCTURE_LINK].push(link.id)
-                        print('new_links', new_links[STRUCTURE_LINK])
-
-                    new_jsons = [new_links, new_towers]
-                    for json in new_jsons:
-                        if len(json) == 0:
-                            continue
-                        # structure_type = Object.keys(json)
-                        if not Memory.rooms:
-                            Memory.rooms = {}
-                        if not Memory.rooms[spawn.room.name]:
-                            Memory.rooms[spawn.room.name] = {}
-                        # print('Object.keys(json)', Object.keys(json))
-                        # 실제로 넣을 ID
-                        additive = []
-                        for js in json[Object.keys(json)]:
-                            additive.push(js)
-
-                        Memory.rooms[spawn.room.name][Object.keys(json)] = additive
-
-                    room_names.append(spawn.room.name)
-
             if Memory.debug or Game.time % interval == 0 or Memory.tick_check:
                 print('방 {} 루프에서 스폰 {} 준비시간 : {} cpu'.format(nesto.room.name, nesto.name
                                                              , round(Game.cpu.getUsed() - spawn_cpu, 2)))
@@ -707,12 +650,6 @@ def main():
         print("total of {} creeps run with avg. {} cpu, tot. {} cpu"
               .format(total_creep_cpu_num, round(total_creep_cpu / total_creep_cpu_num, 2), round(total_creep_cpu, 2)))
 
-    # 스트럭쳐 목록 초기화 위한 작업. 마지막에 다 지워야 운용에 차질이 없음.
-    # 추후 정리해야 하는 사안일듯.
-    # NULLIFIED
-    # if Game.time % structure_renew_count == 0:
-    #     del Memory.rooms
-
     # adding total cpu
     # while len(Memory.cpu_usage.total) >= Memory.ticks:
     while len(Memory.cpu_usage) >= Memory.ticks:
@@ -726,16 +663,5 @@ def main():
         Memory.tick_check = False
 
     pathfinding.run_maintenance()
-
-    # 이제 디스플레이로 해서 이렇게 안해도 알아서 매턴 함.
-    # if Game.time % interval == 0 or Memory.tick_check:
-    #     cpu_total = 0
-    #     for cpu in Memory.cpu_usage:
-    #         cpu_total += cpu
-    #     cpu_average = cpu_total / len(Memory.cpu_usage)
-    #     print("{} total creeps, average cpu usage in the last {} ticks: {}, and current CPU bucket: {}"
-    #           .format(len(Game.creeps), len(Memory.cpu_usage), round(cpu_average, 2), Game.cpu.bucket))
-    #     Memory.tick_check = False
-
 
 module.exports.loop = main
