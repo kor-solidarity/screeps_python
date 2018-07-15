@@ -56,7 +56,6 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
     if not creep.memory.upgrade_target:
         creep.memory.upgrade_target = Game.rooms[creep.memory.assigned_room].controller['id']
 
-
     end_is_near = 30
     # in case it's gonna die soon. this noble act is only allowed if there's a storage in the room.
     if creep.ticksToLive < end_is_near and _.sum(creep.carry) != 0 and creep.room.storage:
@@ -562,12 +561,15 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                         # 5보다 더 올라갔다는건 앞에 뭔가에 걸렸다는 소리.
                         if creep.memory.move_ticks > 5:
                             for c in creeps:
-                                if creep.pos.inRangeTo(c, 1) and not c.name == creep.name:
+                                if creep.pos.inRangeTo(c, 1) and not c.name == creep.name \
+                                        and not c.id == creep.memory.last_switch:
                                     creep.say('GTFO', True)
                                     # 바꿔치기.
                                     mv = c.moveTo(creep)
                                     creep.moveTo(c)
                                     creep.memory.move_ticks = 1
+                                    # 여럿이 겹쳤을때 마지막 움직였던애랑 계속 바꿔치기 안하게끔.
+                                    creep.memory.last_switch = c.id
                                     return
 
                             # 여기까지 왔으면 틱이 5 넘겼는데 주변에 크립이 없는거임...
@@ -577,10 +579,9 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                         else:
                             # se nur moveTo, vi ne povas pasi se la kripo lokigis
                             movi(creep, creep.memory.haul_target, 0, 40, True)
-                        # creep.moveTo(Game.getObjectById(creep.memory.haul_target),
-                        #              {'visualizePathStyle': {'stroke': '#ffffff'}, 'ignoreCreeps': True
-                        #               # , 'reusePath': 40, 'ignore': constructions})
-                        #                  , 'reusePath': 40})
+
+                            if creep.memory.last_switch:
+                                del creep.memory.last_switch
                     # if done, check if there's anything left. if there isn't then priority resets.
                     elif transfer_result == ERR_INVALID_TARGET:
                         del creep.memory.haul_target

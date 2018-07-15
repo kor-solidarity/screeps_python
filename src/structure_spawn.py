@@ -146,22 +146,21 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
             # 컨테이너.
             if harvest_target.structureType == STRUCTURE_CONTAINER:
                 if _.sum(harvest_target.store) > harvest_target.storeCapacity * .9:
+                    plus += 2
+                elif _.sum(harvest_target.store) > harvest_target.storeCapacity * .6:
                     plus += 1
-                elif _.sum(harvest_target.store) < harvest_target.storeCapacity * .6:
-                    plus -= 1
             # 링크.
             else:
-                if harvest_target.energy <= harvest_target.energyCapacity - 1 or harvest_target.cooldown != 0:
-                    plus -= 1
+                # 링크가 꽉차고 + 쿨다운 0일때 1추가.
+                if harvest_target.energy <= harvest_target.energyCapacity - 1 and harvest_target.cooldown == 0:
+                    plus += 1
 
         # 건물이 아예 없을 시
         if len(harvest_carry_targets) == 0:
             plus = -num_o_sources
 
-        # 방별로 배정된 추가 hauler. 보통 여기서 뺄셈만 할듯.
-        plus += Memory.rooms[spawn.room.name].options.haulers
-
-        hauler_capacity = num_o_sources + 1 + plus
+        # 허울러 수 계산법: 방별로 지정된 허울러(기본값 2) + 위에 변수값
+        hauler_capacity = Memory.rooms[spawn.room.name].options.haulers + plus
         # minimum number of haulers in the room is 1, max 4
         if hauler_capacity <= 0:
             hauler_capacity = 1
@@ -390,7 +389,8 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                 print('room added?', room_added)
                 # 추가가 안된 상태면 초기화를 진행
                 if not room_added:
-                    init = {'roomName': Game.flags[flag_name].pos.roomName, 'defenders': 1, 'initRoad': 0}
+                    init = {'roomName': Game.flags[flag_name].pos.roomName, 'defenders': 1, 'initRoad': 0,
+                            'display': {'x': Game.flags[flag_name].pos.x, 'y': Game.flags[flag_name].pos.y}}
                     Memory.rooms[spawn.room.name].options.remotes.append(init)
 
                 delete_flag = True
@@ -474,9 +474,38 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                 print("includes('-dsp')")
                 # 내 방 맞음?
                 controlled = False
-                if flags[flag_name].room.controller:
+                if flags[flag_name].room and flags[flag_name].room.controller:
                     if flags[flag_name].room.controller.my:
                         controlled = True
+                # 아니면 리모트임.
+                    else:
+                        # 리모트 소속방 찾는다.
+                        for chambra_nomo in Object.keys(Game.rooms):
+                            set_loc = False
+                            if Memory.rooms[chambra_nomo].options:
+                                counter_num = 0
+                                for r in Memory.rooms[chambra_nomo].options.remotes:
+                                    remote_room_name = r.roomName
+                                    # 방이름 이거랑 똑같은지.
+                                    # 안똑같으면 통과
+                                    if remote_room_name != flags[flag_name].pos.roomName:
+                                        print('{} != flags[{}].pos.roomName {}'
+                                              .format(remote_room_name, flag_name, flags[flag_name].pos.roomName))
+                                        pass
+                                    else:
+                                        print('Memory.rooms[chambra_nomo].options.remotes[counter_num].display'
+                                              , Memory.rooms[chambra_nomo].options.remotes[counter_num].display)
+                                        if not Memory.rooms[chambra_nomo].options.remotes[counter_num].display:
+                                            Memory.rooms[chambra_nomo].options.remotes[counter_num].display = {}
+                                        rx = flags[flag_name].pos.x
+                                        ry = flags[flag_name].pos.y
+                                        Memory.rooms[chambra_nomo].options.remotes[counter_num].display.x = rx
+                                        Memory.rooms[chambra_nomo].options.remotes[counter_num].display.y = ry
+                                        set_loc = True
+                                    counter_num += 1
+                            if set_loc:
+                                break
+                delete_flag = True
 
                 # 내 방이 아니면 이걸 돌리는 이유가없음....
                 if controlled:
@@ -536,8 +565,14 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
 
                 # 내 방이 아니면 이걸 돌리는 이유가없음....
                 if controlled:
-                    # 깃발꽂힌 위치값 제거.
-                    flags[flag_name].room.memory.options.display = {}
+                    # 램파트가 열렸는가?
+                    if flags[flag_name].room.memory.options.ramparts_open == 1:
+                        # 그럼 닫는다.
+                        flags[flag_name].room.memory.options.ramparts = 2
+                    # 그럼 닫힘?
+                    elif flags[flag_name].room.memory.options.ramparts_open == 0:
+                        # 열어
+                        flags[flag_name].room.memory.options.ramparts = 1
                     delete_flag = True
 
             # 디스플레이 제거. 쓸일은 없을듯 솔까.
@@ -569,36 +604,41 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
             # remote 배정된 방 삭제조치.
             if flag_name.includes('-del'):
                 print("includes('-del')")
-                # 방을 돌린다.
-                for i in Object.keys(Memory.rooms):
-                    found = False
-                    if Memory.rooms[i].options:
-                        # print('Memory.rooms[{}].options.remotes {}'.format(i, Memory.rooms[i].options.remotes))
-                        # 옵션안에 리모트가 없을수도 있음.. 특히 확장 안했을때.
-                        if len(Memory.rooms[i].options.remotes) > 0:
-                            # 리모트 안에 배정된 방이 있는지 확인한다.
-                            for r in Memory.rooms[i].options.remotes:
-                                # print('r', r)
-                                # 배정된 방을 찾으면 이제 방정보 싹 다 날린다.
-                                if r.roomName == flag_room_name:
-                                    del_number = Memory.rooms[i].options.remotes.index(r)
-                                    print(
-                                        'deleting roomInfo Memory.rooms[{}].options.remotes[{}]'.format(i, del_number))
-                                    Memory.rooms[i].options.remotes.splice(del_number, 1)
-                                    found = True
-
-                                    # 방에 짓고있는것도 다 취소
-                                    cons = Game.flags[flag_name].room.find(FIND_CONSTRUCTION_SITES)
-                                    for c in cons:
-                                        c.remove()
-                    # 원하는거 찾았으면 더 할 이유가 없으니.
-                    if found:
-                        break
+                # 리모트가 아니라 자기 방으로 잘못 찍었을 경우 그냥 통과한다.
+                if Game.flags[flag_name].room and Game.flags[flag_name].room.controller \
+                    and Game.flags[flag_name].room.controller.my:
+                    pass
+                else:
+                    # 방을 돌린다.
+                    for i in Object.keys(Memory.rooms):
+                        found = False
+                        if Memory.rooms[i].options:
+                            # print('Memory.rooms[{}].options.remotes {}'.format(i, Memory.rooms[i].options.remotes))
+                            # 옵션안에 리모트가 없을수도 있음.. 특히 확장 안했을때.
+                            if len(Memory.rooms[i].options.remotes) > 0:
+                                # 리모트 안에 배정된 방이 있는지 확인한다.
+                                for r in Memory.rooms[i].options.remotes:
+                                    # print('r', r)
+                                    # 배정된 방을 찾으면 이제 방정보 싹 다 날린다.
+                                    if r.roomName == flag_room_name:
+                                        del_number = Memory.rooms[i].options.remotes.index(r)
+                                        print(
+                                            'deleting roomInfo Memory.rooms[{}].options.remotes[{}]'
+                                                .format(i, del_number))
+                                        Memory.rooms[i].options.remotes.splice(del_number, 1)
+                                        found = True
+                                        # 방에 짓고있는것도 다 취소
+                                        if Game.flags[flag_name].room:
+                                            cons = Game.flags[flag_name].room.find(FIND_CONSTRUCTION_SITES)
+                                            for c in cons:
+                                                c.remove()
+                        # 원하는거 찾았으면 더 할 이유가 없으니.
+                        if found:
+                            break
                 delete_flag = True
 
             if delete_flag:
                 aa = flags[flag_name].remove()
-                print(aa)
 
         if len(Memory.rooms[spawn.room.name].options.remotes) > 0:
             # 깃발로 돌렸던걸 메모리로 돌린다.
@@ -981,13 +1021,14 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                                 continue
                         # 픽업이 존재하지 않는다는건 현재 해당 건물이 없다는 뜻이므로 새로 지어야 함.
                         else:
+                            # 중간에 프론티어가 붙은 이유: 이거 속성 건설용이기 때문에 운송용으로 쓸 수 없음.
                             spawning = spawn.createCreep(
                                 [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, WORK,
                                  WORK, WORK, WORK, CARRY, CARRY],
                                 undefined,
                                 {'role': 'carrier', 'assigned_room': room_name
                                     , 'work': True, 'home_room': spawn.room.name
-                                    , 'source_num': carrier_source})
+                                    , 'source_num': carrier_source, 'frontier': 1})
                             if spawning == ERR_NOT_ENOUGH_RESOURCES:
                                 spawn.createCreep(
                                     [WORK, WORK, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, MOVE,
@@ -995,7 +1036,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                                     undefined,
                                     {'role': 'carrier', 'assigned_room': room_name,
                                      'work': True, 'home_room': spawn.room.name
-                                        , 'source_num': carrier_source})
+                                        , 'source_num': carrier_source, 'frontier': 1})
                             continue
 
                     # elif len(flag_containers) > len(remote_harvesters):

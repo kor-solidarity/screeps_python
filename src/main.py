@@ -189,6 +189,12 @@ def main():
         print('attempting to clear market records...')
         miscellaneous.clear_orders()
 
+    # 좀 아래에 CPU 계산 디스플레이 용도.
+    if Memory.cpu_usage:
+        all_cpu = _.sum(Memory.cpu_usage)
+        avg_cpu = round(all_cpu / len(Memory.cpu_usage), 2)
+        last_cpu = Memory.cpu_usage[Memory.cpu_usage.length - 1]
+
     # run everything according to each rooms.
     for chambra_nomo in Object.keys(Game.rooms):
         # print('test')
@@ -211,7 +217,7 @@ def main():
                 # 운송크립의 수. 기본수가 숫자만큼 많아진다. 물론 최대치는 무조건 4
                 if not Memory.rooms[chambra_nomo].options.haulers \
                         and not Memory.rooms[chambra_nomo].options.haulers == 0:
-                    Memory.rooms[chambra_nomo].options.haulers = 0
+                    Memory.rooms[chambra_nomo].options.haulers = 1
                 # 핵사일로 채울거임? 채우면 1 아님 0. 안채울 경우 핵미사일 안에 에너지 빼감.
                 if not Memory.rooms[chambra_nomo].options.fill_nuke \
                         and not Memory.rooms[chambra_nomo].options.fill_nuke == 0:
@@ -237,10 +243,21 @@ def main():
                     if Memory.rooms[chambra_nomo].options.remotes:
                         check_num = 0
                         for r in Memory.rooms[chambra_nomo].options.remotes:
+                            # 지정된 리모트 추가
                             remotes_txt += r.roomName
+                            # 배정된 병사 수 추가
+                            defenders = Memory.rooms[chambra_nomo].options.remotes[check_num].defenders
+                            remotes_txt += '({}) '.format(defenders)
+
+                            # 각 리모트에도 설정한다
+                            # active only when we have visual
+                            if Memory.rooms[chambra_nomo].options.remotes[check_num].display \
+                                    and Game.rooms[r.roomName]:
+                                rx = Memory.rooms[chambra_nomo].options.remotes[check_num].display.x
+                                ry = Memory.rooms[chambra_nomo].options.remotes[check_num].display.y
+                                Game.rooms[r.roomName].visual.text('-def {}'.format(defenders), rx, ry)
+
                             check_num += 1
-                            if check_num != len(Memory.rooms[chambra_nomo].options.remotes):
-                                remotes_txt += ', '
                     # 각 메모리 옵션별 값.
                     hauler_txt = Memory.rooms[chambra_nomo].options.haulers
                     repair_txt = Memory.rooms[chambra_nomo]['options'].repair
@@ -254,7 +271,11 @@ def main():
                     disp_y = Memory.rooms[chambra_nomo].options.display.y
 
                     # \n doesnt work
-                    chambro.visual.text('remotes: {}'.format(remotes_txt),
+                    # print('mmr;', Memory.cpu_usage[-1])
+                    chambro.visual.text('lastCPU {}, {} 틱당평균 {}, 버켓 {}'
+                                        .format(last_cpu, len(Memory.cpu_usage), avg_cpu, Game.cpu.bucket),
+                                        disp_x, disp_y-2)
+                    chambro.visual.text('remotes(def): {}'.format(remotes_txt),
                                         disp_x, disp_y-1)
                     chambro.visual.text('haulers: {} | 수리: {} | 방벽(open): {}({})'
                                         .format(hauler_txt, repair_txt, ramparts_txt, ramp_open_txt),
@@ -355,7 +376,7 @@ def main():
             if len(wall_repairs) or not my_room:
                 repairs.extend(wall_repairs)
             else:
-                if Memory.rooms[chambra_nomo]['options'].repair > 0:
+                if Memory.rooms[chambra_nomo]['options'].repair > 0 and chambro.controller.level == 8:
                     # 루프문을 돌려서 5M 단위로 끊는다.
                     for i in range(1, Memory.rooms[chambra_nomo]['options'].repair + 1):
                         repair_pts = i * 5000000
@@ -692,7 +713,6 @@ def main():
     # if Game.time % structure_renew_count == 0:
     #     del Memory.rooms
 
-    # todo 스폰을 위한 크립 캐시화.
     # adding total cpu
     # while len(Memory.cpu_usage.total) >= Memory.ticks:
     while len(Memory.cpu_usage) >= Memory.ticks:
@@ -707,14 +727,15 @@ def main():
 
     pathfinding.run_maintenance()
 
-    if Game.time % interval == 0 or Memory.tick_check:
-        cpu_total = 0
-        for cpu in Memory.cpu_usage:
-            cpu_total += cpu
-        cpu_average = cpu_total / len(Memory.cpu_usage)
-        print("{} total creeps, average cpu usage in the last {} ticks: {}, and current CPU bucket: {}"
-              .format(len(Game.creeps), len(Memory.cpu_usage), round(cpu_average, 2), Game.cpu.bucket))
-        Memory.tick_check = False
+    # 이제 디스플레이로 해서 이렇게 안해도 알아서 매턴 함.
+    # if Game.time % interval == 0 or Memory.tick_check:
+    #     cpu_total = 0
+    #     for cpu in Memory.cpu_usage:
+    #         cpu_total += cpu
+    #     cpu_average = cpu_total / len(Memory.cpu_usage)
+    #     print("{} total creeps, average cpu usage in the last {} ticks: {}, and current CPU bucket: {}"
+    #           .format(len(Game.creeps), len(Memory.cpu_usage), round(cpu_average, 2), Game.cpu.bucket))
+    #     Memory.tick_check = False
 
 
 module.exports.loop = main

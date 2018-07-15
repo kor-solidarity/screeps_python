@@ -49,7 +49,8 @@ def filter_enemies(foreign_creeps, count_ai=True):
             for body in hostile.body:
                 # print('enemybody {}, {}'.format(body, body['type']))
                 if body['type'] == ATTACK \
-                  or body['type'] == RANGED_ATTACK or body['type'] == HEAL or body['type'] == WORK:
+                  or body['type'] == RANGED_ATTACK or body['type'] == HEAL \
+                        or body['type'] == WORK or body['type'] == CLAIM:
                     is_civilian = False
                     break
             # if not is_civilian:

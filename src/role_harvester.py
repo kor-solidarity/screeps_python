@@ -127,8 +127,8 @@ def run_harvester(creep, all_structures, constructions, creeps, dropped_all):
                   .format(creep.name, len(rikoltist_kripoj)))
             print('이 경우 무조건 공동분배한다')
             # to check for sources not overlapping
-            checker = 0
             for source in range(len(sources)):
+                source_assigned = False
                 print('-----', source, '-----', sources[source])
                 for kripo in rikoltist_kripoj:
                     # if the creep is same with current creep, or dont have memory assigned, pass.
@@ -139,16 +139,14 @@ def run_harvester(creep, all_structures, constructions, creeps, dropped_all):
                     # if memory.source_num == source, means it's already taken. pass.
                     if kripo.memory.source_num == sources[source].id:
                         print('kripo.memory.source_num({}) == source({})'.format(kripo.memory.source_num, source))
-                        # add the number to check.
-                        checker += 1
-                    print('is checker({}) == source({})? : '.format(checker, source), bool(checker == source))
-                    # todo 현 코드는 소스가 둘이라는 가정 하에 짜여져있음. 수정요망!!
-                    if checker == source:
-                        print('did it got in?')
-                        creep.memory.source_num = sources[source].id
+                        source_assigned = True
                         break
-                if creep.memory.source_num:
+                        # add the number to check.
+                    # print('is checker({}) == source({})? : '.format(checker, source), bool(checker == source))
+                if not source_assigned:
+                    creep.memory.source_num = sources[source].id
                     break
+
         # kazo 3
         elif len(rikoltist_kripoj) >= len(sources):
             print('creep {} - case 3: 자원채취꾼 수가 소스의 수 이상이다.'.format(creep.name))
@@ -298,6 +296,7 @@ def run_harvester(creep, all_structures, constructions, creeps, dropped_all):
             elif result == ERR_FULL:
                 creep.say('차면 찬대로!', True)
                 creep.memory.laboro = 0
+            # todo 링크 하베스트 최우선으로.
             # 본인의 소스 담당 크립중에 3천짜리용 크립이 존재하는지 확인. 있으면 자살한다. 이때는 굳이 있어봐야 공간낭비.
             elif result == 0 and creep.memory.size == 1:
                 # print('{} the {}: 0'.format(creep.name, creep.memory.role))
