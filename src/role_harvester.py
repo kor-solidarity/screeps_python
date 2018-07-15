@@ -253,13 +253,19 @@ def run_harvester(creep, all_structures, constructions, creeps, dropped_all):
     # if carryCapacity is full - then go to nearest container or storage to store the energy.
     elif creep.memory.laboro == 1:
         if not creep.memory.container:
-            # find ALL storages(whether its full doesn't matter)
-            storages = _.filter(all_structures, lambda s: (s.structureType == STRUCTURE_STORAGE
-                                                           or s.structureType == STRUCTURE_CONTAINER
-                                                           or s.structureType == STRUCTURE_LINK))
+            # find ALL containers(whether its full doesn't matter)
+            containers = _.filter(all_structures,
+                                  lambda s: s.structureType == STRUCTURE_STORAGE
+                                            or s.structureType == STRUCTURE_CONTAINER)
+            proper_links = _.filter(creep.room.memory[STRUCTURE_LINK], lambda s: s.for_store == 0)
+            proper_link = []
+            for i in proper_links:
+                if i:
+                    proper_link.push(Game.getObjectById(i.id))
+            if len(proper_link) > 0:
+                containers.extend(proper_link)
 
-            storage = Game.getObjectById(creep.memory.source_num).pos.findClosestByRange(storages)
-            # print('len(storage):', len(storage))
+            storage = Game.getObjectById(creep.memory.source_num).pos.findClosestByRange(containers)
             
             if len(storage) == 0:
                 del creep.memory.container
@@ -268,9 +274,6 @@ def run_harvester(creep, all_structures, constructions, creeps, dropped_all):
                 del creep.memory.container
             else:
                 creep.memory.container = storage.id
-        # find ALL storages(whether its full doesn't matter)
-        # storages = _.filter(all_structures, lambda s: s.structureType == STRUCTURE_STORAGE
-        #                                           or s.structureType == STRUCTURE_CONTAINER)
 
         if creep.memory.container:
             if not Game.getObjectById(creep.memory.container):
@@ -282,7 +285,7 @@ def run_harvester(creep, all_structures, constructions, creeps, dropped_all):
                 # print('huh?')
                 del creep.memory.container
                 return
-            # storage = creep.pos.findClosestByRange(storages)
+
             # HARVESTER ONLY HARVEST ENERGY(AND MAYBE RARE METALS(?)). JUST LET'S NOT MAKE IT DO SOMETHING ELSE.
             # result = creep.transfer(storage, RESOURCE_ENERGY)
             result = creep.transfer(Game.getObjectById(creep.memory.container), RESOURCE_ENERGY)

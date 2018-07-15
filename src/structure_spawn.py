@@ -158,7 +158,10 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
             else:
                 # 링크가 꽉차고 + 쿨다운 0일때 1추가.
                 if harvest_target.energy == harvest_target.energyCapacity and harvest_target.cooldown == 0:
-                    plus += 1
+                    for h in room_sources:
+                        if len(h.pos.findPathTo(harvest_target, {'ignoreCreep': True})) <= 5:
+                            plus += 1
+                            break
 
         # 건물이 아예 없을 시
         if len(harvest_carry_targets) == 0:

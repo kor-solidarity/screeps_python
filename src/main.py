@@ -238,6 +238,11 @@ def main():
                         and not Memory.rooms[chambra_nomo].options.ramparts_open == 0:
                     Memory.rooms[chambra_nomo].options.ramparts_open = 0
 
+                # 각종현황(현재는 링크·타워만) 초기화 할것인가?
+                if not Memory.rooms[chambra_nomo].options.reset \
+                        and not Memory.rooms[chambra_nomo].options.reset == 0:
+                    Memory.rooms[chambra_nomo].options.reset = 1
+
                 # 화면안에 위에 설정값들 표기.
                 if Memory.rooms[chambra_nomo].options.display \
                     and len(Memory.rooms[chambra_nomo].options.display) > 0:
@@ -503,7 +508,9 @@ def main():
 
         # renew structures
         # todo ADD LABS
-        if Game.time % 1001 == 0 and chambro.controller and chambro.controller.my:
+        if (Game.time % 1001 == 0 and chambro.controller and chambro.controller.my) \
+                or (chambro.memory.options and chambro.memory.options.reset):
+            chambro.memory.options.reset = 0
             # 목록 초기화.
             chambro.memory[STRUCTURE_TOWER] = []
             chambro.memory[STRUCTURE_LINK] = []
