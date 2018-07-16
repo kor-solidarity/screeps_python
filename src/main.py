@@ -288,7 +288,8 @@ def main():
                     chambro.visual.text('haulers: {} | 수리: {} | 방벽(open): {}({})'
                                         .format(hauler_txt, repair_txt, ramparts_txt, ramp_open_txt),
                                         disp_x, disp_y)
-                    chambro.visual.text('fillNuke/Labs: {}/{}, tow_atk: {}'.format(nuke_txt, lab_txt, tow_txt),
+                    chambro.visual.text('fillNuke/Labs: {}/{}, tow_atk/reset: {}/{}'
+                                        .format(nuke_txt, lab_txt, tow_txt, 10000 - Game.time % 10000),
                                         disp_x, disp_y+1)
                     # chambro.visual.text(display_txt, disp_x, disp_y+2)
 
@@ -330,6 +331,8 @@ def main():
             square = 4
             repair_pts = 500
 
+        # 초기화.
+        terminal_capacity = 0
         # 방 안의 터미널 내 에너지 최소값.
         if chambro.controller:
             if chambro.terminal and chambro.controller.level < 8:

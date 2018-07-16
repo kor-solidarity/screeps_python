@@ -11,7 +11,8 @@ __pragma__('noalias', 'set')
 __pragma__('noalias', 'type')
 __pragma__('noalias', 'update')
 
-# SPECIAL THANKS TO THE PATHFINDING COST PYTHON CODE CREATOR - Kenji.
+# SPECIAL THANKS TO THE PATHFINDING COST PYTHON CODE CREATOR
+# Kenji - responsible for creating Costs class to def reset_cached_matrices():
 
 """
 1. js_global._costs = {'base': {}, 'rooms': {}, 'creeps': {}}
@@ -303,3 +304,7 @@ def find_map_surroundings(room_name, all_corners=False):
                                 sero = 'S'
             counter += 1
         return arranged_room_nums
+
+
+# 적과 교전시 램파트 안에 남아 싸운다.
+# def stay_in_ramparts():
