@@ -68,7 +68,7 @@ def run_harvester(creep, all_structures, constructions, creeps, dropped_all):
                                                       and not c.name == creep.name)
                 remote_structures = my_area.find(FIND_STRUCTURES)
                 remote_containers = _.filter(remote_structures, lambda s: s.structureType == STRUCTURE_CONTAINER)
-                print('???', remote_structures )
+                # print('???', remote_structures )
             except:
                 print('no creeps in the remote at room {}!'.format(creep.memory.assigned_room))
                 return
@@ -85,9 +85,9 @@ def run_harvester(creep, all_structures, constructions, creeps, dropped_all):
             # kripoj_3k_aux_pli = _.filter(creeps,
             #                              lambda c: c.tickstolive > 100 and c.memory.size >= 3000
             #                              and c.memory.role == 'harvester')
-        print('creeps:', creeps)
-        print('kripoj:', rikoltist_kripoj)
-        print('len(rikoltist_kripoj): {} || len(sources): {}'.format(len(rikoltist_kripoj), len(sources)))
+        # print('creeps:', creeps)
+        # print('kripoj:', rikoltist_kripoj)
+        # print('len(rikoltist_kripoj): {} || len(sources): {}'.format(len(rikoltist_kripoj), len(sources)))
 
         # tie estus 3 kazoj en ĉi tio:
         # 1 - no creeps at all.
@@ -123,22 +123,22 @@ def run_harvester(creep, all_structures, constructions, creeps, dropped_all):
 
         # kazo 2
         elif len(rikoltist_kripoj) < len(sources):
-            print('creep {} assigning energy - case 2 - creeps present, but not as much as number of sources.'
-                  .format(creep.name, len(rikoltist_kripoj)))
-            print('이 경우 무조건 공동분배한다')
+            # print('creep {} assigning energy - case 2 - creeps present, but not as much as number of sources.'
+            #       .format(creep.name, len(rikoltist_kripoj)))
+            # print('이 경우 무조건 공동분배한다')
             # to check for sources not overlapping
             for source in range(len(sources)):
                 source_assigned = False
-                print('-----', source, '-----', sources[source])
+                # print('-----', source, '-----', sources[source])
                 for kripo in rikoltist_kripoj:
                     # if the creep is same with current creep, or dont have memory assigned, pass.
                     if not kripo.memory.source_num:
                         continue
-                    print('creep:{} || TTL: {}'.format(kripo, kripo.ticksToLive))
-                    print('creep.memory.source_num:', kripo.memory.source_num)
+                    # print('creep:{} || TTL: {}'.format(kripo, kripo.ticksToLive))
+                    # print('creep.memory.source_num:', kripo.memory.source_num)
                     # if memory.source_num == source, means it's already taken. pass.
                     if kripo.memory.source_num == sources[source].id:
-                        print('kripo.memory.source_num({}) == source({})'.format(kripo.memory.source_num, source))
+                        # print('kripo.memory.source_num({}) == source({})'.format(kripo.memory.source_num, source))
                         source_assigned = True
                         break
                         # add the number to check.
@@ -149,7 +149,7 @@ def run_harvester(creep, all_structures, constructions, creeps, dropped_all):
 
         # kazo 3
         elif len(rikoltist_kripoj) >= len(sources):
-            print('creep {} - case 3: 자원채취꾼 수가 소스의 수 이상이다.'.format(creep.name))
+            # print('creep {} - case 3: 자원채취꾼 수가 소스의 수 이상이다.'.format(creep.name))
             # 각 자원별 숫자총합이 2 이상이면 거기엔 배치할 필요가 없는거임.
             # trovu kripoj kun memory.size malpli ol 3k
             for source in range(len(sources)):
@@ -182,7 +182,6 @@ def run_harvester(creep, all_structures, constructions, creeps, dropped_all):
         # 이럴때는 우선 크립의 ttl, 그리고 크립의 담당 수확지역을 찾는다.
         # print('creep.memory.source_num:', creep.memory.source_num)
         if not creep.memory.source_num:
-            print('WTF')
             my_creeps = creeps
             harvester_that_is_gonna_die_soon = _.filter(my_creeps, lambda c: c.memory.role == 'harvester'
                                                                              and c.tickstolive < 100)

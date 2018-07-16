@@ -394,12 +394,12 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                     creep.memory.err_full = 3
             # only happens inside the home room
             elif transfer_result == ERR_FULL:
-                if not creep.memory.err_full and creep.memory.err_full != 0:
+                if not creep.memory.err_full and not creep.memory.err_full == 0:
                     creep.memory.err_full = 0
                 creep.memory.err_full += 1
 
-                # 두번 시도했는데 다 꽉찼으면 목표 교체
-                if creep.memory.err_full > 2:
+                # 다 꽉찼으면 즉각 교체
+                if creep.memory.err_full > 1:
                     # find links outside the filter and containers
                     home_links_and_containers = \
                         _.filter(all_structures, lambda s: (s.structureType == STRUCTURE_CONTAINER
@@ -416,6 +416,9 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                         creep.memory.haul_target = link_or_container.id
                         creep.say('교체!', True)
                         creep.memory.err_full = 0
+                        creep.moveTo(Game.getObjectById(creep.memory.haul_target)
+                                     , {'visualizePathStyle': {'stroke': '#ffffff'}
+                                         , 'ignoreCreeps': True, 'reusePath': 40})
                     # 교체대상이 전혀 없으면 대기타야함...
                     else:
                         creep.memory.err_full = -10

@@ -241,13 +241,13 @@ def find_map_surroundings(room_name, all_corners=False):
     :return: [방이름들]
     """
     # 방 제대로 들어옮?
-    if ('E' in room_name or 'W' in room_name) \
-        and ('S' in room_name or 'N' in room_name):
-        if 'E' in room_name:
+    if (room_name.includes('E') or room_name.includes('W')) \
+        and (room_name.includes('S') or room_name.includes('N')):
+        if room_name.includes('E'):
             garo = 'E'
         else:
             garo = 'W'
-        if 'S' in room_name:
+        if room_name.includes('S'):
             sero = 'S'
         else:
             sero = 'N'
