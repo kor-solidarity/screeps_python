@@ -73,7 +73,6 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
 
         containers_and_links = all_structures.filter(lambda st: st.structureType == STRUCTURE_CONTAINER
                                                                 or st.structureType == STRUCTURE_LINK)
-        # print('ext at room {}: {}'.format(chambra_nomo, extractor))
         # 소스 주변에 자원채취용 컨테이너·링크가 얼마나 있는가 확인.
         for rs in room_sources:
             for s in containers_and_links:
@@ -90,8 +89,6 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                             harvest_carry_targets.push(s.id)
                             break
 
-        # print('harvest_carry_targets', harvest_carry_targets)
-        # print('sources', sources)
         if len(harvest_carry_targets) < num_o_sources:
             harvesters_bool = bool(len(creep_harvesters) < num_o_sources * 2)
         # if numbers of creep_harvesters are less than number of sources in the spawn's room.
@@ -155,13 +152,17 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                 elif _.sum(harvest_target.store) > harvest_target.storeCapacity * .6:
                     plus += 1
             # 링크.
-            else:
+            elif harvest_target.structureType == STRUCTURE_LINK:
                 # 링크가 꽉차고 + 쿨다운 0일때 1추가.
-                if harvest_target.energy == harvest_target.energyCapacity and harvest_target.cooldown == 0:
-                    for h in room_sources:
-                        if len(h.pos.findPathTo(harvest_target, {'ignoreCreep': True})) <= 5:
+                if harvest_target.energy == harvest_target.energyCapacity \
+                        and harvest_target.cooldown == 0:
+                    for l in Memory.rooms[spawn.room.name][STRUCTURE_LINK]:
+                        if l.id == harvest_target.id and l.for_store:
                             plus += 1
-                            break
+                    # for h in room_sources:
+                    #     if len(h.pos.findPathTo(harvest_target, {'ignoreCreep': True})) <= 5:
+                    #         plus += 1
+                    #         break
 
         # 건물이 아예 없을 시
         if len(harvest_carry_targets) == 0:
@@ -180,6 +181,8 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                 hauler_capacity += 1
 
         if len(creep_haulers) < hauler_capacity:
+            # 초기화 용도.
+            spawning_creep = ERR_NOT_ENOUGH_ENERGY
             # 순서는 무조건 아래와 같다. 무조건 덩치큰게 장땡.
             # 만일 컨트롤러 레벨이 8일 경우 가장 WORK 높은애 우선 하나.
             if spawn.room.controller.level == 8:

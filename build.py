@@ -214,7 +214,7 @@ def upload(config):
     dist_dir = os.path.join(config.base_dir, 'dist')
 
     for file_name in os.listdir(dist_dir):
-        with open(os.path.join(dist_dir, file_name)) as f:
+        with open(os.path.join(dist_dir, file_name), encoding='utf8') as f:
             module_files[os.path.splitext(file_name)[0]] = f.read()
 
     if config.ptr:
