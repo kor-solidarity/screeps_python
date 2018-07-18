@@ -916,6 +916,9 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                                 print('PATH:', JSON.stringify(constr_roads_pos))
                                 # 길 찾은 후 스폰이 있는곳까지 도로건설
                                 for pos in constr_roads_pos:
+                                    # 스폰이 있는 곳으로 또 쏠필요는 없음...
+                                    if pos == spawn.pos:
+                                        continue
                                     pos.createConstructionSite(STRUCTURE_ROAD)
 
                         # 대충 해야하는일: 캐리어의 픽업위치에서 본진거리 확인. 그 후 거리만큼 추가.

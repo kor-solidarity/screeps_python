@@ -312,9 +312,10 @@ def run_harvester(creep, all_structures, constructions, creeps, dropped_all):
         else:
             # if there's no storage to go to, technically do the hauler's job(transfer and building).
             # below is exact copy.
-            spawns_and_extensions = _.filter(all_structures, lambda s: ((s.structureType == STRUCTURE_SPAWN
-                                                              or s.structureType == STRUCTURE_EXTENSION)
-                                                              and s.energy < s.energyCapacity))
+            spawns_and_extensions = _.filter(all_structures,
+                                             lambda s: ((s.structureType == STRUCTURE_SPAWN
+                                                         or s.structureType == STRUCTURE_EXTENSION)
+                                                        and s.energy < s.energyCapacity))
             spawn_or_extension = creep.pos.findClosestByRange(spawns_and_extensions)
             transfer_result = creep.transfer(spawn_or_extension, RESOURCE_ENERGY)
             if transfer_result == ERR_NOT_IN_RANGE:

@@ -2,6 +2,7 @@ from typing import Any, Union, TypeVar
 
 T = TypeVar('T')
 
+
 def __new__(arg: T) -> T:
     return arg
 
