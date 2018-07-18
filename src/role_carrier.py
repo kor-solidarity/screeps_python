@@ -314,15 +314,14 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                 creep.memory.haul_target = link_or_container.id
 
             transfer_result = creep.transfer(Game.getObjectById(creep.memory.haul_target), RESOURCE_ENERGY)
-
             if transfer_result == ERR_NOT_IN_RANGE:
                 creep.memory.err_full = 0
                 # creep.say(ERR_NOT_IN_RANGE)
                 if len(repairs) > 0 and creep.memory.work:
                     creep.repair(repair)
                 # counter for checking the current location
-                if not creep.memory.move_ticks:
-                    creep.memory.move_ticks = 1
+                if not creep.memory.move_ticks and not creep.memory.move_ticks == 0:
+                    creep.memory.move_ticks = 0
                 # checking current location - only needed when check in par with move_ticks
                 if not creep.memory.cur_Location:
                     creep.memory.cur_Location = creep.pos
@@ -333,12 +332,12 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                             == JSON.stringify(creep.pos):
                         creep.memory.move_ticks += 1
                     else:
-                        creep.memory.move_ticks = 1
+                        creep.memory.move_ticks = 0
                 # renew
                 creep.memory.cur_Location = creep.pos
 
-                # 5보다 더 올라갔다는건 앞에 뭔가에 걸렸다는 소리.
-                if creep.memory.move_ticks > 3:
+                # 걸린다는건 앞에 뭔가로 걸렸다는 소리.
+                if creep.memory.move_ticks > 1:
                     for c in creeps:
                         if creep.pos.inRangeTo(c, 1) and not c.name == creep.name\
                                 and not c.memory.role == 'carrier' and not c.id == creep.memory.last_switch:
@@ -346,21 +345,17 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                             # 바꿔치기.
                             mv = c.moveTo(creep)
                             creep.moveTo(c)
-                            creep.memory.move_ticks = 1
                             # 여럿이 겹쳤을때 마지막 움직였던애랑 계속 바꿔치기 안하게끔.
                             creep.memory.last_switch = c.id
                             return
                     # 여기까지 왔으면 틱이 5 넘겼는데 주변에 크립이 없는거임...
-                    creep.memory.move_ticks = 1
+                    creep.memory.move_ticks = 0
 
                 # 해당사항 없으면 그냥 평소처럼 움직인다.
                 else:
                     creep.moveTo(Game.getObjectById(creep.memory.haul_target)
                                  , {'visualizePathStyle': {'stroke': '#ffffff'}
                                      , 'ignoreCreeps': True, 'reusePath': 40})
-                    if creep.memory.last_switch:
-                        del creep.memory.last_switch
-
                 return
                 # creep.moveTo(link_or_container, {'visualizePathStyle': {'stroke': '#ffffff'}, 'reusePath': 10})
             # if done, check if there's anything left. if there isn't then priority resets.
@@ -370,6 +365,8 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                 del creep.memory.haul_target
             elif transfer_result == 0:
                 creep.memory.err_full = 0
+                if creep.memory.last_switch:
+                    del creep.memory.last_switch
 
                 # 이동 완료했는데 픽업도없고 그렇다고 일할수있는것도 아니면 죽어야함.
                 # 프론티어일 경우도 해당.

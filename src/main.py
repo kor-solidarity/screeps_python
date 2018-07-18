@@ -415,7 +415,6 @@ def main():
                     # 뭔가 있으면 그대로 넣고 끝.
                     if len(wall_repairs) > 0:
                         repairs.extend(wall_repairs)
-                        break
 
         if not repairs or len(repairs) == 0:
             repairs = []
@@ -528,8 +527,10 @@ def main():
             # add links
             str_links = _.filter(all_structures, lambda s: s.structureType == STRUCTURE_LINK)
             if len(str_links) > 0:
+                # 안보내는 조건은 주변 5칸거리내에 컨트롤러·스폰·스토리지가 있을 시.
                 str_points = _.filter(all_structures, lambda s: s.structureType == STRUCTURE_STORAGE
-                                      or s.structureType == STRUCTURE_SPAWN or s.structureType == STRUCTURE_TERMINAL)
+                                      or s.structureType == STRUCTURE_SPAWN or s.structureType == STRUCTURE_TERMINAL
+                                      or s.structureType == STRUCTURE_EXTENSION)
                 # 링크는 크게 두 종류가 존재한다. 하나는 보내는거, 또하난 안보내는거.
                 for stl in str_links:
                     for_store = 0

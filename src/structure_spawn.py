@@ -157,7 +157,9 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                 if harvest_target.energy == harvest_target.energyCapacity \
                         and harvest_target.cooldown == 0:
                     for l in Memory.rooms[spawn.room.name][STRUCTURE_LINK]:
-                        if l.id == harvest_target.id and l.for_store:
+                        print('l.id {} == harvest_target.id {}'.format(l.id, harvest_target.id))
+                        if l.id == harvest_target.id and not l.for_store:
+                            print('plus')
                             plus += 1
                     # for h in room_sources:
                     #     if len(h.pos.findPathTo(harvest_target, {'ignoreCreep': True})) <= 5:
