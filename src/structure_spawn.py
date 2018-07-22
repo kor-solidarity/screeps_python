@@ -1056,23 +1056,26 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                     # 하베스터도 소스 수 만큼!
                     elif len(flag_energy_sources) > len(remote_harvesters):
                         # 4000 for keeper lairs
-                        # todo 너무 쉽게죽음. 보강필요.
+                        # todo 너무 쉽게죽음. 보강필요. and need medic for keeper remotes
+                        regular_spawn = -6
                         if keeper_lair:
                             regular_spawn = spawn.createCreep(
                                 [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, WORK,
-                                 CARRY, CARRY, CARRY, CARRY])
-                            if regular_spawn == 0:
-                                continue
+                                 CARRY, CARRY, CARRY, CARRY], undefined,
+                                {'role': 'harvester', 'assigned_room': room_name,
+                                 'home_room': spawn.room.name,
+                                 'size': 2})
 
                         # perfect for 3000 cap
-                        regular_spawn = spawn.createCreep(
-                            [WORK, WORK, WORK, WORK, WORK, WORK,
-                             CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE,
-                             MOVE, MOVE]
-                            , undefined,
-                            {'role': 'harvester', 'assigned_room': room_name,
-                             'home_room': spawn.room.name,
-                             'size': 2})
+                        if regular_spawn == -6:
+                            regular_spawn = spawn.createCreep(
+                                [WORK, WORK, WORK, WORK, WORK, WORK,
+                                 CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE,
+                                 MOVE, MOVE]
+                                , undefined,
+                                {'role': 'harvester', 'assigned_room': room_name,
+                                 'home_room': spawn.room.name,
+                                 'size': 2})
                         # print('what happened:', regular_spawn)
                         if regular_spawn == -6:
                             spawn.createCreep([WORK, WORK, WORK, WORK, WORK,
