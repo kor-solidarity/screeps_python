@@ -53,7 +53,7 @@ creep.memory.flag:
 
 js_global._costs = {'base': {}, 'rooms': {}, 'creeps': {}}
 # todo 깃발꽂는거보다 이걸로.
-js_global.cmd = ''
+js_global._cmd = []
 
 
 def main():

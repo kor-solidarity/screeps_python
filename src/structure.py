@@ -91,8 +91,11 @@ def run_links(link_id):
     # all links that are for_store and have energy store left
     inside_links = _.filter(Game.getObjectById(link_id).room.memory[STRUCTURE_LINK],
                             lambda l:
+                            Game.getObjectById(l.id)
+                            and
                             l.for_store == 1
-                            and Game.getObjectById(l.id).energy < Game.getObjectById(l.id).energyCapacity - 100)
+                            and
+                            Game.getObjectById(l.id).energy < Game.getObjectById(l.id).energyCapacity - 100)
 
     # 쏠준비 됨? 그럼 날려!
     if link.cooldown == 0 and link.energy >= 140 and len(inside_links) > 0:

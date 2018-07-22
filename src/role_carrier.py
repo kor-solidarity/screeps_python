@@ -56,43 +56,47 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
         del creep.memory.build_target
     elif _.sum(creep.carry) == creep.carryCapacity and creep.memory.laboro != 1:
         creep.memory.laboro = 1
-        creep.memory.priority = 0
+
+        if len(constructions) > 0:
+            creep.memory.priority = 1
+        else:
+            creep.memory.priority = 2
 
     # laboro: 0 == pickup something.
     if creep.memory.laboro == 0:
-        # if there's no dropped_target and there's dropped_all
-        if not creep.memory.dropped_target and len(dropped_all) > 0:
-            for dropped in dropped_all:
+        # if there's no dropped and there's dropped_all
+        if not creep.memory.dropped and len(dropped_all) > 0:
+            for drop in dropped_all:
                 # carrier will only take energy
-                if dropped.resourceType != RESOURCE_ENERGY:
+                if drop.resourceType != RESOURCE_ENERGY:
                     continue
                 # if there's a dropped resources near 5
-                if creep.pos.inRangeTo(dropped, 5):
-                    creep.memory.dropped_target = dropped['id']
-                    print(dropped['id'])
+                if creep.pos.inRangeTo(drop, 5):
+                    creep.memory.dropped = drop['id']
+                    print(drop['id'])
                     creep.say('⛏BITCOINS!', True)
                     break
 
         # if there is a dropped target and it's there.
-        if creep.memory.dropped_target:
-            item = Game.getObjectById(creep.memory.dropped_target)
+        if creep.memory.dropped:
+            item = Game.getObjectById(creep.memory.dropped)
             if not item:
                 creep.say('')
-                del creep.memory.dropped_target
+                del creep.memory.dropped
                 return
             # if the target is a tombstone
             if item.creep:
                 if _.sum(item.store) == 0:
                     creep.say("💢 텅 비었잖아!", True)
-                    del creep.memory.dropped_target
+                    del creep.memory.dropped
                     return
                 # for resource in Object.keys(item.store):
-                grab = harvest_stuff.grab_energy(creep, creep.memory.dropped_target, False, 0)
+                grab = harvest_stuff.grab_energy(creep, creep.memory.dropped, False, 0)
             else:
                 grab = creep.pickup(item)
 
             if grab == 0:
-                del creep.memory.dropped_target
+                del creep.memory.dropped
                 creep.say('♻♻♻', True)
                 return
             elif grab == ERR_NOT_IN_RANGE:
@@ -101,11 +105,11 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                 return
             # if target's not there, go.
             elif grab == ERR_INVALID_TARGET:
-                del creep.memory.dropped_target
-                for dropped in dropped_all:
+                del creep.memory.dropped
+                for drop in dropped_all:
                     # if there's a dropped resources near 5
-                    if creep.pos.inRangeTo(dropped, 5):
-                        creep.memory.dropped_target = dropped_all['id']
+                    if creep.pos.inRangeTo(drop, 5):
+                        creep.memory.dropped = dropped_all['id']
 
         # if there's pickup, no need to go through all them below.
         # creep.memory.pickup == id of the container carrier's gonna pick up
@@ -121,7 +125,11 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                 creep.say('BEEP BEEP⛟', True)
                 # if _.sum(creep.carry) >= creep.carryCapacity * .5:
                 creep.memory.laboro = 1
-                creep.memory.priority = 0
+                if creep.memory.container_full:
+                    creep.memory.container_full = 0
+                    creep.memory.priority = 2
+                else:
+                    creep.memory.priority = 0
             elif result == ERR_NOT_ENOUGH_ENERGY:
                 if _.sum(creep.carry) > creep.carryCapacity * .4:
                     creep.memory.laboro = 1
@@ -267,7 +275,7 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
             # print('build_result:', build_result)
             if build_result == ERR_NOT_IN_RANGE:
                 move_res = creep.moveTo(Game.getObjectById(creep.memory.build_target)
-                                        , {'visualizePathStyle': {'stroke': '#ffffff'}, 'reusePath': 25, 'range': 3})
+                                        , {'visualizePathStyle': {'stroke': '#ffffff'}, 'reusePath': 10, 'range': 3})
                 # print('move_res:', move_res)
             # if there's nothing to build or something
             elif build_result == ERR_INVALID_TARGET:
@@ -431,6 +439,7 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
 
             repair_result = creep.repair(repair)
             try:
+                # 컨테이너와 3칸이상 떨어지면 복귀한다.
                 if not creep.pos.inRangeTo(Game.getObjectById(creep.memory.pickup), 3) \
                         or creep.carry.energy == 0:
                     creep.memory.laboro = 0
@@ -457,4 +466,6 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                     creep.say('수리보다 운송!', True)
                     creep.memory.laboro = 0
                     creep.memory.priority = 0
+                    # 컨테이너 꽉차서 라보로 0인걸 표기.
+                    creep.memory.container_full = 1
         return

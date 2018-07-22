@@ -38,7 +38,7 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
     repair_target == 수리 목표.
     upgrade_target == 업그레이드 목표
     build_target == 건설 목표
-    dropped_target == 근처에 떨어져있는 리소스
+    dropped == 근처에 떨어져있는 리소스
     pickup == 에너지 빼갈 대상.
     to_storage == 스토리지로 운송할 것인가?(불리언)
     """
@@ -89,8 +89,8 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
         del creep.memory.repair_target
 
     elif _.sum(creep.carry) > creep.carryCapacity * .90 and creep.memory.laboro == 0:
-        # if creep.memory.dropped_target:
-        #     del creep.memory.dropped_target
+        # if creep.memory.dropped:
+        #     del creep.memory.dropped
             # Memory.initialize_count += 2
         if creep.memory.pickup:
             del creep.memory.pickup
@@ -103,38 +103,37 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
         # 2. if 1 == False, look for storage|containers to get the energy from.
         # 3. if 2 == False, you harvest on ur own.
 
-        # if there's no dropped_target and there's dropped_all
-        if not creep.memory.dropped_target and len(dropped_all) > 0:
-            for dropped in dropped_all:
+        # if there's no dropped and there's dropped_all
+        if not creep.memory.dropped and len(dropped_all) > 0:
+            for drop in dropped_all:
                 # if there's a dropped resources near 5
-                if creep.pos.inRangeTo(dropped, 5):
+                if creep.pos.inRangeTo(drop, 5):
                     # if not energy and there's no storage, pass.
-                    if not creep.room.storage and dropped.resourceType != RESOURCE_ENERGY:
+                    if not creep.room.storage and drop.resourceType != RESOURCE_ENERGY:
                         continue
                     else:
-                        creep.memory.dropped_target = dropped['id']
+                        creep.memory.dropped = drop['id']
                         # print(dropped['id'])
                         creep.say('⛏BITCOINS!', True)
                         break
 
         # if there is a dropped target and it's there.
-        if creep.memory.dropped_target:
-            item = Game.getObjectById(creep.memory.dropped_target)
+        if creep.memory.dropped:
+            item = Game.getObjectById(creep.memory.dropped)
             if not item:
-                del creep.memory.dropped_target
+                del creep.memory.dropped
                 return
             # if the target is a tombstone
             if item.creep:
                 if _.sum(item.store) == 0:
                     creep.say("💢 텅 비었잖아!", True)
-                    del creep.memory.dropped_target
-                    return
+                    del creep.memory.dropped
                 # for resource in Object.keys(item.store):
-                grab = harvest_stuff.grab_energy(creep, creep.memory.dropped_target, False, 0)
+                grab = harvest_stuff.grab_energy(creep, creep.memory.dropped, False, 0)
             else:
                 grab = creep.pickup(item)
             if grab == 0:
-                del creep.memory.dropped_target
+                # del creep.memory.dropped
                 creep.say('♻♻♻', True)
                 return
             elif grab == ERR_NOT_IN_RANGE:
@@ -143,14 +142,13 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
             # if target's not there, go.
             elif grab == ERR_INVALID_TARGET:
                 creep.say('ERR', grab)
-                del creep.memory.dropped_target
-                for dropped in dropped_all:
+                del creep.memory.dropped
+                for drop in dropped_all:
                     # if there's a dropped resources near 5
-                    if creep.pos.inRangeTo(dropped, 5):
-                        creep.memory.dropped_target = dropped_all['id']
-                        return
+                    if creep.pos.inRangeTo(drop, 5):
+                        creep.memory.dropped = dropped_all['id']
 
-        else:
+        if not creep.memory.dropped:
             # only search if there's nothing to pick up.
             if not creep.memory.pickup:
 

@@ -147,9 +147,9 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
             harvest_target = Game.getObjectById(harvest_container)
             # 컨테이너.
             if harvest_target.structureType == STRUCTURE_CONTAINER:
-                if _.sum(harvest_target.store) > harvest_target.storeCapacity * .9:
-                    plus += 2
-                elif _.sum(harvest_target.store) > harvest_target.storeCapacity * .6:
+                # if _.sum(harvest_target.store) > harvest_target.storeCapacity * .9:
+                #     plus += 2
+                if _.sum(harvest_target.store) > harvest_target.storeCapacity * .6:
                     plus += 1
             # 링크.
             elif harvest_target.structureType == STRUCTURE_LINK:
@@ -157,10 +157,13 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                 if harvest_target.energy == harvest_target.energyCapacity \
                         and harvest_target.cooldown == 0:
                     for l in Memory.rooms[spawn.room.name][STRUCTURE_LINK]:
-                        print('l.id {} == harvest_target.id {}'.format(l.id, harvest_target.id))
                         if l.id == harvest_target.id and not l.for_store:
-                            print('plus')
-                            plus += 1
+                            for rs in room_sources:
+                                if len(harvest_target.pos.findPathTo(rs, {'ignoreCreep': True})) < 5:
+                                    print('l.id {} == harvest_target.id {}, energy: {}'
+                                          .format(l.id, harvest_target.id, harvest_target.energy))
+                                    plus += 1
+                                    break
                     # for h in room_sources:
                     #     if len(h.pos.findPathTo(harvest_target, {'ignoreCreep': True})) <= 5:
                     #         plus += 1
@@ -322,8 +325,8 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                 # 스폰렙 만땅이면 쿨다운 유지만 하면됨....
                 if spawn.room.controller.level == 8:
                     if spawn.room.controller.ticksToDowngrade < CONTROLLER_DOWNGRADE[8] - 100000 \
-                        or (spawn.room.controller.ticksToDowngrade < CONTROLLER_DOWNGRADE[8] - 4900
-                            and len(hostile_creeps) > 0):
+                            or (spawn.room.controller.ticksToDowngrade < CONTROLLER_DOWNGRADE[8] - 4900
+                                and len(hostile_creeps) > 0):
                         spawn.createCreep([WORK, WORK, CARRY, CARRY, MOVE, MOVE], undefined,
                                           {'role': 'upgrader', 'assigned_room': spawn.pos.roomName})
                 elif big == -6:
@@ -487,7 +490,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                 if flags[flag_name].room and flags[flag_name].room.controller:
                     if flags[flag_name].room.controller.my:
                         controlled = True
-                # 아니면 리모트임.
+                    # 아니면 리모트임.
                     else:
                         # 리모트 소속방 찾는다.
                         for chambra_nomo in Object.keys(Game.rooms):
@@ -631,7 +634,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                 print("includes('-del')")
                 # 리모트가 아니라 자기 방으로 잘못 찍었을 경우 그냥 통과한다.
                 if Game.flags[flag_name].room and Game.flags[flag_name].room.controller \
-                    and Game.flags[flag_name].room.controller.my:
+                        and Game.flags[flag_name].room.controller.my:
                     pass
                 else:
                     # 방을 돌린다.
@@ -729,7 +732,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                             hostiles = miscellaneous.filter_enemies(hostiles, True)
                         # 적이 있거나 방이 만렙이고 상주인원이 없을 시.
                         if len(hostiles) + plus > len(remote_troops) \
-                            or (len(remote_troops) < plus and chambro.controller.level == 8):
+                                or (len(remote_troops) < plus and chambro.controller.level == 8):
                             # 렙7 아래면 스폰 안한다.
                             if spawn.room.controller.level < 7:
                                 continue
@@ -808,9 +811,9 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                         # 컨트롤러의 예약시간이 1200 이하거나
                         # 컨트롤러가 다른사람꺼 + 아군 주둔중일때 만든다
                         if not Game.rooms[room_name].controller.reservation \
-                            or Game.rooms[room_name].controller.reservation.ticksToEnd < 1200 \
-                            or (Game.rooms[room_name].controller.reservation.username
-                                != spawn.room.controller.owner.username and len(remote_troops) > 0):
+                                or Game.rooms[room_name].controller.reservation.ticksToEnd < 1200 \
+                                or (Game.rooms[room_name].controller.reservation.username
+                                    != spawn.room.controller.owner.username and len(remote_troops) > 0):
                             spawning_creep = spawn.createCreep(
                                 [MOVE, MOVE, MOVE, MOVE, CLAIM, CLAIM, CLAIM, CLAIM]
                                 , undefined,
@@ -914,7 +917,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                                                       {'plainCost': 2, 'swampCost': 2,
                                                        'roomCallback':
                                                            lambda room_name:
-                                                           pathfinding.Costs(room_name, opts).load_matrix()},).path
+                                                           pathfinding.Costs(room_name, opts).load_matrix()}, ).path
                                 print('PATH:', JSON.stringify(constr_roads_pos))
                                 # 길 찾은 후 스폰이 있는곳까지 도로건설
                                 for pos in constr_roads_pos:
@@ -928,13 +931,12 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                             # 크립의 크기는 본진까지의 거리에 따라 좌우된다.
                             distance = 0
 
-                            path = PathFinder.search(Game.getObjectById(carrier_pickup_id).pos, spawn.pos
-                                                     , {
-                                                         'plainCost': 2
-                                                         , 'swampCost': 2
-                                                         , 'roomCallback': lambda room_name:
-                                    pathfinding.Costs(room_name, None).load_matrix()
-                                                     }, ).path
+                            path = PathFinder.search(Game.getObjectById(carrier_pickup_id).pos, spawn.pos,
+                                                     {'plainCost': 2, 'swampCost': 2,
+                                                      'roomCallback':
+                                                          lambda room_name:
+                                                          pathfinding.Costs(room_name, None).load_matrix()
+                                                      }, ).path
                             for p in path:
                                 if p.roomName == spawn.room.name:
                                     break
@@ -945,8 +947,8 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                                 distance = int(distance * 1.3)
 
                             if Game.getObjectById(carrier_pickup_id).hits \
-                                <= Game.getObjectById(carrier_pickup_id).hitsMax * .6 \
-                                or len(flag_constructions) > 0:
+                                    <= Game.getObjectById(carrier_pickup_id).hitsMax * .6 \
+                                    or len(flag_constructions) > 0:
 
                                 work_chance = 1
                             else:
@@ -954,51 +956,35 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                             # 굳이 따로 둔 이유: 캐리 둘에 무브 하나.
                             carry_body_odd = [MOVE, CARRY, CARRY, CARRY]
                             carry_body_even = [MOVE, MOVE, CARRY, CARRY, CARRY]
-                            work_body = [MOVE, WORK, WORK, MOVE, WORK, WORK]
+                            carry_body_extra = [MOVE, CARRY]
+                            work_body = [MOVE, WORK, WORK]
                             body = []
 
-                            work_check = 0
-                            for i in range(int(distance / 6)):
+                            carrier_size = int(distance / 6)
+                            # 소수점 다 올림처리.
+                            if distance % 6 > 0:
+                                carrier_size += 1
+                            # 여기서 값을 넣는다.
+                            for i in range(carrier_size):
                                 # work 부분부터 넣어본다.
                                 if work_chance == 1:
-                                    work_check += 1
-                                    if work_check == 1 or work_check == 3:
-                                        for bodypart in work_body:
-                                            body.push(bodypart)
+                                    if i < 3:
+                                        body.extend(work_body)
                                 # 이거부터 들어가야함
                                 if i % 2 == 0:
-                                    for bodypart in carry_body_even:
-                                        body.push(bodypart)
+                                    body.extend(carry_body_even)
                                 else:
-                                    for bodypart in carry_body_odd:
-                                        body.push(bodypart)
-                            # 거리 나머지값 반영.
-                            if distance % 6 > 2:
-                                body.push(MOVE)
-                                body.push(CARRY)
-                            if _.sum(Game.getObjectById(carrier_pickup_id).store) \
-                                >= Game.getObjectById(carrier_pickup_id).storeCapacity * .8:
-                                print('extra')
-                                if distance % 6 <= 2:
-                                    body.push(MOVE)
-                                body.push(CARRY)
-                            print('body({}): {}'.format(len(body), body))
+                                    body.extend(carry_body_odd)
 
-                            # WORK 파트가 있는가?
-                            if work_check > 0:
-                                working_part = True
-                            else:
-                                working_part = False
                             # 크기가 50을 넘기면? 50에 맞춰야함.
                             if len(body) > 50:
                                 # WORK 가 있을경우
-                                if working_part:
-                                    body = [WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, MOVE, MOVE, MOVE,
-                                            MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE,
-                                            MOVE, MOVE, MOVE, MOVE, MOVE, MOVE,
-                                            CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY,
-                                            CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY,
-                                            CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY]
+                                if work_chance:
+                                    body = [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE,
+                                            MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY,
+                                            CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY,
+                                            CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY,
+                                            CARRY, CARRY, CARRY, CARRY]
                                 else:
                                     body = [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE,
                                             MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, CARRY, CARRY, CARRY, CARRY,
@@ -1012,7 +998,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                                                           'assigned_room': room_name,
                                                           'home_room': spawn.room.name,
                                                           'pickup': carrier_pickup_id
-                                                             , 'work': working_part,
+                                                             , 'work': work_chance,
                                                           'source_num': carrier_source})
                             print('spawning', spawning)
                             if spawning == 0:
@@ -1022,27 +1008,26 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                                 body = []
 
                                 if work_chance == 1:
-                                    for bodypart in work_body:
-                                        body.push(bodypart)
+                                    body.extend(work_body)
                                 # 15% 몸집을 줄여본다.
                                 if int(distance / 7) == 0:
                                     distance = 1
                                 else:
                                     distance = int(distance / 7)
+                                    if distance % 7 > 0:
+                                        carrier_size += 1
                                 for i in range(distance):
-                                    if i % 2 == 1:
-                                        for bodypart in carry_body_odd:
-                                            body.push(bodypart)
+                                    if i % 2 == 0:
+                                        body.extend(carry_body_even)
                                     else:
-                                        for bodypart in carry_body_even:
-                                            body.push(bodypart)
+                                        body.extend(carry_body_odd)
 
                                 print('2nd body({}): {}'.format(len(body), body))
                                 spawning = spawn.createCreep(
                                     body,
                                     undefined,
                                     {'role': 'carrier', 'assigned_room': room_name,
-                                     'pickup': carrier_pickup_id, 'work': working_part
+                                     'pickup': carrier_pickup_id, 'work': work_chance
                                         , 'home_room': spawn.room.name, 'source_num': carrier_source})
 
                                 print('spawning {}'.format(spawning))
@@ -1055,7 +1040,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                                  WORK, WORK, WORK, CARRY, CARRY],
                                 undefined,
                                 {'role': 'carrier', 'assigned_room': room_name
-                                    , 'work': True, 'home_room': spawn.room.name
+                                    , 'work': 1, 'home_room': spawn.room.name
                                     , 'source_num': carrier_source, 'frontier': 1})
                             if spawning == ERR_NOT_ENOUGH_RESOURCES:
                                 spawn.createCreep(
@@ -1063,7 +1048,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                                      MOVE, MOVE, MOVE, MOVE],
                                     undefined,
                                     {'role': 'carrier', 'assigned_room': room_name,
-                                     'work': True, 'home_room': spawn.room.name
+                                     'work': 1, 'home_room': spawn.room.name
                                         , 'source_num': carrier_source, 'frontier': 1})
                             continue
 
@@ -1071,6 +1056,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                     # 하베스터도 소스 수 만큼!
                     elif len(flag_energy_sources) > len(remote_harvesters):
                         # 4000 for keeper lairs
+                        # todo 너무 쉽게죽음. 보강필요.
                         if keeper_lair:
                             regular_spawn = spawn.createCreep(
                                 [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, WORK,
