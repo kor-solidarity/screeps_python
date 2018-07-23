@@ -149,7 +149,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
             if harvest_target.structureType == STRUCTURE_CONTAINER:
                 # if _.sum(harvest_target.store) > harvest_target.storeCapacity * .9:
                 #     plus += 2
-                if _.sum(harvest_target.store) > harvest_target.storeCapacity * .6:
+                if _.sum(harvest_target.store) >= harvest_target.storeCapacity * .6:
                     plus += 1
             # 링크.
             elif harvest_target.structureType == STRUCTURE_LINK:
