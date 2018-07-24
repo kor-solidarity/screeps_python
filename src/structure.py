@@ -48,7 +48,8 @@ def run_tower(tower, hostile_creeps, repairs, malsana_amikoj):
     else:
         if tower.energy < tower.energyCapacity * 0.25:
             return
-        else:
+        # 스토리지 안에 에너지가 오천이상일 경우 수리를 아예 안한다.
+        if tower.room.storage and tower.room.storage.store[LOOK_ENERGY] > 5000:
             repair = tower.pos.findClosestByRange(repairs)
             tower.repair(repair)
 

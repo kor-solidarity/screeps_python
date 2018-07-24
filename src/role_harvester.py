@@ -298,7 +298,7 @@ def run_harvester(creep, all_structures, constructions, creeps, dropped_all):
             elif result == ERR_FULL:
                 creep.say('차면 찬대로!', True)
                 creep.memory.laboro = 0
-            # todo 링크 하베스트 최우선으로.
+            # todo 링크 하베스트 최우선으로. nu, ankaŭ devas havi la....  
             # 본인의 소스 담당 크립중에 3천짜리용 크립이 존재하는지 확인. 있으면 자살한다. 이때는 굳이 있어봐야 공간낭비.
             elif result == 0 and creep.memory.size == 1:
                 # print('{} the {}: 0'.format(creep.name, creep.memory.role))

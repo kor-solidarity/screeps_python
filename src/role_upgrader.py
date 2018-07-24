@@ -130,6 +130,13 @@ def run_reserver(creep):
                     creep.say('🇰🇵 🇰🇷', True)
                 else:
                     creep.say('ONWARD!!', True)
+            # not my controller == attack
+            elif creep_action == ERR_INVALID_TARGET:
+                creep.attackController(creep.room.controller)
+                if Game.time % 2 == 0:
+                    creep.say('🔥🔥🔥🔥', True)
+                else:
+                    creep.say('몰아내자!!', True)
             else:
                 creep.say(creep_action)
 

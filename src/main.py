@@ -63,7 +63,7 @@ def main():
 
     cpu_bucket_emergency = 1000
     cpu_bucket_emergency_spawn_start = 2500
-    if not Memory.debug and not Memory.debug == False:
+    if not Memory.debug and Memory.debug != False:
         Memory.debug = False
     interval = 50
     if Memory.debug:
