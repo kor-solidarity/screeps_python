@@ -51,6 +51,11 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
         creep_haulers = _.filter(creeps, lambda c: (c.memory.role == 'hauler'
                                                     and c.memory.assigned_room == spawn.pos.roomName
                                                     and (c.spawning or c.ticksToLive > 100)))
+        creep_home_defenders = _.filter(creeps, lambda c: (c.memory.role == 'h_defender'
+                                                           and c.memory.assigned_room == spawn.pos.roomName
+                                                           and (c.spawning or
+                                                                (c.ticksToLive > 200 and c.hits > c.hitsMax * .5)
+                                                                )))
         creep_miners = _.filter(creeps, lambda c: (c.memory.role == 'miner'
                                                    and c.memory.assigned_room == spawn.pos.roomName
                                                    and (c.spawning or c.ticksToLive > 150)))
@@ -114,31 +119,23 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
             if room_sources[0].energyCapacity > 4000:
                 regular_spawn = spawn.createCreep(
                     [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK,
-                     WORK, WORK,
-                     CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY]
-                    , undefined,
-                    {'role': 'harvester', 'assigned_room': spawn.pos.roomName,
-                     'size': 2})
+                     WORK, WORK, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY], undefined,
+                    {'role': 'harvester', 'assigned_room': spawn.pos.roomName, 'size': 2})
             else:
                 # perfect for 3000 cap
                 regular_spawn = spawn.createCreep(
                     [WORK, WORK, WORK, WORK, WORK, WORK,
-                     CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE,
-                     MOVE, MOVE]
-                    , undefined,
-                    {'role': 'harvester', 'assigned_room': spawn.pos.roomName,
-                     'size': 2})
+                     CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE], undefined,
+                    {'role': 'harvester', 'assigned_room': spawn.pos.roomName, 'size': 2})
             # print('what happened:', regular_spawn)
             if regular_spawn == -6:
                 # one for 1500 cap == need 2
                 if spawn.createCreep(
-                        [WORK, WORK, WORK, WORK, WORK, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE],
-                        undefined,
-                        {'role': 'harvester', 'assigned_room': spawn.pos.roomName,
-                         'size': 1}) == -6:
+                        [WORK, WORK, WORK, WORK, WORK, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE], undefined,
+                        {'role': 'harvester', 'assigned_room': spawn.pos.roomName, 'size': 1}) == -6:
+                    # final barrier
                     spawn.createCreep([MOVE, WORK, WORK, CARRY], undefined,
-                                      {'role': 'harvester', 'assigned_room': spawn.pos.roomName,
-                                       'size': 1})  # final barrier
+                                      {'role': 'harvester', 'assigned_room': spawn.pos.roomName, 'size': 1})
             return
 
         plus = 0
@@ -147,8 +144,6 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
             harvest_target = Game.getObjectById(harvest_container)
             # 컨테이너.
             if harvest_target.structureType == STRUCTURE_CONTAINER:
-                # if _.sum(harvest_target.store) > harvest_target.storeCapacity * .9:
-                #     plus += 2
                 if _.sum(harvest_target.store) >= harvest_target.storeCapacity * .6:
                     plus += 1
             # 링크.
@@ -246,7 +241,20 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
 
             return
 
-        # print('익스트랙터 {} 광부 {}'.format(extractor, creep_miners))
+        # todo NULLIFIED - need one for ranged one too.
+        # player_enemy = miscellaneous.filter_enemies(hostile_creeps, False)
+        # if len(player_enemy) > 0 and len(creep_home_defenders) == 0:
+        #     spawning_creep = spawn.createCreep(
+        #         [ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK,
+        #          ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK,
+        #          ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK,
+        #          ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, ATTACK,
+        #          MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE],
+        #         undefined, {'role': 'h_defender', 'assigned_room': spawn.pos.roomName,
+        #                     'level': 8})
+        #     if not spawning_creep == ERR_NOT_ENOUGH_ENERGY:
+        #         print('spawning_creep', spawning_creep)
+        #         return
 
         # if there's an extractor, make a miner.
         if bool(extractor):

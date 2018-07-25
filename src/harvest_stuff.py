@@ -114,7 +114,7 @@ def grab_energy(creep, pickup, only_energy, min_capacity=.4):
             elif only_energy and Game.getObjectById(pickup).store[resource] == 0:
                 creep.say('noEnergy')
                 # print('noEnergy')
-                del pickup
+                # del pickup
                 return ERR_NOT_ENOUGH_ENERGY
 
             # if there's no such resource, pass it to next loop.

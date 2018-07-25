@@ -116,7 +116,7 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
         if creep.memory.pickup:
             # 1. if 1 == False, look for storage|containers to get the energy from.
             # 2. if 2 == False, you harvest on ur own.
-            result = harvest_stuff.grab_energy(creep, creep.memory.pickup, True, 0.3)
+            result = harvest_stuff.grab_energy(creep, creep.memory.pickup, True, 0.0)
             # print(creep.name, result)
             if result == ERR_NOT_IN_RANGE:
                 creep.moveTo(Game.getObjectById(creep.memory.pickup),
@@ -136,6 +136,7 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                     creep.memory.priority = 0
                 else:
                     harvest = creep.harvest(Game.getObjectById(creep.memory.source_num))
+                    # creep.say('harv {}'.format(harvest))
                     if harvest == ERR_NOT_IN_RANGE:
                         creep.moveTo(Game.getObjectById(creep.memory.source_num)
                                      , {'visualizePathStyle': {'stroke': '#ffffff'}, 'reusePath': 25})

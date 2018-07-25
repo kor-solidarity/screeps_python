@@ -10,6 +10,7 @@ import role_collector
 import random
 import pathfinding
 import miscellaneous
+import role_soldier_h_defender
 
 
 # defs is a package which claims to export all constants and some JavaScript objects, but in reality does
@@ -450,6 +451,9 @@ def main():
             # but if a soldier/harvester.... nope. they're must-be-run creeps
             if creep.memory.role == 'soldier':
                 role_soldier.run_remote_defender(all_structures, creep, room_creeps, hostile_creeps)
+
+            elif creep.memory.role == 'h_defender':
+                role_soldier_h_defender.h_defender(all_structures, creep, room_creeps, hostile_creeps)
 
             elif creep.memory.role == 'harvester':
                 role_harvester.run_harvester(creep, all_structures, constructions, room_creeps, dropped_all)

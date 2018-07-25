@@ -26,3 +26,22 @@ def h_defender(all_structures, creep, creeps, hostile_creeps):
 
     # random blurtin'
     listo = ['Charge!', "KILL!!", "Ypa!", 'CodeIn 🐍!', 'Python 🤘!']
+
+    if creep.memory.assigned_room != creep.room.name:
+        miscellaneous.get_to_da_room(creep, creep.memory.assigned_room, False)
+        return
+
+    # find the goddamn enemies
+    if creep.room.name == creep.memory.assigned_room:
+        enemies = hostile_creeps
+        enemies = miscellaneous.filter_enemies(enemies)
+
+    if len(enemies) > 0:
+        # 공격절차: 걍 뚜까부순다.
+        enemy = creep.pos.findClosestByRange(enemies)
+        atk = creep.attack(enemy)
+        if atk == ERR_NOT_IN_RANGE:
+            creep.moveTo(enemy,
+                         {'visualizePathStyle': {'stroke': '#FF0000'}, 'ignoreCreeps': False})
+    else:
+        miscellaneous.get_to_da_room(creep, creep.memory.assigned_room, False)
