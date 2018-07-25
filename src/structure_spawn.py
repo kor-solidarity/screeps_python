@@ -164,10 +164,6 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                                           .format(l.id, harvest_target.id, harvest_target.energy))
                                     plus += 1
                                     break
-                    # for h in room_sources:
-                    #     if len(h.pos.findPathTo(harvest_target, {'ignoreCreep': True})) <= 5:
-                    #         plus += 1
-                    #         break
 
         # 건물이 아예 없을 시
         if len(harvest_carry_targets) == 0:

@@ -52,8 +52,19 @@ creep.memory.flag:
 """
 
 js_global._costs = {'base': {}, 'rooms': {}, 'creeps': {}}
-# todo 깃발꽂는거보다 이걸로.
-js_global._cmd = []
+# todo 깃발꽂는거보다 이걸로. console cmd
+# js_global._cmd = lambda a, b: ([a, b])
+
+def something(a, b):
+    print(a, b)
+
+js_global._cmd = lambda a, b: something(a, b), print('done')
+
+
+def _console_log(message):
+    print(message)
+
+js_global.console_log = _console_log
 
 
 def main():

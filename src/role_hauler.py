@@ -610,22 +610,14 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
 
                         # 스토리지 존재.
                         if creep.room.storage:
-                            # 바로옆에
-                            # if not creep.pos.isNearTo(creep.room.storage):
-                                # 스토리지에 할당량 만큼의 에너지가 있는가? 없으면 가즈아.
-                                if creep.room.storage.store[RESOURCE_ENERGY] < max_energy_in_storage:
-                                    creep.say('📦 저장합시다', True)
-                                    creep.memory.to_storage = True
-                                    move_it = creep.moveTo(creep.room.storage, {'visualizePathStyle': {'stroke': '#ffffff'}
-                                        , 'reusePath': 20})
-                                    creep.memory.move_ticks = 1
-                                    return
-                            # 넣을게 없어? 그럼 수리한다.
-                            # else:
-                            #     creep.say('고향을 지킨다!', True)
-                            #     creep.memory.priority = 3
-                            #     return
-
+                            # 스토리지에 할당량 만큼의 에너지가 있는가? 없으면 가즈아.
+                            if creep.room.storage.store[RESOURCE_ENERGY] < max_energy_in_storage:
+                                creep.say('📦 저장합시다', True)
+                                creep.memory.to_storage = True
+                                move_it = creep.moveTo(creep.room.storage, {'visualizePathStyle': {'stroke': '#ffffff'}
+                                    , 'reusePath': 20})
+                                creep.memory.move_ticks = 1
+                                return
                         # 여기까지 왔다는건 수리·발전밖에 없단 소리임.
                         # 방 레벨이 8 이하인가? 그럼 발전에 보탠다.
                         if creep.room.controller.level != 8:

@@ -141,7 +141,7 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                                      , {'visualizePathStyle': {'stroke': '#ffffff'}, 'reusePath': 25})
                     # 자원 캘수가 없으면 자원 채워질때까지 컨테이너 위치에서 대기탄다.
                     elif harvest == ERR_NO_BODYPART or harvest == ERR_NOT_ENOUGH_RESOURCES:
-                        if creep.pos.inRangeTo(Game.getObjectById(creep.memory.pickup), 0):
+                        if not creep.pos.isNearTo(Game.getObjectById(creep.memory.pickup)):
                             creep.moveTo(Game.getObjectById(creep.memory.pickup)
                                          , {'visualizePathStyle': {'stroke': '#ffffff'}, 'reusePath': 25})
                 return
