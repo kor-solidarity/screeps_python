@@ -529,6 +529,8 @@ def main():
         # todo ADD LABS
         if (Game.time % 1001 == 0 and chambro.controller and chambro.controller.my) \
                 or (chambro.memory.options and chambro.memory.options.reset):
+            # 이거 돌리는데 얼마나 걸리는지 확인하기 위한 작업.
+            structure_cpu = Game.cpu.getUsed()
             chambro.memory.options.reset = 0
             # 목록 초기화.
             chambro.memory[STRUCTURE_TOWER] = []
@@ -557,6 +559,8 @@ def main():
                     # 추가한다
                     chambro.memory[STRUCTURE_LINK].push({'id': stl.id, 'for_store': for_store})
                     for_send = 0
+            print('{}방 메모리에 건물현황 갱신하는데 {}CPU 소모'
+                  .format(chambro.name, round(Game.cpu.getUsed() - structure_cpu, 2)))
 
         # running tower, links
         if chambro.memory[STRUCTURE_TOWER] and len(chambro.memory[STRUCTURE_TOWER]) > 0:
