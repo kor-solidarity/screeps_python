@@ -306,5 +306,20 @@ def find_map_surroundings(room_name, all_corners=False):
         return arranged_room_nums
 
 
-# 적과 교전시 램파트 안에 남아 싸운다.
-# def stay_in_ramparts():
+# # 적과 교전시 램파트 안에 남아 싸운다.
+# def stay_in_ramparts(creep):
+#     # 현 크립이 있는곳에 램파트가 있는지 확인.
+#     ramparts = _.filter(creep.room.lookForAt(LOOK_STRUCTURES, creep.pos),
+#                         lambda s: s.structureType == STRUCTURE_RAMPART)
+#     # 램파트가 없다?
+#     if len(ramparts) == 0:
+#
+#
+# def safe_move_to(creep, desto):
+#     if not isinstance(desto, RoomPosition): return ERR_INVALID_ARGS
+#
+#     a_path = creep.room.findPath(creep.pos, desto, {'range'})
+#
+#
+#
+#

@@ -245,7 +245,7 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
             miscellaneous.get_to_da_room(creep, creep.memory.assigned_room, False)
             return
 
-        if not creep.memory.priority:
+        if not creep.memory.priority and not creep.memory.priority == 0:
             creep.memory.priority = 0
 
         # if their priority is not decided. gonna need to pick it firsthand.
@@ -322,9 +322,9 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                 creep.memory.priority = 1
 
                 # 여기서 스토리지를 목록에서 없앤다. 스토리지는 항상 마지막에 채운다.
-                index = structures.indexOf(creep.room.storage)
-                structures.splice(index, 1)
-                # print('delete?', structures)
+                if creep.room.storage:
+                    index = structures.indexOf(creep.room.storage)
+                    structures.splice(index, 1)
 
             elif len(constructions) > 0 or picker == 2:
                 creep.say('🚧건설,염려말라!', True)
@@ -420,84 +420,12 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
 
                     portist_kripoj = _.filter(creeps, lambda c: c.memory.role == 'hauler')
 
-                    while not creep.memory.haul_target or len(structures) > 0:
-                        # size_counter is used to determines the number of creeps that can be added to the haul_target.
-                        size_counter = 0
-
-                        # if theres no structures to haul to, then no reason to do this loop
-                        if len(structures) == 0:
-                            break
-
-                        structure = creep.pos.findClosestByRange(structures)
-
-                        for kripo in portist_kripoj:
-                            # se nomo de kripo estas sama kun ĉi tiu creep-o aŭ kripo ne havas haul_target, transsaltu
-                            if creep.name == kripo or not kripo.memory.haul_target:
-                                continue
-
-                            # se kripo.memory.haul_target estas sama kun structure.id, ankaŭ transsaltu.
-                            if kripo.memory.haul_target == structure.id:
-                                # SED se structure estas tower(turo) aŭ spawn(nesto), kalkulu la grandeco(size).
-                                if structure.structureType != STRUCTURE_EXTENSION:
-                                    # se la structure estas turo
-                                    if structure.structureType == STRUCTURE_TOWER:
-                                        # 현재 세 경우가 필요함.
-                                        # 1. 70% 이상 찬 경우: 하나만 있으면 됨.
-                                        # 2. 35%-70% 찬 경우: 2.
-                                        # 3. 그 이하: 3
-                                        # 위의 역순으로 나열
-                                        if structure.energy < structure.energyCapacity * .3:
-                                            # nur plusas 1 ĉar en ĉi tio stato ni bezonas 3 kripoj
-                                            size_counter += 1
-
-                                        elif structure.energy < structure.energyCapacity * .65:
-                                            size_counter += 2
-                                        else:
-                                            size_counter += 3
-                                    # se la structure estas NUKER
-                                    elif structure.structureType == STRUCTURE_NUKER:
-                                        if structure.energy <= structure.energyCapacity * .999:
-                                            # nur plusas 1 ĉar en ĉi tio stato ni bezonas 3 kripoj
-                                            size_counter += 1
-                                        else:
-                                            size_counter += 3
-                                    # 업글용 컨테이너일 경우? 원리는 타워와 똑같다.
-                                    elif structure.structureType == STRUCTURE_CONTAINER:
-                                        if _.sum(structure.store) < structure.storeCapacity * .5:
-                                            # nur plusas 1 ĉar en ĉi tio stato ni bezonas 3 kripoj
-                                            size_counter += 1
-                                        elif _.sum(structure.store) < structure.storeCapacity * .8:
-                                            size_counter += 2
-                                        else:
-                                            size_counter += 3
-                                            # print('STRUCTURE_CONTAINER, counter: {}'.format(size_counter))
-                                    # aŭ estas nesto aŭ lab
-                                    else:
-                                        # if spawn's energy is half-full, only one hauler is needed.
-                                        if structure.energy > structure.energyCapacity * .5:
-                                            size_counter += 3
-                                        else:
-                                            size_counter += 2
-                                # alia == structure estas extension-o
-                                else:
-                                    size_counter += 3
-
-                        # if STRUCTURE_SPAWN is right next to creep and has 90% or more energy, no need to haul there.
-                        # made to avoid chance of haulers getting healed multiple times and getting stuck
-                        if structure.structureType == STRUCTURE_SPAWN:
-                            if creep.pos.isNearTo(Game.getObjectById(structure.id)) \
-                                    and structure.energy >= structure.energyCapacity * .9:
-                                size_counter += 3
-
-                        # size_counter estas malpli ol 3 == structure povas asigni al creep-o
-                        if size_counter < 3:
-                            # asignu ID kaj brakigi.
-                            creep.memory.haul_target = structure.id
-                            break
-
-                        else:
-                            index = structures.indexOf(structure)
-                            structures.splice(index, 1)
+                    # 목표타겟 확보.
+                    haul_target = filter_haul_targets(creep, structures, portist_kripoj)
+                    if haul_target == ERR_INVALID_TARGET:
+                        del creep.memory.haul_target
+                    else:
+                        creep.memory.haul_target = haul_target
 
                 # if we have something that's not energy
                 if _.sum(creep.carry) != 0 and creep.carry[RESOURCE_ENERGY] == 0:
@@ -614,8 +542,8 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                             if creep.room.storage.store[RESOURCE_ENERGY] < max_energy_in_storage:
                                 creep.say('📦 저장합시다', True)
                                 creep.memory.to_storage = True
-                                move_it = creep.moveTo(creep.room.storage, {'visualizePathStyle': {'stroke': '#ffffff'}
-                                    , 'reusePath': 20})
+                                move_it = creep.moveTo(creep.room.storage,
+                                                       {'visualizePathStyle': {'stroke': '#ffffff'}, 'reusePath': 20})
                                 creep.memory.move_ticks = 1
                                 return
                         # 여기까지 왔다는건 수리·발전밖에 없단 소리임.
@@ -750,3 +678,112 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
             creep.memory.priority = 0
             creep.memory.laboro = 0
             del creep.memory.to_storage
+
+
+def filter_haul_targets(creep, ujoj, haulers):
+    """
+    위에 허울러 자원 뽑아올 컨테이너 등 확인하는 함수.
+    :param creep:
+    :param ujoj:
+    :param haulers:
+    :return:
+    """
+
+    if len(ujoj) == 0:
+        return ERR_INVALID_TARGET
+
+    # 애초에 이게 있으면 여기오면 안되지만...
+    if creep.memory.haul_target:
+        return creep.memory.haul_target
+
+    # 목표를 찾았는지 확인용도
+    found = 0
+
+    # 목표 컨테이너 초기화 용도.
+    target = None
+
+    while not found or len(ujoj) > 0:
+        # size_counter is used to determines the number of creeps that can be added to the haul_target.
+        size_counter = 0
+
+        # if theres no structures to haul to, then no reason to do this loop
+        if len(ujoj) == 0:
+            break
+
+        # 가장 가까운 건물.
+        structure = creep.pos.findClosestByRange(ujoj)
+
+        for kripo in haulers:
+            # 크립이름이 똑같거나 운송표적이 없으면 건너뛴다. 볼필요없음.
+            if creep.name == kripo or not kripo.memory.haul_target:
+                continue
+
+            # se kripo.memory.haul_target estas sama kun structure.id, ankaŭ transsaltu.
+            if kripo.memory.haul_target == structure.id:
+                # SED se structure estas tower(turo) aŭ spawn(nesto), kalkulu la grandeco(size).
+                if structure.structureType != STRUCTURE_EXTENSION:
+                    # se la structure estas turo
+                    if structure.structureType == STRUCTURE_TOWER:
+                        # 현재 세 경우가 필요함.
+                        # 1. 70% 이상 찬 경우: 하나만 있으면 됨.
+                        # 2. 35%-70% 찬 경우: 2.
+                        # 3. 그 이하: 3
+                        # 위의 역순으로 나열
+                        if structure.energy < structure.energyCapacity * .3:
+                            # nur plusas 1 ĉar en ĉi tio stato ni bezonas 3 kripoj
+                            size_counter += 1
+
+                        elif structure.energy < structure.energyCapacity * .65:
+                            size_counter += 2
+                        else:
+                            size_counter += 3
+                    # se la structure estas NUKER
+                    elif structure.structureType == STRUCTURE_NUKER:
+                        if structure.energy <= structure.energyCapacity * .999:
+                            # nur plusas 1 ĉar en ĉi tio stato ni bezonas 3 kripoj
+                            size_counter += 1
+                        else:
+                            size_counter += 3
+                    # 업글용 컨테이너일 경우? 원리는 타워와 똑같다.
+                    elif structure.structureType == STRUCTURE_CONTAINER:
+                        if _.sum(structure.store) < structure.storeCapacity * .5:
+                            # nur plusas 1 ĉar en ĉi tio stato ni bezonas 3 kripoj
+                            size_counter += 1
+                        elif _.sum(structure.store) < structure.storeCapacity * .8:
+                            size_counter += 2
+                        else:
+                            size_counter += 3
+                            # print('STRUCTURE_CONTAINER, counter: {}'.format(size_counter))
+                    # aŭ estas nesto aŭ lab
+                    else:
+                        # if spawn's energy is half-full, only one hauler is needed.
+                        if structure.energy > structure.energyCapacity * .5:
+                            size_counter += 3
+                        else:
+                            size_counter += 2
+                # alia == structure estas extension-o
+                else:
+                    size_counter += 3
+
+        # if STRUCTURE_SPAWN is right next to creep and has 90% or more energy, no need to haul there.
+        # made to avoid chance of haulers getting healed multiple times and getting stuck
+        if structure.structureType == STRUCTURE_SPAWN:
+            if creep.pos.isNearTo(Game.getObjectById(structure.id)) \
+                    and structure.energy >= structure.energyCapacity * .9:
+                size_counter += 3
+
+        # size_counter estas malpli ol 3 == structure povas asigni al creep-o
+        if size_counter < 3:
+            # asignu ID kaj brakigi.
+            target = structure.id
+            found = 1
+            break
+
+        else:
+            index = ujoj.indexOf(structure)
+            ujoj.splice(index, 1)
+
+    if found:
+        return target
+    else:
+        return ERR_INVALID_TARGET
