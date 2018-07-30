@@ -93,6 +93,9 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                         if s.id == m.id and not m.for_store:
                             harvest_carry_targets.push(s.id)
                             break
+            # 소스 근처에 스토리지가 있으면 그것도 확인. todo 되나 확인요망
+            if spawn.room.storage and len(rs.pos.findPathTo(spawn.room.storage, {'ignoreCreeps': True})) <= 3:
+                harvest_carry_targets.push(spawn.room.storage.id)
 
         if len(harvest_carry_targets) < num_o_sources:
             harvesters_bool = bool(len(creep_harvesters) < num_o_sources * 2)
