@@ -362,7 +362,9 @@ def main():
                                                          or s.structureType == STRUCTURE_LINK
                                                          or s.structureType == STRUCTURE_LAB
                                                          or s.structureType == STRUCTURE_CONTAINER
-                                                         or s.structureType == STRUCTURE_STORAGE)
+                                                         or s.structureType == STRUCTURE_STORAGE
+                                                         or s.structureType == STRUCTURE_SPAWN
+                                                         or s.structureType == STRUCTURE_POWER_SPAWN)
                                                         and s.hits < s.hitsMax)
                                                        or ((s.structureType == STRUCTURE_WALL
                                                             and s.hits < int(repair_pts))
@@ -379,7 +381,9 @@ def main():
                                                          or s.structureType == STRUCTURE_LINK
                                                          or s.structureType == STRUCTURE_LAB
                                                          or s.structureType == STRUCTURE_CONTAINER
-                                                         or s.structureType == STRUCTURE_STORAGE)
+                                                         or s.structureType == STRUCTURE_STORAGE
+                                                         or s.structureType == STRUCTURE_SPAWN
+                                                         or s.structureType == STRUCTURE_POWER_SPAWN)
                                                         and s.hits < s.hitsMax)))
 
             # 확인작업: 루프문을 돌려서 5M 단위로 끊는다. 최저는 300.
