@@ -11,7 +11,7 @@ __pragma__('noalias', 'type')
 __pragma__('noalias', 'update')
 
 
-def movi(creep, target, range=0, reusePath=20, ignoreCreeps=False, color='#ffffff'):
+def movi(creep, target, range_to=0, reusePath=20, ignoreCreeps=False, color='#ffffff'):
     target = Game.getObjectById(target)
-    return creep.moveTo(target, {'range': range, 'ignoreCreeps': ignoreCreeps
+    return creep.moveTo(target, {'range': range_to, 'ignoreCreeps': ignoreCreeps
                         , 'visualizePathStyle': {'stroke': color}, 'reusePath': reusePath})

@@ -578,7 +578,37 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                     elif transfer_result == 0:
                         # creep.say('done!')
                         creep.memory.move_ticks = 1
+                        # 다 끝나면 바로 다음 목적지로 보내야한다.
+                        end_structures = all_structures.filter(lambda s: ((s.structureType == STRUCTURE_SPAWN
+                                                                       or s.structureType == STRUCTURE_EXTENSION)
+                                                                      and s.energy < s.energyCapacity)
+                                                                     or (s.structureType == STRUCTURE_TOWER
+                                                                         and s.energy < s.energyCapacity * 0.8))
+                        # 핵을 넣는걸로 함?
+                        if Memory.rooms[creep.room.name].options.fill_nuke:
+                            nuke_structure_add = all_structures.filter(lambda s: s.structureType == STRUCTURE_NUKER
+                                                                                 and s.energy < s.energyCapacity)
+                            end_structures.extend(nuke_structure_add)
+                        # 연구소를 채우는걸로 함?
+                        if Memory.rooms[creep.room.name].options.fill_labs:
+                            structure_add = all_structures.filter(lambda s: s.structureType == STRUCTURE_LAB
+                                                                            and s.energy < s.energyCapacity)
+                            end_structures.extend(structure_add)
+                        for s in end_structures:
+                            if s.id == creep.memory.haul_target:
+                                s_index = end_structures.indexOf(s)
+                                end_structures.splice(s_index, 1)
+                                break
                         del creep.memory.haul_target
+                        target = filter_haul_targets(creep, end_structures, creeps)
+
+                        if target == ERR_INVALID_TARGET:
+                            return
+                        else:
+                            creep.memory.haul_target = target
+                            if not creep.pos.isNearTo(target):
+                                movi(creep, creep.memory.haul_target, 0, 40, True)
+
                     else:
                         creep.say(transfer_result)
                         creep.memory.move_ticks = 1
@@ -684,8 +714,8 @@ def filter_haul_targets(creep, ujoj, haulers):
     """
     위에 허울러 자원 뽑아올 컨테이너 등 확인하는 함수.
     :param creep:
-    :param ujoj:
-    :param haulers:
+    :param ujoj: 에너지 채울 대상.
+    :param haulers: 허울러라 써있지만 실질적으로는 모든 크립.
     :return:
     """
 
