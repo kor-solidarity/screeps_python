@@ -961,15 +961,17 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                             else:
                                 work_chance = random.randint(0, 1)
                             # 굳이 따로 둔 이유: 캐리 둘에 무브 하나.
-                            carry_body_odd = [MOVE, CARRY, CARRY, CARRY]
-                            carry_body_even = [MOVE, MOVE, CARRY, CARRY, CARRY]
+                            # carry_body_odd = [MOVE, CARRY, CARRY, CARRY]
+                            # carry_body_even = [MOVE, MOVE, CARRY, CARRY, CARRY]
+                            carry_body_odd = [CARRY]
+                            carry_body_even = [CARRY, MOVE]
                             carry_body_extra = [MOVE, CARRY]
-                            work_body = [MOVE, WORK, WORK]
+                            work_body = [WORK, WORK, MOVE]
                             body = []
 
-                            carrier_size = int(distance / 6)
+                            carrier_size = int(distance / 2)
                             # 소수점 다 올림처리.
-                            if distance % 6 > 0:
+                            if distance % 2 > 0:
                                 carrier_size += 1
                             # 여기서 값을 넣는다.
                             for i in range(carrier_size):

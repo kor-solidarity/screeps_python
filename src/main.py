@@ -213,7 +213,9 @@ def main():
     for chambra_nomo in Object.keys(Game.rooms):
         chambro_cpu = Game.cpu.getUsed()
         chambro = Game.rooms[chambra_nomo]
-
+        # 방 메모리가 아예 없을경우.
+        if not Memory.rooms:
+            Memory.rooms = {}
         # 게임 내 수동조작을 위한 초기화 설정. 단, 방이 우리꺼일 경우에만 적용.
         if chambro.controller:
             if chambro.controller.my:
