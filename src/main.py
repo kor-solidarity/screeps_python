@@ -56,14 +56,17 @@ js_global._costs = {'base': {}, 'rooms': {}, 'creeps': {}}
 # todo 깃발꽂는거보다 이걸로. console cmd
 # js_global._cmd = lambda a, b: ([a, b])
 
+
 def something(a, b):
     print(a, b)
+
 
 js_global._cmd = lambda a, b: something(a, b), print('done')
 
 
 def _console_log(message):
     print(message)
+
 
 js_global.console_log = _console_log
 
@@ -97,7 +100,7 @@ def main():
 
     try:
         # adding alliance. um.... this code use 0.05 CPU o.O
-        if Game.time % 1001 == 0 or Memory.updateAlliance:
+        if Game.time % 2000 == 0 or Memory.updateAlliance:
             ally_start = Game.cpu.getUsed()
             Memory.updateAlliance = False
             shard_name = Game.shard.name
@@ -575,16 +578,16 @@ def main():
                     # 추가한다
                     chambro.memory[STRUCTURE_LINK].push({'id': stl.id, 'for_store': for_store})
                     for_send = 0
-            # todo 컨테이너
-            str_cont = _.filter(all_structures, lambda s: s.structureType == STRUCTURE_CONTAINER)
-            if not len(str_cont) == chambro.memory[STRUCTURE_CONTAINER]:
-                # 컨테이너는 크게 세종류가 존재한다.
-                # 하베스터용, 캐리어용, 업그레이더용.
-                # 각각 뭐냐에 따라 채울지 말지, 그리고 얼마나 차면 새 허울러를 추가할지를 정한다.
-
-                # 하베스터용은 그냥 소스 근처(3이내)에 컨테이너가 존재하는지 확인한다. 캐리어는 당연 정반대.
-                # 업그레이더용은 컨트롤러 근처에 있는지 확인한다.
-                for stc in str_cont:
+            # # todo 컨테이너
+            # str_cont = _.filter(all_structures, lambda s: s.structureType == STRUCTURE_CONTAINER)
+            # if not len(str_cont) == chambro.memory[STRUCTURE_CONTAINER]:
+            #     # 컨테이너는 크게 세종류가 존재한다.
+            #     # 하베스터용, 캐리어용, 업그레이더용.
+            #     # 각각 뭐냐에 따라 채울지 말지, 그리고 얼마나 차면 새 허울러를 추가할지를 정한다.
+            #
+            #     # 하베스터용은 그냥 소스 근처(3이내)에 컨테이너가 존재하는지 확인한다. 캐리어는 당연 정반대.
+            #     # 업그레이더용은 컨트롤러 근처에 있는지 확인한다.
+            #     for stc in str_cont:
 
 
             print('{}방 메모리에 건물현황 갱신하는데 {}CPU 소모'

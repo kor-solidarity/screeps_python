@@ -793,7 +793,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                     # find creeps with assigned flag.
                     remote_carriers = _.filter(creeps, lambda c: c.memory.role == 'carrier'
                                                                  and c.memory.assigned_room == room_name
-                                                                 and (c.spawning or c.ticksToLive > 100))
+                                                                 and (c.spawning or c.ticksToLive > 150))
                     # exclude creeps with less than 100 life ticks so the new guy can be replaced right away
                     remote_harvesters = _.filter(creeps, lambda c: c.memory.role == 'harvester'
                                                                    and c.memory.assigned_room == room_name
