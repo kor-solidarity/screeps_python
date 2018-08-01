@@ -533,23 +533,33 @@ def main():
 
         # renew structures
         # todo ADD LABS
-        if (Game.time % 1001 == 0 and chambro.controller and chambro.controller.my) \
+        if (Game.time % 500 == 0 and chambro.controller and chambro.controller.my) \
                 or (chambro.memory.options and chambro.memory.options.reset):
             # 이거 돌리는데 얼마나 걸리는지 확인하기 위한 작업.
             structure_cpu = Game.cpu.getUsed()
             chambro.memory.options.reset = 0
             # 목록 초기화.
-            chambro.memory[STRUCTURE_TOWER] = []
-            chambro.memory[STRUCTURE_LINK] = []
+            if not chambro.memory[STRUCTURE_TOWER]:
+                chambro.memory[STRUCTURE_TOWER] = []
+            if not chambro.memory[STRUCTURE_LINK]:
+                chambro.memory[STRUCTURE_LINK] = []
+            if not chambro.memory[STRUCTURE_CONTAINER]:
+                chambro.memory[STRUCTURE_CONTAINER] = []
+            if not chambro.memory[STRUCTURE_LAB]:
+                chambro.memory[STRUCTURE_LAB] = []
 
+            # 매번 완전초기화 하면 너무 자원낭비.
+
+            # 타워세기. 수량 틀리면 초기화한다.
             str_towers = _.filter(all_structures, lambda s: s.structureType == STRUCTURE_TOWER)
-            if len(str_towers) > 0:
-                # 타워 추가.
+            if not len(str_towers) == len(chambro.memory[STRUCTURE_TOWER]):
+                chambro.memory[STRUCTURE_TOWER] = []
                 for stt in str_towers:
                     chambro.memory[STRUCTURE_TOWER].push(stt.id)
-            # add links
+
+            # add links. 위와 동일한 원리.
             str_links = _.filter(all_structures, lambda s: s.structureType == STRUCTURE_LINK)
-            if len(str_links) > 0:
+            if not len(str_links) == len(chambro.memory[STRUCTURE_LINK]):
                 # 안보내는 조건은 주변 5칸거리내에 컨트롤러·스폰·스토리지가 있을 시.
                 str_points = _.filter(all_structures, lambda s: s.structureType == STRUCTURE_STORAGE
                                       or s.structureType == STRUCTURE_SPAWN or s.structureType == STRUCTURE_TERMINAL
@@ -565,6 +575,18 @@ def main():
                     # 추가한다
                     chambro.memory[STRUCTURE_LINK].push({'id': stl.id, 'for_store': for_store})
                     for_send = 0
+            # todo 컨테이너
+            str_cont = _.filter(all_structures, lambda s: s.structureType == STRUCTURE_CONTAINER)
+            if not len(str_cont) == chambro.memory[STRUCTURE_CONTAINER]:
+                # 컨테이너는 크게 세종류가 존재한다.
+                # 하베스터용, 캐리어용, 업그레이더용.
+                # 각각 뭐냐에 따라 채울지 말지, 그리고 얼마나 차면 새 허울러를 추가할지를 정한다.
+
+                # 하베스터용은 그냥 소스 근처(3이내)에 컨테이너가 존재하는지 확인한다. 캐리어는 당연 정반대.
+                # 업그레이더용은 컨트롤러 근처에 있는지 확인한다.
+                for stc in str_cont:
+
+
             print('{}방 메모리에 건물현황 갱신하는데 {}CPU 소모'
                   .format(chambro.name, round(Game.cpu.getUsed() - structure_cpu, 2)))
 
@@ -589,18 +611,24 @@ def main():
                 enemy = [hostile_creeps[0]]
             else:
                 enemy = hostile_creeps
+            for_str = 0
             for i in chambro.memory[STRUCTURE_TOWER]:
-                # sometimes these could die you know....
-                the_tower = Game.getObjectById(i)
-                if the_tower:
+                if Game.getObjectById(i):
                     room_cpu_num += 1
-                    building_action.run_tower(the_tower, enemy, repairs, malsana_amikoj)
+                    building_action.run_tower(Game.getObjectById(i), enemy, repairs, malsana_amikoj)
+                else:
+                    del chambro.memory[STRUCTURE_TOWER][for_str]
+                for_str += 1
 
         if chambro.memory[STRUCTURE_LINK] and len(chambro.memory[STRUCTURE_LINK]) > 0:
+            for_str = 0
             for link in chambro.memory[STRUCTURE_LINK]:
                 if Game.getObjectById(link.id):
                     room_cpu_num += 1
                     building_action.run_links(link.id)
+                else:
+                    del chambro.memory[STRUCTURE_LINK][for_str]
+                for_str += 1
 
         if (Memory.debug or Game.time % interval == 0 or Memory.tick_check) and room_cpu_num > 0:
             end = Game.cpu.getUsed()

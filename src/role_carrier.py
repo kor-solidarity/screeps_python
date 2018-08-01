@@ -304,11 +304,13 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                 home_structures = Game.rooms[creep.memory.home_room].find(FIND_STRUCTURES)
 
                 # find links outside the filter and containers
+                # todo 링크설정 변경요망.
                 outside_links_and_containers = \
                     _.filter(home_structures, lambda s: s.structureType == STRUCTURE_CONTAINER
                                                         or (s.structureType == STRUCTURE_LINK and
                                                             (s.pos.x < 5 or s.pos.x > 44
-                                                             or s.pos.y < 5 or s.pos.y > 44)))
+                                                             or s.pos.y < 5 or s.pos.y > 44))
+                                                        or s.structureType == STRUCTURE_STORAGE)
 
             # if you're not in the home_room and no haul_target
             if creep.room.name != Game.rooms[creep.memory.home_room].name and not creep.memory.haul_target:
