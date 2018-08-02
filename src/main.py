@@ -563,6 +563,7 @@ def main():
             # add links. 위와 동일한 원리.
             str_links = _.filter(all_structures, lambda s: s.structureType == STRUCTURE_LINK)
             if not len(str_links) == len(chambro.memory[STRUCTURE_LINK]):
+                chambro.memory[STRUCTURE_LINK] = []
                 # 안보내는 조건은 주변 5칸거리내에 컨트롤러·스폰·스토리지가 있을 시.
                 str_points = _.filter(all_structures, lambda s: s.structureType == STRUCTURE_STORAGE
                                       or s.structureType == STRUCTURE_SPAWN or s.structureType == STRUCTURE_TERMINAL
@@ -581,6 +582,7 @@ def main():
             # # todo 컨테이너
             # str_cont = _.filter(all_structures, lambda s: s.structureType == STRUCTURE_CONTAINER)
             # if not len(str_cont) == chambro.memory[STRUCTURE_CONTAINER]:
+            #     chambro.memory[STRUCTURE_CONTAINER] = []
             #     # 컨테이너는 크게 세종류가 존재한다.
             #     # 하베스터용, 캐리어용, 업그레이더용.
             #     # 각각 뭐냐에 따라 채울지 말지, 그리고 얼마나 차면 새 허울러를 추가할지를 정한다.
@@ -588,6 +590,7 @@ def main():
             #     # 하베스터용은 그냥 소스 근처(3이내)에 컨테이너가 존재하는지 확인한다. 캐리어는 당연 정반대.
             #     # 업그레이더용은 컨트롤러 근처에 있는지 확인한다.
             #     for stc in str_cont:
+            #         if
 
 
             print('{}방 메모리에 건물현황 갱신하는데 {}CPU 소모'
