@@ -56,7 +56,7 @@ def harvest_energy(creep, source_num):
     return harvested
 
 
-def grab_energy(creep, pickup, only_energy, min_capacity=.4):
+def grab_energy(creep, pickup, only_energy, min_capacity=.5):
     """
     grabbing energy from local storages(container, storage, etc.)
     :param creep:

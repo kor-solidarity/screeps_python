@@ -155,24 +155,20 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                 # find any containers/links with any resources inside
                 storages = all_structures.filter(lambda s:
                                                  (s.structureType == STRUCTURE_CONTAINER
-                                                  and _.sum(s.store) >= creep.carryCapacity * .45)
+                                                  and _.sum(s.store) >= creep.carryCapacity * .5)
                                                  or (s.structureType == STRUCTURE_LINK
-                                                     and s.energy >= creep.carryCapacity * .45
-                                                     and not
-                                                     (s.pos.x < 5 or s.pos.x > 44 or s.pos.y < 5 or s.pos.y > 44)))
-                # print('storages', storages)
+                                                     and s.energy >= creep.carryCapacity * .5))
                 # 위 목록 중에서 가장 가까이 있는 컨테이너를 뽑아간다.
                 # 만약 뽑아갈 대상이 없을 시 터미널, 스토리지를 각각 찾는다.
                 # 만일 연구소를 안채우기로 했으면 거기서도 뽑는다.
                 if Memory.rooms[creep.room.name].options.fill_labs == 0:
                     # print('no nuke')
-                    labs = all_structures.filter(lambda s: s.structureType == STRUCTURE_LAB
-                                                                     and s.energy >= creep.carryCapacity * .45)
+                    labs = all_structures\
+                        .filter(lambda s: s.structureType == STRUCTURE_LAB and s.energy >= creep.carryCapacity * .5)
                     storages.extend(labs)
-                    # print(storages)
 
                 pickup_id = miscellaneous.pick_pickup(creep, creeps, storages, terminal_capacity)
-                # print('pickupId', pickup_id)
+                print('pickupId', pickup_id)
                 if pickup_id == ERR_INVALID_TARGET:
                     pass
                 else:

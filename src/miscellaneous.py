@@ -107,32 +107,68 @@ def pick_pickup(creep, creeps, storages, terminal_capacity=10000, upgrade=False)
 
         if not loop_storage:
             break
-        # if loop_storage only holds energy
-        if loop_storage.energy:
+        # if loop_storage only holds energy - STRUCTURE_LINK and STRUCTURE_LAB
+        if loop_storage.structureType == STRUCTURE_LINK or loop_storage.structureType == STRUCTURE_LAB:
             stored_energy = loop_storage.energy
-        # 컨트롤러 근처에 있는 컨테이너는 수확에서 제외한다. 다만 업그레이더가 아닐때만!
-        # todo 이 컨테이너 확인을 메모리가 존재할때만 하고 거리도 실질적으로 맞게 변환해야한다.
-        elif not upgrade and loop_storage.structureType == STRUCTURE_CONTAINER \
-                and creep.room.memory.options.upgrade_cont \
-                and loop_storage.pos.inRangeTo(loop_storage.room.controller, 6):
-            if loop_storage.pos.inRangeTo(loop_storage.room.controller, 6):
-                sources = loop_storage.room.find(FIND_SOURCES)
-                sources.push(loop_storage.room.find(FIND_MINERALS)[0])
-                # 컨테이너가 소스 옆에 있을 경우 삭제한다. 둘이 있을 경우 좀 골때린데...
-                for s in sources:
-                    # 직접거리도 세칸 이내인가? 맞으면 그걸 없앤다.
-                    if len(loop_storage.pos.findPathTo(s, {'ignoreCreeps': True})) <= 3:
-                        loop_index = storages.indexOf(loop_storage)
-                        # storages.remove(loop_storage)
-                        storages.splice(loop_index, 1)
-                        loop_storage = creep.pos.findClosestByRange(storages)
-                        if upgrade:
-                            stored_energy = loop_storage.store[RESOURCE_ENERGY]
-                        else:
-                            stored_energy = _.sum(loop_storage.store)
-                        break
 
-        # else == container or storage.
+        # todo 이 컨테이너 확인을 메모리가 존재할때만 하고 거리도 실질적으로 맞게 변환해야한다.
+        # 예전엔 대상을 찾아서 이게 업글용인건지(즉 소스근처가 아닌거) 확인용도였음. 이제 그건 컨테이너 메모리에 적혀있음.
+        # 컨테이너인 경우
+        elif loop_storage.structureType == STRUCTURE_CONTAINER:
+            # 메모리에 있는건지 확인.
+            available = False
+            # 우선 업글용도인지 확인한다.
+            for cont in creep.room.memory[STRUCTURE_CONTAINER]:
+                # 아이디 맞는지 확인하고.
+                if cont.id == loop_storage.id:
+                    # if creep.memory.role == 'hauler':
+                    #     print('cont.id', cont.id)
+                    #     print('cont.for_upgrade {} upgrade {} cont.for_harvest {} and _.sum(cont.store) {}'
+                    #           .format(cont.for_upgrade, upgrade, cont.for_harvest, _.sum(cont.store)))
+                    available = True
+                    # 크립과 컨테이너가 업글용인가?
+                    if cont.for_upgrade and upgrade:
+                        stored_energy = loop_storage.store[RESOURCE_ENERGY]
+                    # 업글용이면 허울러, 건들지말것. 다만 캐리어용이면 일부 챙길 수 있음. 꽉찼을때 한정.
+                    elif cont.for_upgrade and cont.for_harvest == 2 and _.sum(loop_storage.store) == loop_storage.storeCapacity:
+                        if creep.memory.role == 'hauler': print('wtf')
+                        stored_energy = _.sum(loop_storage.store)
+
+                    # 그냥 포 업그레이드가 아니면 전부 쓸 수 있음.
+                    elif not cont.for_upgrade:
+                        if creep.memory.role == 'hauler': print('so what')
+                        stored_energy = _.sum(loop_storage.store)
+
+                    # 위와 해당사항 없으면 이건 볼거없음.
+                    else:
+                        loop_index = storages.indexOf(loop_storage)
+                        storages.splice(loop_index, 1)
+
+                    break
+
+        # # 컨트롤러 근처에 있는 컨테이너는 수확에서 제외한다. 다만 업그레이더가 아닐때만!
+        # elif not upgrade \
+        #         and loop_storage.structureType == STRUCTURE_CONTAINER \
+        #         and creep.room.memory.options.upgrade_cont \
+        #         and loop_storage.pos.inRangeTo(loop_storage.room.controller, 6):
+        #     if loop_storage.pos.inRangeTo(loop_storage.room.controller, 6):
+        #         sources = loop_storage.room.find(FIND_SOURCES)
+        #         sources.push(loop_storage.room.find(FIND_MINERALS)[0])
+        #         # 컨테이너가 소스 옆에 있을 경우 삭제한다. 둘이 있을 경우 좀 골때린데...
+        #         for s in sources:
+        #             # 직접거리도 세칸 이내인가? 맞으면 그걸 없앤다.
+        #             if len(loop_storage.pos.findPathTo(s, {'ignoreCreeps': True})) <= 3:
+        #                 loop_index = storages.indexOf(loop_storage)
+        #                 # storages.remove(loop_storage)
+        #                 storages.splice(loop_index, 1)
+        #                 loop_storage = creep.pos.findClosestByRange(storages)
+        #                 if upgrade:
+        #                     stored_energy = loop_storage.store[RESOURCE_ENERGY]
+        #                 else:
+        #                     stored_energy = _.sum(loop_storage.store)
+        #                 break
+
+        # else == storage.
         else:
             if upgrade:
                 stored_energy = loop_storage.store[RESOURCE_ENERGY]
@@ -146,14 +182,14 @@ def pick_pickup(creep, creeps, storages, terminal_capacity=10000, upgrade=False)
             else:
                 # if same id, drop the amount the kripo can carry.
                 if loop_storage.id == kripo.memory.pickup:
-                    # print('loop_storage.id({}) ==
-                    # kripo.memory.pickup({})'.format(loop_storage.id, kripo.memory.pickup))
                     stored_energy -= kripo.carryCapacity
                     # print('stored_energy:', stored_energy)
                 else:
                     continue
         # if leftover stored_energy has enough energy for carry, set pickup.
-        if stored_energy >= int((creep.carryCapacity - _.sum(creep.carry)) * .45):
+        if stored_energy >= int((creep.carryCapacity - _.sum(creep.carry)) * .5):
+            if creep.memory.role == 'hauler':
+                print('return', loop_storage.id)
             return loop_storage.id
 
         else:

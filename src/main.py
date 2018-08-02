@@ -379,6 +379,7 @@ def main():
                                                                         and (s.hits < int(repair_pts * 2))))
                                                                and chambro.controller.level > 1))))
         else:
+            ram_cpu = Game.cpu.getUsed()
             # list of ALL repairs in the room.
             repairs = all_structures.filter(lambda s: (((s.structureType == STRUCTURE_ROAD
                                                          or s.structureType == STRUCTURE_TOWER
@@ -436,6 +437,9 @@ def main():
                     # 뭔가 있으면 그대로 넣고 끝.
                     if len(wall_repairs) > 0:
                         repairs.extend(wall_repairs)
+
+            # print("{} CPU used for searching repairs in room {}"
+            #       .format(round(Game.cpu.getUsed() - ram_cpu, 2), chambra_nomo))
 
         if not repairs or len(repairs) == 0:
             repairs = []
@@ -536,7 +540,7 @@ def main():
 
         # renew structures
         # todo ADD LABS
-        if (Game.time % 500 == 0 and chambro.controller and chambro.controller.my) \
+        if (Game.time % 100 == 0 and chambro.controller and chambro.controller.my) \
                 or (chambro.memory.options and chambro.memory.options.reset):
             # 이거 돌리는데 얼마나 걸리는지 확인하기 위한 작업.
             structure_cpu = Game.cpu.getUsed()
@@ -613,8 +617,6 @@ def main():
 
                     chambro.memory[STRUCTURE_CONTAINER]\
                         .push({'id': stc.id, 'for_upgrade': for_upgrade, 'for_harvest': for_harvest})
-
-
 
             print('{}방 메모리에 건물현황 갱신하는데 {}CPU 소모'
                   .format(chambro.name, round(Game.cpu.getUsed() - structure_cpu, 2)))
