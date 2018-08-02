@@ -68,7 +68,11 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
         if not creep.memory.dropped and len(dropped_all) > 0:
             for drop in dropped_all:
                 # carrier will only take energy
-                if drop.resourceType != RESOURCE_ENERGY:
+                # 크립정보 있으면 비석.
+                if drop.creep:
+                    if not drop.store[RESOURCE_ENERGY]:
+                        continue
+                elif drop.resourceType != RESOURCE_ENERGY:
                     continue
                 # if there's a dropped resources near 5
                 if creep.pos.inRangeTo(drop, 5):

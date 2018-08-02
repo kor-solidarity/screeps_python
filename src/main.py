@@ -551,9 +551,8 @@ def main():
             if not chambro.memory[STRUCTURE_LAB]:
                 chambro.memory[STRUCTURE_LAB] = []
 
-            # 매번 완전초기화 하면 너무 자원낭비.
-
-            # 타워세기. 수량 틀리면 초기화한다.
+            # 매번 완전초기화 하면 너무 자원낭비. 수량 틀릴때만 돌린다.
+            # 타워세기.
             str_towers = _.filter(all_structures, lambda s: s.structureType == STRUCTURE_TOWER)
             if not len(str_towers) == len(chambro.memory[STRUCTURE_TOWER]):
                 chambro.memory[STRUCTURE_TOWER] = []
@@ -573,24 +572,48 @@ def main():
                     for_store = 0
                     # 안보내는 조건은 주변 5칸거리내에 컨트롤러·스폰·스토리지가 있을 시.
                     for stp in str_points:
-                        if len(stl.pos.findPathTo(stp, {{'ignoreCreeps': True}})) <= 5:
+                        if len(stl.pos.findPathTo(stp, {'ignoreCreeps': True})) <= 5:
                             for_store = 1
                             break
                     # 추가한다
                     chambro.memory[STRUCTURE_LINK].push({'id': stl.id, 'for_store': for_store})
                     for_send = 0
-            # # todo 컨테이너
-            # str_cont = _.filter(all_structures, lambda s: s.structureType == STRUCTURE_CONTAINER)
-            # if not len(str_cont) == chambro.memory[STRUCTURE_CONTAINER]:
-            #     chambro.memory[STRUCTURE_CONTAINER] = []
-            #     # 컨테이너는 크게 세종류가 존재한다.
-            #     # 하베스터용, 캐리어용, 업그레이더용.
-            #     # 각각 뭐냐에 따라 채울지 말지, 그리고 얼마나 차면 새 허울러를 추가할지를 정한다.
-            #
-            #     # 하베스터용은 그냥 소스 근처(3이내)에 컨테이너가 존재하는지 확인한다. 캐리어는 당연 정반대.
-            #     # 업그레이더용은 컨트롤러 근처에 있는지 확인한다.
-            #     for stc in str_cont:
-            #         if
+            # 컨테이너
+            str_cont = _.filter(all_structures, lambda s: s.structureType == STRUCTURE_CONTAINER)
+            if not len(str_cont) == chambro.memory[STRUCTURE_CONTAINER]:
+                chambro.memory[STRUCTURE_CONTAINER] = []
+                # 컨테이너는 크게 세종류가 존재한다.
+                # 하베스터용, 캐리어용, 업그레이더용.
+                # 각각 뭐냐에 따라 채울지 말지, 그리고 얼마나 차면 새 허울러를 추가할지를 정한다.
+
+                # 하베스터용은 그냥 소스 근처(4이내)에 컨테이너가 존재하는지 확인한다. 캐리어는 당연 정반대.
+                # 업그레이더용은 컨트롤러 근처에 있는지 확인한다.
+
+                # 방 안에 소스랑 미네랄
+                room_sources = chambro.find(FIND_SOURCES)
+                room_sources.extend(chambro.find(FIND_MINERALS))
+
+                for stc in str_cont:
+                    # 하베스터 저장용인가? 맞으면 1, 만일 캐리어 운송용이면 2.
+                    # todo for_harvest 2 는 캐리어쪽에 넣는걸로.
+                    # 0 이면 방업글 끝나면 계속 갖고있을 이유가 없는 잉여인 셈.
+                    for_harvest = 0
+                    # 방 업글용인가?
+                    for_upgrade = 0
+                    for rs in room_sources:
+                        # 컨테이너 주변 4칸이내에 소스가 있는지 확인한다.
+                        if len(stc.pos.findPathTo(rs, {'ignoreCreeps': True})) <= 4:
+                            # 있으면 이 컨테이너는 하베스터 저장용.
+                            for_harvest = 1
+                            break
+                    # 확인 끝났으면 이제 방 업글용인지 확인한다. 방렙 8 미만 + 컨트롤러부터의 실제 거리가 5 이하인가?
+                    if chambro.controller.level < 8 \
+                            and len(stc.pos.findPathTo(chambro.controller, {'ignoreCreeps': True})) <= 5:
+                        for_upgrade = 1
+
+                    chambro.memory[STRUCTURE_CONTAINER]\
+                        .push({'id': stc.id, 'for_upgrade': for_upgrade, 'for_harvest': for_harvest})
+
 
 
             print('{}방 메모리에 건물현황 갱신하는데 {}CPU 소모'
@@ -600,7 +623,8 @@ def main():
         if chambro.memory[STRUCTURE_TOWER] and len(chambro.memory[STRUCTURE_TOWER]) > 0:
             # 수리작업을 할때 벽·방어막 체력 300 이하가 있으면 그걸 최우선으로 고친다.
             # 적이 있을 시 수리 자체를 안하니 있으면 아예 무시.
-            if len(hostile_creeps) == 0 and chambro.controller.level > 4 and Game.cpu.bucket > cpu_bucket_emergency:
+            if len(hostile_creeps) == 0 and chambro.controller.level > 4 \
+                    and Game.cpu.bucket > cpu_bucket_emergency:
                 for repair_obj in repairs:
                     if (repair_obj.structureType == STRUCTURE_WALL
                         or repair_obj.structureType == STRUCTURE_RAMPART) \

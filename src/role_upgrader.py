@@ -26,7 +26,6 @@ def run_upgrader(creep, creeps, all_structures):
     stroke_key = "stroke"
 
     # in case it's gonna die soon. this noble act is only allowed if there's a storage in the room.
-    # todo 자원 뽑아오는게 스토리지가 아닐 경우 스토리지로 반납하러 가는길에 죽을 가능성이 있음.
     if creep.ticksToLive < 30 and _.sum(creep.carry) != 0 and creep.room.storage:
         creep.say('endIsNear')
         for minerals in Object.keys(creep.carry):
@@ -46,7 +45,7 @@ def run_upgrader(creep, creeps, all_structures):
 
     # 혹시 딴짓하다 옆방으로 새는거에 대한 대비 - it really happened lol
     if not creep.memory.upgrade_target:
-        creep.memory.upgrade_target = creep.room.controller['id']
+        creep.memory.upgrade_target = creep.room.controller.id
     elif not creep.memory.laboro and creep.memory.laboro != 0:
         creep.memory.laboro = 0
 
@@ -77,20 +76,37 @@ def run_upgrader(creep, creeps, all_structures):
             return
 
         if not creep.memory.pickup:
-            # find any storages with any energy inside
-            containers_or_links = all_structures.filter(lambda s: (s.structureType == STRUCTURE_CONTAINER
-                                                        and s.store[RESOURCE_ENERGY] > 0)
-                                                        or (s.structureType == STRUCTURE_LINK
-                                                            and s.energy >= 150
-                                                            and not (s.pos.x < 5 or s.pos.x > 44
-                                                                     or s.pos.y < 5 or s.pos.y > 44)))
-            # 가장 가까운곳에서 빼오는거임. 원래 스토리지가 최우선이었는데 바뀜.
-            pickup_id = miscellaneous.pick_pickup(creep, creeps, containers_or_links, 10000, True)
 
-            if pickup_id == ERR_INVALID_TARGET:
-                pass
-            else:
-                creep.memory.pickup = pickup_id
+            # for_upgrade 로 분류된 컨테이너에서 최우선으로 자원을 뽑는다.
+            if creep.room.controller.level < 8:
+                for ctn in creep.room.memory[STRUCTURE_CONTAINER]:
+                    if ctn.for_upgrade:
+                        # 컨테이너 안에 실제 내용물이 있는지 파악.
+                        if Game.getObjectById(ctn.id):
+                            if Game.getObjectById(ctn.id).store[RESOURCE_ENERGY] >= creep.carryCapacity * .5:
+                                creep.memory.pickup = ctn.id
+                                break
+            if not creep.memory.pickup:
+                # find any storages with any energy inside
+                containers_or_links = all_structures.filter(lambda s: (s.structureType == STRUCTURE_CONTAINER
+                                                            and s.store[RESOURCE_ENERGY] > 0))
+                # 링크를 찾는다.
+                links = []
+                for link in creep.room.memory[STRUCTURE_LINK]:
+                    # 저장용인 링크만 중요함.
+                    if link.for_store:
+                        if Game.getObjectById(link.id):
+                            links.extend([Game.getObjectById(link.id)])
+                containers_or_links.extend(links)
+                if creep.room.storage:
+                    containers_or_links.extend([creep.room.storage])
+                # 가장 가까운곳에서 빼오는거임. 원래 스토리지가 최우선이었는데 바뀜.
+                pickup_id = miscellaneous.pick_pickup(creep, creeps, containers_or_links, 10000, True)
+
+                if pickup_id == ERR_INVALID_TARGET:
+                    pass
+                else:
+                    creep.memory.pickup = pickup_id
 
         if not creep.memory.pickup:
             if not creep.memory.source_num:

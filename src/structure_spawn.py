@@ -142,6 +142,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
             return
 
         plus = 0
+        # todo 컨테이너가 하베스터 용인지, 업글용도인지 등등을 종합적으로 고려한 새 공식이 필요함.
         for harvest_container in harvest_carry_targets:
             # Ĉar uzi getObjectById k.t.p estas tro longa.
             harvest_target = Game.getObjectById(harvest_container)

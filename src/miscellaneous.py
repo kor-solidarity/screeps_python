@@ -92,10 +92,6 @@ def pick_pickup(creep, creeps, storages, terminal_capacity=10000, upgrade=False)
     # print("{} the {} upgrade: {}".format(creep.name, creep.memory.role, upgrade))
     # storage with closest.... yeah
 
-    if upgrade and creep.room.storage:
-        storages.push(creep.room.storage)
-    # closest_storage = creep.pos.findClosestByRange(storages)
-
     # creeps.
     portist_kripoj = creeps
     # will filter for leftover energy,
