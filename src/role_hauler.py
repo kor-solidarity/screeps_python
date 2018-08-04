@@ -158,6 +158,7 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                                                   and _.sum(s.store) >= creep.carryCapacity * .5)
                                                  or (s.structureType == STRUCTURE_LINK
                                                      and s.energy >= creep.carryCapacity * .5))
+
                 # 위 목록 중에서 가장 가까이 있는 컨테이너를 뽑아간다.
                 # 만약 뽑아갈 대상이 없을 시 터미널, 스토리지를 각각 찾는다.
                 # 만일 연구소를 안채우기로 했으면 거기서도 뽑는다.
@@ -277,48 +278,24 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                                                            and s.energy < s.energyCapacity)
                 structures.extend(structure_add)
 
-            # 업글용 컨테이너. 스토리지가 컨트롤러에서 많이 떨어져 있을때 대비해 두는 컨테이너.
-            # 그런게 있다고 설정해둘때만 센다.
-            if creep.room.memory.options.upgrade_cont:
-                container = all_structures.filter(lambda s:
-                                                  s.structureType == STRUCTURE_CONTAINER
-                                                  and len(s.pos.findPathTo(creep.room.controller)) >= 6
-                                                  and _.sum(s.store) < s.storeCapacity)
-            else:
-                container = []
-            # 추가 컨테이너 채워진 양
-            extra_container_filled = 0
-            # 추가 컨테이너 총 크기(당연하지만 개당 2000)
-            extra_containers_capacity = 0
+            container = []
+            # for_upgrade :스토리지가 컨트롤러에서 많이 떨어져 있을때 대비해 두는 컨테이너.
+            if creep.room.controller.level < 8:
+                for rcont in creep.room.memory[STRUCTURE_CONTAINER]:
+                    # 업글용 컨테이너고 수확저장용도가 아닌가? 그러면 허울러가 넣는다.
+                    if rcont.for_upgrade and not rcont.for_harvest:
+                        container.extend([Game.getObjectById(rcont.id)])
 
-            # 업그레이드용 컨테이너가 보일 경우.
-            if len(container) > 0:
-                # print('cont!!{}'.format(container))
-                for ct in container:
-                    sources = creep.room.find(FIND_SOURCES)
-                    sources.push(creep.room.find(FIND_MINERALS)[0])
-
-                    for_upgrade = False
-                    # 컨테이너가 소스 옆에 있을 경우 대상이 아니니 삭제한다.
-                    for s in sources:
-                        # 크립거리가 세칸 이내인가? 맞으면 하비스터 용도니 넣지 않는다.
-                        if len(ct.pos.findPathTo(s, {'ignoreCreeps': True})) <= 3:
-                            pass
-                        else:
-                            # 세칸 이내가 아니면 업그레이드 용도 맞음. 고로 넣는다.
-                            for_upgrade = True
-                            break
-                    if for_upgrade:
-                        extra_containers_capacity += 2000
-                        extra_container_filled += _.sum(ct.store)
-                        structures.push(ct)
+            structures.extend(container)
 
             if len(structures) > 0 and (picker != 2 or not len(constructions) > 0):
                 creep.say('🔄물류,염려말라!', True)
                 creep.memory.priority = 1
 
-                # 여기서 스토리지를 목록에서 없앤다. 스토리지는 항상 마지막에 채운다.
-                if creep.room.storage:
+                # 여기서 스토리지를 목록에서 없앤다.
+                # 스토리지는 항상 마지막에 채운다. 우선 있는지 확인부터 한거
+                if creep.room.storage and \
+                        creep.room.storage.store[RESOURCE_ENERGY] < max_energy_in_storage:
                     index = structures.indexOf(creep.room.storage)
                     structures.splice(index, 1)
 
@@ -368,7 +345,6 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                 # haul_target == cela adreso por porti la energion.
                 if not creep.memory.haul_target and creep.carry.energy > 0:
                     if not passed_priority_0:
-
                         structures = all_structures.filter(lambda s: ((s.structureType == STRUCTURE_SPAWN
                                                                        or s.structureType == STRUCTURE_EXTENSION)
                                                                       and s.energy < s.energyCapacity)
@@ -379,7 +355,7 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                             nuke_structure_add = all_structures.filter(lambda s: s.structureType == STRUCTURE_NUKER
                                                                                  and s.energy < s.energyCapacity)
                             structures.extend(nuke_structure_add)
-                        # 핵을 넣는걸로 함?
+                        # 연구소 채우는걸로 함?
                         if Memory.rooms[creep.room.name].options.fill_labs:
                             structure_add = all_structures.filter(lambda s: s.structureType == STRUCTURE_LAB
                                                                             and s.energy < s.energyCapacity)
@@ -387,32 +363,12 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
 
                         # 업그레이드용 컨테이너가 보일 경우.
                         # 만렙때 기능 끈다.
-                        if not creep.room.controller.level == 8:
-                            container = all_structures.filter(lambda s:
-                                                              s.structureType == STRUCTURE_CONTAINER
-                                                              and s.pos.inRangeTo(creep.room.controller, 6)
-                                                              and _.sum(s.store) < s.storeCapacity)
-                            if len(container) > 0:
-                                for ct in container:
-                                    sources = creep.room.find(FIND_SOURCES)
-                                    sources.push(creep.room.find(FIND_MINERALS)[0])
-
-                                    # 업그레이드 용인건가?
-                                    for_upgrade = True
-                                    # 컨테이너가 소스 옆에 있을 경우 대상이 아니니 삭제한다.
-                                    for s in sources:
-                                        # 크립거리가 세칸 이내인가? 맞으면 하비스터 용도니 넣지 않는다.
-                                        if len(ct.pos.findPathTo(s, {'ignoreCreeps': True})) <= 3:
-                                            for_upgrade = False
-                                            break
-                                    # 그럼 하베스터 용도는 아니다. 그럼 캐리어껀가?
-                                    if for_upgrade:
-                                        # 컨테이너와 컨트롤러 사이 거리가 6 이상이면 업글용도가 아니니 캐리어꺼.
-                                        if len(ct.pos.findPathTo(creep.room.controller, {'ignoreCreeps': True})) > 6:
-                                            for_upgrade = False
-                                    if for_upgrade:
-                                        structures.push(ct)
-                                        # print('there\'s a container!')
+                        if creep.room.controller.level < 8:
+                            for cont in creep.room.memory[STRUCTURE_CONTAINER]:
+                                # 채우는 애가 있으면 굳이 넣을필요가 없음.
+                                if cont.for_upgrade and not cont.for_harvest:
+                                    if Game.getObjectById(cont.id):
+                                        structures.extend([Game.getObjectById(cont.id)])
 
                     portist_kripoj = _.filter(creeps, lambda c: c.memory.role == 'hauler')
 
@@ -596,6 +552,7 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                                 end_structures.splice(s_index, 1)
                                 break
                         del creep.memory.haul_target
+
                         target = filter_haul_targets(creep, end_structures, creeps)
 
                         if target == ERR_INVALID_TARGET:
@@ -708,11 +665,11 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
 
 def filter_haul_targets(creep, ujoj, haulers):
     """
-    위에 허울러 자원 뽑아올 컨테이너 등 확인하는 함수.
+    위에 허울러가 에너지 채울 컨테이너 등을 선택하는 함수.
     :param creep:
     :param ujoj: 에너지 채울 대상.
     :param haulers: 허울러라 써있지만 실질적으로는 모든 크립.
-    :return:
+    :return: creep.memory.haul_target 에 들어갈 아이디.
     """
 
     if len(ujoj) == 0:
@@ -813,3 +770,51 @@ def filter_haul_targets(creep, ujoj, haulers):
         return target
     else:
         return ERR_INVALID_TARGET
+
+
+# noinspection PyPep8Naming
+def grab_haul_list(roomName, totalStructures, get_storage=False):
+    """
+    위에 허울러가 에너지를 채울 목록 확인.
+    :param roomName: 방이름.
+    :param totalStructures: 본문 all_structures 와 동일
+    :param get_storage: 스토리지를 포함할 것인가? priority == 0 인 상황 아니면 포함할일이 없음.
+    :return: 허울러의 에너지 채울 대상목록
+    """
+    # defining structures to fill the energy on. originally above of this spot but replaced for cpu eff.
+    # towers only fills 80% since it's gonna repair here and there all the time.
+    structures = totalStructures.filter(lambda s: ((s.structureType == STRUCTURE_SPAWN
+                                                   or s.structureType == STRUCTURE_EXTENSION)
+                                                  and s.energy < s.energyCapacity)
+                                                 or (s.structureType == STRUCTURE_TOWER
+                                                     and s.energy < s.energyCapacity * 0.8)
+                                                 or (s.structureType == STRUCTURE_STORAGE
+                                                     and s.store[RESOURCE_ENERGY] < 800000)
+                                                 or (s.structureType == STRUCTURE_TERMINAL
+                                                     and s.store[RESOURCE_ENERGY] < 10000))
+    # 핵에 에너지 넣는걸로 함?
+    if Memory.rooms[roomName].options.fill_nuke:
+        nuke_structure_add = totalStructures.filter(lambda s: s.structureType == STRUCTURE_NUKER
+                                                             and s.energy < s.energyCapacity)
+        structures.extend(nuke_structure_add)
+    # 연구소에 에너지 넣는걸로 함?
+    if Memory.rooms[roomName].options.fill_labs:
+        structure_add = totalStructures.filter(lambda s: s.structureType == STRUCTURE_LAB
+                                                        and s.energy < s.energyCapacity)
+        structures.extend(structure_add)
+
+    container = []
+    # for_upgrade :스토리지가 컨트롤러에서 많이 떨어져 있을때 대비해 두는 컨테이너.
+    if Game.rooms[roomName].controller.level < 8:
+        for rcont in Game.rooms[roomName].memory[STRUCTURE_CONTAINER]:
+            # 업글용 컨테이너고 수확저장용도가 아닌가? 그러면 허울러가 넣는다.
+            if rcont.for_upgrade and not rcont.for_harvest:
+                container.extend([Game.getObjectById(rcont.id)])
+
+    structures.extend(container)
+
+    if not get_storage and Game.rooms[roomName].storage:
+        index = structures.indexOf(Game.rooms[roomName].storage)
+        structures.splice(index, 1)
+
+    return structures

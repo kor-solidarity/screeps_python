@@ -13,6 +13,7 @@ __pragma__('noalias', 'update')
 """
 제목 그대로 잡다한 기능들 총집합. 메인에서 굳이 반복작업 안하려고 만든거. 
 """
+# todo 주제별로 다 분류해야함.
 
 
 def filter_enemies(foreign_creeps, count_ai=True):
@@ -29,13 +30,10 @@ def filter_enemies(foreign_creeps, count_ai=True):
         # this is an NPC
         if hostile.owner.username == 'Invader':
             # 평소엔 필요없는거지만 가끔가다 NPC를 세면 안되는 경우가 있음...
-            # if not count_ai:
-            #     foreign_creeps.splice(foreign_creeps.indexOf(hostile), 1)
             if count_ai:
                 enemy_list.append(hostile)
             continue
 
-        # print('hostile.owner.username:', hostile.owner.username)
         for ally in ally_list:
             # print('ally.username:', ally.username)
             # if hostile's name is equal to ally's name it's excluded
@@ -51,13 +49,9 @@ def filter_enemies(foreign_creeps, count_ai=True):
                 if body['type'] != MOVE:
                     is_civilian = False
                     break
-            # if not is_civilian:
-            #     foreign_creeps.splice(foreign_creeps.indexOf(hostile), 1)
+
             if not is_civilian:
                 enemy_list.append(hostile)
-        # else:
-        #     foreign_creeps.splice(foreign_creeps.indexOf(hostile), 1)
-
     # return foreign_creeps
     return enemy_list
 
@@ -91,13 +85,14 @@ def pick_pickup(creep, creeps, storages, terminal_capacity=10000, upgrade=False)
     """
     # print("{} the {} upgrade: {}".format(creep.name, creep.memory.role, upgrade))
     # storage with closest.... yeah
-
+    # if creep.memory.role == 'hauler': print(storages)
     # creeps.
     portist_kripoj = creeps
     # will filter for leftover energy,
     # tldr - if theres already a creep going for it, dont go unless there's some for you.
     while not creep.memory.pickup or len(storages) > 0:
-        # print('checkj')
+        # just init.
+        stored_energy = 0
         # safety trigger
         if len(storages) == 0:
             break
@@ -130,13 +125,14 @@ def pick_pickup(creep, creeps, storages, terminal_capacity=10000, upgrade=False)
                     if cont.for_upgrade and upgrade:
                         stored_energy = loop_storage.store[RESOURCE_ENERGY]
                     # 업글용이면 허울러, 건들지말것. 다만 캐리어용이면 일부 챙길 수 있음. 꽉찼을때 한정.
-                    elif cont.for_upgrade and cont.for_harvest == 2 and _.sum(loop_storage.store) == loop_storage.storeCapacity:
-                        if creep.memory.role == 'hauler': print('wtf')
+                    elif cont.for_upgrade and cont.for_harvest == 2 \
+                            and _.sum(loop_storage.store) == loop_storage.storeCapacity:
+                        # if creep.memory.role == 'hauler': print('wtf')
                         stored_energy = _.sum(loop_storage.store)
 
                     # 그냥 포 업그레이드가 아니면 전부 쓸 수 있음.
                     elif not cont.for_upgrade:
-                        if creep.memory.role == 'hauler': print('so what')
+                        # if creep.memory.role == 'hauler': print('so what')
                         stored_energy = _.sum(loop_storage.store)
 
                     # 위와 해당사항 없으면 이건 볼거없음.
@@ -145,28 +141,6 @@ def pick_pickup(creep, creeps, storages, terminal_capacity=10000, upgrade=False)
                         storages.splice(loop_index, 1)
 
                     break
-
-        # # 컨트롤러 근처에 있는 컨테이너는 수확에서 제외한다. 다만 업그레이더가 아닐때만!
-        # elif not upgrade \
-        #         and loop_storage.structureType == STRUCTURE_CONTAINER \
-        #         and creep.room.memory.options.upgrade_cont \
-        #         and loop_storage.pos.inRangeTo(loop_storage.room.controller, 6):
-        #     if loop_storage.pos.inRangeTo(loop_storage.room.controller, 6):
-        #         sources = loop_storage.room.find(FIND_SOURCES)
-        #         sources.push(loop_storage.room.find(FIND_MINERALS)[0])
-        #         # 컨테이너가 소스 옆에 있을 경우 삭제한다. 둘이 있을 경우 좀 골때린데...
-        #         for s in sources:
-        #             # 직접거리도 세칸 이내인가? 맞으면 그걸 없앤다.
-        #             if len(loop_storage.pos.findPathTo(s, {'ignoreCreeps': True})) <= 3:
-        #                 loop_index = storages.indexOf(loop_storage)
-        #                 # storages.remove(loop_storage)
-        #                 storages.splice(loop_index, 1)
-        #                 loop_storage = creep.pos.findClosestByRange(storages)
-        #                 if upgrade:
-        #                     stored_energy = loop_storage.store[RESOURCE_ENERGY]
-        #                 else:
-        #                     stored_energy = _.sum(loop_storage.store)
-        #                 break
 
         # else == storage.
         else:
@@ -188,8 +162,8 @@ def pick_pickup(creep, creeps, storages, terminal_capacity=10000, upgrade=False)
                     continue
         # if leftover stored_energy has enough energy for carry, set pickup.
         if stored_energy >= int((creep.carryCapacity - _.sum(creep.carry)) * .5):
-            if creep.memory.role == 'hauler':
-                print('return', loop_storage.id)
+            # if creep.memory.role == 'hauler':
+            #     print('return', loop_storage.id)
             return loop_storage.id
 
         else:
@@ -200,12 +174,14 @@ def pick_pickup(creep, creeps, storages, terminal_capacity=10000, upgrade=False)
     if creep.room.terminal and creep.room.terminal.store[RESOURCE_ENERGY] >= terminal_capacity + creep.carryCapacity:
         return creep.room.terminal.id
     elif creep.room.storage and creep.room.storage.store[RESOURCE_ENERGY] >= creep.carryCapacity * .5:
+        if creep.memory.role == 'hauler': print('huH???')
         return creep.room.storage.id
     else:
         # 그거마저 없으면 그냥 에러.
         return ERR_INVALID_TARGET
 
 
+# noinspection PyPep8Naming
 def roomCallback(creeps, roomName, structures, constructions=None
                  , ignoreRoads=False, ignoreCreeps=False):
     """
@@ -315,11 +291,13 @@ def clear_orders():
         Game.market.cancelOrder(order)
 
 
+# noinspection PyPep8Naming
 def get_to_da_room(creep, roomName, ignoreRoads=True):
     """
 
     :param creep:
     :param roomName:
+    :param ignoreRoads:
     :return:
     """
     # 이 명령은 단순히 시야확보 등의 발령목적으로 보내버리는거기 때문에

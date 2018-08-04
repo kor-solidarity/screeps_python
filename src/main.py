@@ -326,7 +326,12 @@ def main():
         if tomes:
             for t in tomes:
                 if _.sum(t.store) > 0:
-                    dropped_all.push(t)
+                    dropped_all.append(t)
+
+        # rand_shit = ['a']
+        # print('before:', rand_shit)
+        # rand_shit.append('b')
+        # print('after:', rand_shit)
 
         # 필터하면서 목록을 삭제하는거 같음.... 그래서 이리 초기화
         foreign_creeps = chambro.find(FIND_HOSTILE_CREEPS)
@@ -359,6 +364,7 @@ def main():
             else:
                 terminal_capacity = 10000
 
+        # todo 현재 이거 일일히 넣는게 매우 비효율적이니 메모리에 넣는걸 생각해보자.
         if bool(nukes):
             # list of ALL repairs in the room.
             repairs = all_structures.filter(lambda s: (((s.structureType == STRUCTURE_ROAD

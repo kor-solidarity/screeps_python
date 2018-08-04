@@ -23,7 +23,6 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
     :param constructions: FIND_CONSTRUCTION_SITES
     :param dropped_all: creep.room.find(FIND_DROPPED_RESOURCES)
     :param repairs:
-    :param sources: creep.room.find(FIND_SOURCES)
     :return:
     """
 
@@ -103,8 +102,9 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                 del creep.memory.dropped
                 creep.say('♻♻♻', True)
             elif grab == ERR_NOT_IN_RANGE:
-                creep.moveTo(item, {'visualizePathStyle':
-                                        {'stroke': '#0000FF', 'opacity': .25}, 'reusePath': 10})
+                creep.moveTo(item,
+                             {'visualizePathStyle': {'stroke': '#0000FF', 'opacity': .25},
+                              'reusePath': 10})
                 return
             # if target's not there, go.
             elif grab == ERR_INVALID_TARGET:
@@ -141,8 +141,9 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                     harvest = creep.harvest(Game.getObjectById(creep.memory.source_num))
                     # creep.say('harv {}'.format(harvest))
                     if harvest == ERR_NOT_IN_RANGE:
-                        creep.moveTo(Game.getObjectById(creep.memory.source_num)
-                                     , {'visualizePathStyle': {'stroke': '#ffffff'}, 'reusePath': 25})
+                        creep.moveTo(Game.getObjectById(creep.memory.source_num),
+                                     {'visualizePathStyle': {'stroke': '#ffffff'},
+                                      'reusePath': 25})
                     # 자원 캘수가 없으면 자원 채워질때까지 컨테이너 위치에서 대기탄다.
                     elif harvest == ERR_NO_BODYPART or harvest == ERR_NOT_ENOUGH_RESOURCES:
                         if not creep.pos.isNearTo(Game.getObjectById(creep.memory.pickup)):
@@ -302,7 +303,8 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
         elif creep.memory.priority == 2:
             # if you're not in the home_room and no haul_target
             if creep.room.name != creep.memory.home_room and not creep.memory.haul_target:
-                # at first it was to move to controller. but somehow keep getting an error, so let's try
+                # at first it was to move to controller.
+                # but somehow keep getting an error, so let's try
                 if len(repairs) > 0 and creep.memory.work:
                     repair = creep.pos.findClosestByRange(repairs)
                     creep.repair(repair)
@@ -323,7 +325,8 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                 link_or_container = creep.pos.findClosestByRange(outside_links_and_containers)
 
                 # 만일 컨테이너일 경우 메모리를 뜯어서 캐리어용인지 마킹을 한다.
-                if link_or_container.structureType == STRUCTURE_CONTAINER:
+                if link_or_container.structureType == STRUCTURE_CONTAINER \
+                        or link_or_container.structureType == STRUCTURE_LINK:
                     check_for_carrier_setting(creep, link_or_container)
 
                 creep.memory.haul_target = link_or_container.id
@@ -391,14 +394,17 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                     creep.suicide()
                     return
                 # 옮긴 대상이 링크인지? 아니면 링크로 교체.
-                elif not Game.getObjectById(creep.memory.haul_target).structureType == STRUCTURE_LINK:
+                elif not Game.getObjectById(creep.memory.haul_target).structureType \
+                         == STRUCTURE_LINK:
                     # 캐리어는 기본적으로 링크로 운송하는게 원칙이다.
                     # 방금 옮긴 대상건물이 링크가 아니면 찾아서 등록한다. 진짜 없으면... 걍 없는거...
                     if not creep.memory.link_target and not creep.memory.no_link:
-                        links = _.filter(all_structures, lambda s: s.structureType == STRUCTURE_LINK)
+                        links = _.filter(all_structures,
+                                         lambda s: s.structureType == STRUCTURE_LINK)
                         if len(links) > 0:
                             closest_link = creep.pos.findClosestByPath(links)
-                            if len(creep.room.findPath(creep.pos, closest_link.pos, {'ignoreCreeps': True})) <= 5:
+                            if len(creep.room.findPath(creep.pos, closest_link.pos,
+                                                       {'ignoreCreeps': True})) <= 5:
                                 creep.memory.link_target = closest_link.id
                             else:
                                 # 크립 주변에 링크가 없다는 소리. 위에 루프문 매번 반복 안하기 위해 생성.
@@ -426,7 +432,9 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                     if link_or_container and \
                             len(creep.room.findPath(creep.pos, link_or_container.pos, {'ignoreCreeps': True})) <= 5:
                         creep.memory.haul_target = link_or_container.id
-                        if link_or_container.structureType == STRUCTURE_CONTAINER:
+                        # 크립이
+                        if link_or_container.structureType == STRUCTURE_CONTAINER\
+                                or link_or_container.structureType == STRUCTURE_LINK:
                             check_for_carrier_setting(creep, link_or_container)
                         creep.say('교체!', True)
                         creep.memory.err_full = 0
@@ -481,25 +489,37 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
         return
 
 
-def check_for_carrier_setting(creep, container):
+def check_for_carrier_setting(creep, target_obj):
     """
     배정된 컨테이너의 for_harvest가 캐리어용(2)으로 배정할 자격이 되는지 확인한다.
     :param creep:
-    :param container: 이름대로 STRUCTURE_CONTAINER 만 여기에 와야 한다.
+    :param target_obj: 대상 타겟. 링크 또는 컨테이너.
     :return: 여기서 배정작업까지 다 끝내기 때문에 뭘 따로 반환할 필요가 없다.
     """
-    # 만일 컨테이너가 아닌데 여기왔으면 잘못온거니 통과.
-    if not container.structureType == STRUCTURE_CONTAINER:
-        return
-    # 메모리를 뜯어서 캐리어용인지 마킹을 한다.
-    for mc in creep.room.memory[STRUCTURE_CONTAINER]:
-        if mc.id == container.id:
-            # 이미 2면 건들필요가 있음?
-            if mc.for_harvest == 2:
+    # print('check for carrier setting', target_obj.structureType, target_obj.id)
+    if target_obj.structureType == STRUCTURE_CONTAINER:
+        # 메모리를 뜯어서 캐리어용인지 마킹을 한다.
+        for mc in creep.room.memory[STRUCTURE_CONTAINER]:
+            if mc.id == target_obj.id:
+                # print('memory checked, mc harvest {}'.format(mc.for_harvest))
+                # 이미 2면 건들필요가 있음?
+                if mc.for_harvest == 2:
+                    # print(target_obj.id, '는 이미 포 하베스트 2')
+                    return
+                # 하베스트설정이 2(캐리어용)가 아니고 5칸이내에 존재하면 캐리어용이니 2로 바꾼다.
+                elif not mc.for_harvest == 2 and creep.pos.inRangeTo(target_obj, 5) \
+                        and len(creep.pos.findPathTo(target_obj, {'ignoreCreep': True})) <= 5:
+                    mc.for_harvest = 2
+                    # print(target_obj.id, '변환완료')
+                    return
+                # print('WTFFF')
                 return
-            # 하베스트설정이 2(캐리어용)가 아니고 5칸이내에 존재하면 캐리어용이니 2로 바꾼다.
-            elif not mc.for_harvest == 2 and creep.pos.inRangeTo(mc, 5) \
-                    and creep.pos.findPathTo(mc, {'ignoreCreep': True}) <= 5:
-                mc.for_harvest = 2
-                return
-            return
+    elif target_obj.structureType == STRUCTURE_LINK:
+        for ml in creep.room.memory[STRUCTURE_LINK]:
+            # 캐리어용인지 마킹하는거.
+            if ml.id == target_obj.id:
+                if ml.for_harvest == 2:
+                    return
+                else:
+                    ml.for_harvest = 2
+                    return

@@ -142,27 +142,65 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
             return
 
         plus = 0
+        # 위에 컨테이너로 인한 플러스 할때 캐리어용 컨테이너로 추가됬는가?
+        carrier_plus = False
         # todo 컨테이너가 하베스터 용인지, 업글용도인지 등등을 종합적으로 고려한 새 공식이 필요함.
-        for harvest_container in harvest_carry_targets:
-            # Ĉar uzi getObjectById k.t.p estas tro longa.
-            harvest_target = Game.getObjectById(harvest_container)
-            # 컨테이너.
-            if harvest_target.structureType == STRUCTURE_CONTAINER:
-                if _.sum(harvest_target.store) >= harvest_target.storeCapacity * .6:
+        # 컨테이너와 링크를 하나씩 돌려서 수확용 칸인지 확인하고 이에 plus를 추가한다.
+        for mcont in spawn.room.memory[STRUCTURE_CONTAINER]:
+            # 우선, 해당 컨테이너가 일반 하베스트인가?
+            if mcont.for_harvest == 1:
+                # 업그레이드 용도면 안센다. 단 렙8미만일때만.
+                if spawn.room.controller.level < 8 and mcont.for_upgrade:
+                    continue
+                # 60% 이상 차있으면 ++
+                cont_obj = Game.getObjectById(mcont.id)
+                if cont_obj and _.sum(cont_obj.store) >= cont_obj.storeCapacity * .6:
                     plus += 1
-            # 링크.
-            elif harvest_target.structureType == STRUCTURE_LINK:
-                # 링크가 꽉차고 + 쿨다운 0일때 1추가.
-                if harvest_target.energy == harvest_target.energyCapacity \
-                        and harvest_target.cooldown == 0:
-                    for l in Memory.rooms[spawn.room.name][STRUCTURE_LINK]:
-                        if l.id == harvest_target.id and not l.for_store:
-                            for rs in room_sources:
-                                if len(harvest_target.pos.findPathTo(rs, {'ignoreCreep': True})) < 5:
-                                    print('l.id {} == harvest_target.id {}, energy: {}'
-                                          .format(l.id, harvest_target.id, harvest_target.energy))
-                                    plus += 1
-                                    break
+
+            # 캐리어용 컨테이너인가?
+            if mcont.for_harvest == 2:
+                # 캐리어용 컨테이너로 이미 추가되면 안센다. or 업그레이드 용도면 안센다. 단 렙8미만일때만.
+                if carrier_plus or (spawn.room.controller.level < 8 and mcont.for_upgrade):
+                    continue
+
+                # 꽉찬경우 새로 추가
+                cont_obj = Game.getObjectById(mcont.id)
+                if cont_obj and _.sum(cont_obj.store) == cont_obj.storeCapacity:
+                    plus += 1
+                    carrier_plus = True
+
+        # 위와 동일. 링크를 센다.
+        for mlink in spawn.room.memory[STRUCTURE_LINK]:
+            # 링크는 크게 두종류가 존재한다. 받는것과 주는것.
+            # 주는것이 꽉찰때 추가.
+            if not mlink.for_store:
+                mlink_obj = Game.getObjectById(mlink.id)
+                # 링크가 꽉 차고 캐리어용이 아닌 한에 채운다.
+                if mlink_obj and mlink_obj.energy == mlink_obj.energyCapacity \
+                        and mlink_obj.cooldown == 0 and not mlink.for_harvest:
+                    plus += 1
+
+        # NULLIFIED
+        # for harvest_container in harvest_carry_targets:
+        #     # Ĉar uzi getObjectById k.t.p estas tro longa.
+        #     harvest_target = Game.getObjectById(harvest_container)
+        #     # 컨테이너.
+        #     if harvest_target.structureType == STRUCTURE_CONTAINER:
+        #         if _.sum(harvest_target.store) >= harvest_target.storeCapacity * .6:
+        #             plus += 1
+        #     # 링크.
+        #     elif harvest_target.structureType == STRUCTURE_LINK:
+        #         # 링크가 꽉차고 + 쿨다운 0일때 1추가.
+        #         if harvest_target.energy == harvest_target.energyCapacity \
+        #                 and harvest_target.cooldown == 0:
+        #             for l in Memory.rooms[spawn.room.name][STRUCTURE_LINK]:
+        #                 if l.id == harvest_target.id and not l.for_store:
+        #                     for rs in room_sources:
+        #                         if len(harvest_target.pos.findPathTo(rs, {'ignoreCreep': True})) < 5:
+        #                             print('l.id {} == harvest_target.id {}, energy: {}'
+        #                                   .format(l.id, harvest_target.id, harvest_target.energy))
+        #                             plus += 1
+        #                             break
 
         # 건물이 아예 없을 시
         if len(harvest_carry_targets) == 0:
@@ -922,7 +960,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                                 # RoomPosition 목록. 컨테이너 건설한 김에 길도 깐다.
                                 constr_roads_pos = \
                                     PathFinder.search(constr_pos, spawn.pos,
-                                                      {'plainCost': 2, 'swampCost': 2,
+                                                      {'plainCost': 3, 'swampCost': 3,
                                                        'roomCallback':
                                                            lambda room_name:
                                                            pathfinding.Costs(room_name, opts).load_matrix()}, ).path
@@ -940,7 +978,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                             distance = 0
 
                             path = PathFinder.search(Game.getObjectById(carrier_pickup_id).pos, spawn.pos,
-                                                     {'plainCost': 2, 'swampCost': 2,
+                                                     {'plainCost': 3, 'swampCost': 3,
                                                       'roomCallback':
                                                           lambda room_name:
                                                           pathfinding.Costs(room_name, None).load_matrix()
@@ -1017,20 +1055,35 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
 
                                 body = []
 
+                                carrier_size = int(distance / 2)
+                                # 소수점 다 올림처리.
+                                if distance % 2 > 0:
+                                    carrier_size += 1
+                                # 여기서 값을 넣는다.
+                                carrier_size = int(carrier_size * 5 / 6)
                                 if work_chance == 1:
                                     body.extend(work_body)
-                                # 15% 몸집을 줄여본다.
-                                if int(distance / 7) == 0:
-                                    distance = 1
-                                else:
-                                    distance = int(distance / 7)
-                                    if distance % 7 > 0:
-                                        carrier_size += 1
-                                for i in range(distance):
+                                for i in range(carrier_size):
+                                    # 이거부터 들어가야함
                                     if i % 2 == 0:
                                         body.extend(carry_body_even)
                                     else:
                                         body.extend(carry_body_odd)
+
+                                # if work_chance == 1:
+                                #     body.extend(work_body)
+                                # # 15% 몸집을 줄여본다.
+                                # if int(distance / 7) == 0:
+                                #     distance = 1
+                                # else:
+                                #     distance = int(distance / 7)
+                                #     if distance % 7 > 0:
+                                #         carrier_size += 1
+                                # for i in range(distance):
+                                #     if i % 2 == 0:
+                                #         body.extend(carry_body_even)
+                                #     else:
+                                #         body.extend(carry_body_odd)
 
                                 print('2nd body({}): {}'.format(len(body), body))
                                 spawning = spawn.createCreep(
