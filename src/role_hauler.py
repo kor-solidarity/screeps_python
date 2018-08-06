@@ -169,7 +169,7 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                     storages.extend(labs)
 
                 pickup_id = miscellaneous.pick_pickup(creep, creeps, storages, terminal_capacity)
-                print('pickupId', pickup_id)
+                # print('pickupId', pickup_id)
                 if pickup_id == ERR_INVALID_TARGET:
                     pass
                 else:
@@ -284,7 +284,8 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                 for rcont in creep.room.memory[STRUCTURE_CONTAINER]:
                     # 업글용 컨테이너고 수확저장용도가 아닌가? 그러면 허울러가 넣는다.
                     if rcont.for_upgrade and not rcont.for_harvest:
-                        container.extend([Game.getObjectById(rcont.id)])
+                        if Game.getObjectById(rcont.id):
+                            container.extend([Game.getObjectById(rcont.id)])
 
             structures.extend(container)
 
@@ -363,12 +364,15 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
 
                         # 업그레이드용 컨테이너가 보일 경우.
                         # 만렙때 기능 끈다.
+                        container = []
+                        # for_upgrade :스토리지가 컨트롤러에서 많이 떨어져 있을때 대비해 두는 컨테이너.
                         if creep.room.controller.level < 8:
-                            for cont in creep.room.memory[STRUCTURE_CONTAINER]:
-                                # 채우는 애가 있으면 굳이 넣을필요가 없음.
-                                if cont.for_upgrade and not cont.for_harvest:
-                                    if Game.getObjectById(cont.id):
-                                        structures.extend([Game.getObjectById(cont.id)])
+                            for rcont in creep.room.memory[STRUCTURE_CONTAINER]:
+                                # 업글용 컨테이너고 수확저장용도가 아닌가? 그러면 허울러가 넣는다.
+                                if rcont.for_upgrade and not rcont.for_harvest:
+                                    if Game.getObjectById(rcont.id):
+                                        container.extend([Game.getObjectById(rcont.id)])
+                        structures.extend(container)
 
                     portist_kripoj = _.filter(creeps, lambda c: c.memory.role == 'hauler')
 
@@ -773,7 +777,7 @@ def filter_haul_targets(creep, ujoj, haulers):
 
 
 # noinspection PyPep8Naming
-def grab_haul_list(roomName, totalStructures, get_storage=False):
+def grab_haul_list(roomName, totalStructures):
     """
     위에 허울러가 에너지를 채울 목록 확인.
     :param roomName: 방이름.
@@ -812,9 +816,5 @@ def grab_haul_list(roomName, totalStructures, get_storage=False):
                 container.extend([Game.getObjectById(rcont.id)])
 
     structures.extend(container)
-
-    if not get_storage and Game.rooms[roomName].storage:
-        index = structures.indexOf(Game.rooms[roomName].storage)
-        structures.splice(index, 1)
 
     return structures

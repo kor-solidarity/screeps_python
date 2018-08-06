@@ -174,7 +174,7 @@ def pick_pickup(creep, creeps, storages, terminal_capacity=10000, upgrade=False)
     if creep.room.terminal and creep.room.terminal.store[RESOURCE_ENERGY] >= terminal_capacity + creep.carryCapacity:
         return creep.room.terminal.id
     elif creep.room.storage and creep.room.storage.store[RESOURCE_ENERGY] >= creep.carryCapacity * .5:
-        if creep.memory.role == 'hauler': print('huH???')
+        # if creep.memory.role == 'hauler': print('huH???')
         return creep.room.storage.id
     else:
         # 그거마저 없으면 그냥 에러.

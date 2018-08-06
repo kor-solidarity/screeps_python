@@ -590,7 +590,7 @@ def main():
                     for_send = 0
             # 컨테이너
             str_cont = _.filter(all_structures, lambda s: s.structureType == STRUCTURE_CONTAINER)
-            if not len(str_cont) == chambro.memory[STRUCTURE_CONTAINER]:
+            if not len(str_cont) == len(chambro.memory[STRUCTURE_CONTAINER]):
                 chambro.memory[STRUCTURE_CONTAINER] = []
                 # 컨테이너는 크게 세종류가 존재한다.
                 # 하베스터용, 캐리어용, 업그레이더용.
@@ -604,8 +604,7 @@ def main():
                 room_sources.extend(chambro.find(FIND_MINERALS))
 
                 for stc in str_cont:
-                    # 하베스터 저장용인가? 맞으면 1, 만일 캐리어 운송용이면 2.
-                    # todo for_harvest 2 는 캐리어쪽에 넣는걸로.
+                    # 하베스터 저장용인가? 맞으면 1, 만일 캐리어 운송용이면 2. 2는 캐리어 쪽에서 건든다.
                     # 0 이면 방업글 끝나면 계속 갖고있을 이유가 없는 잉여인 셈.
                     for_harvest = 0
                     # 방 업글용인가?
@@ -667,6 +666,15 @@ def main():
                 else:
                     del chambro.memory[STRUCTURE_LINK][for_str]
                 for_str += 1
+        # check every 20 ticks.
+        if Game.time % 20 == 0 and chambro.memory[STRUCTURE_CONTAINER] \
+                and len(chambro.memory[STRUCTURE_CONTAINER]) > 0:
+            for_str = 0
+            for cc in chambro.memory[STRUCTURE_CONTAINER]:
+                if not Game.getObjectById(cc.id):
+                    del chambro.memory[STRUCTURE_CONTAINER][for_str]
+                for_str += 1
+                room_cpu_num += 1
 
         if (Memory.debug or Game.time % interval == 0 or Memory.tick_check) and room_cpu_num > 0:
             end = Game.cpu.getUsed()
