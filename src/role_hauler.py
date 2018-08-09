@@ -249,12 +249,13 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
         if creep.memory.priority == 0:
             passed_priority_0 = True
 
-            # 전체 에너지의 40% 이상 채우지 않으면 건설은 없다. 건설보다 운송이 더 시급하기 때문.
-            if len(constructions) > 0 and creep.room.energyAvailable >= creep.room.energyCapacityAvailable * .4:
-                # for 1/3 chance going to phase 2.
-                picker = random.randint(0, 2)
-            else:
-                picker = 0
+            # NULLIFIED - 꽉 채우고 봅시다.
+            # # 전체 에너지의 40% 이상 채우지 않으면 건설은 없다. 건설보다 운송이 더 시급하기 때문.
+            # if len(constructions) > 0 and creep.room.energyAvailable >= creep.room.energyCapacityAvailable * .4:
+            #     # for 1/3 chance going to phase 2.
+            #     picker = random.randint(0, 2)
+            # else:
+            #     picker = 0
 
             # defining structures to fill the energy on. originally above of this spot but replaced for cpu eff.
             # towers only fills 80% since it's gonna repair here and there all the time.
@@ -289,7 +290,7 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
 
             structures.extend(container)
 
-            if len(structures) > 0 and (picker != 2 or not len(constructions) > 0):
+            if len(structures) > 0:
                 creep.say('🔄물류,염려말라!', True)
                 creep.memory.priority = 1
 
@@ -300,7 +301,7 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                     index = structures.indexOf(creep.room.storage)
                     structures.splice(index, 1)
 
-            elif len(constructions) > 0 or picker == 2:
+            elif len(constructions) > 0:
                 creep.say('🚧건설,염려말라!', True)
                 creep.memory.priority = 2
             elif len(repairs) > 0:

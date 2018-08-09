@@ -475,7 +475,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                     for i in Object.keys(Memory.rooms):
                         found = False
                         # 같은방을 찾으면 병사정보를 수정한다.
-                        if Memory.rooms[i].options.remotes:
+                        if Memory.rooms[i].options and Memory.rooms[i].options.remotes:
                             for r in Memory.rooms[i].options.remotes:
                                 if r.roomName == flag_room_name:
                                     r.defenders = number
@@ -1055,10 +1055,10 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
 
                                 body = []
 
-                                carrier_size = int(distance / 2)
-                                # 소수점 다 올림처리.
-                                if distance % 2 > 0:
-                                    carrier_size += 1
+                                # carrier_size = int(distance / 2)
+                                # # 소수점 다 올림처리.
+                                # if distance % 2 > 0:
+                                #     carrier_size += 1
                                 # 여기서 값을 넣는다.
                                 carrier_size = int(carrier_size * 5 / 6)
                                 if work_chance == 1:

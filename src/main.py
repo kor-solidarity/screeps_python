@@ -1,7 +1,7 @@
 import role_harvester
 import role_hauler
 import role_upgrader
-import structure as building_action
+import structure_misc as building_action
 import role_scout
 import role_carrier
 import role_soldier
@@ -552,13 +552,13 @@ def main():
             structure_cpu = Game.cpu.getUsed()
             chambro.memory.options.reset = 0
             # 목록 초기화.
-            if not chambro.memory[STRUCTURE_TOWER]:
+            if not chambro.memory[STRUCTURE_TOWER] or chambro.memory.options.reset:
                 chambro.memory[STRUCTURE_TOWER] = []
-            if not chambro.memory[STRUCTURE_LINK]:
+            if not chambro.memory[STRUCTURE_LINK] or chambro.memory.options.reset:
                 chambro.memory[STRUCTURE_LINK] = []
-            if not chambro.memory[STRUCTURE_CONTAINER]:
+            if not chambro.memory[STRUCTURE_CONTAINER] or chambro.memory.options.reset:
                 chambro.memory[STRUCTURE_CONTAINER] = []
-            if not chambro.memory[STRUCTURE_LAB]:
+            if not chambro.memory[STRUCTURE_LAB] or chambro.memory.options.reset:
                 chambro.memory[STRUCTURE_LAB] = []
 
             # 매번 완전초기화 하면 너무 자원낭비. 수량 틀릴때만 돌린다.
