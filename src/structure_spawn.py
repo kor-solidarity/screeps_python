@@ -475,7 +475,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                     for i in Object.keys(Memory.rooms):
                         found = False
                         # 같은방을 찾으면 병사정보를 수정한다.
-                        if Memory.rooms[i].options.remotes:
+                        if Memory.rooms[i].options and Memory.rooms[i].options.remotes:
                             for r in Memory.rooms[i].options.remotes:
                                 if r.roomName == flag_room_name:
                                     r.defenders = number
@@ -1055,7 +1055,11 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
 
                                 body = []
 
-                                # 기존 값 15% 줄이고 재시도
+                                # carrier_size = int(distance / 2)
+                                # # 소수점 다 올림처리.
+                                # if distance % 2 > 0:
+                                #     carrier_size += 1
+                                # 여기서 값을 넣는다.
                                 carrier_size = int(carrier_size * 5 / 6)
                                 if work_chance == 1:
                                     body.extend(work_body)
@@ -1065,6 +1069,21 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                                         body.extend(carry_body_even)
                                     else:
                                         body.extend(carry_body_odd)
+
+                                # if work_chance == 1:
+                                #     body.extend(work_body)
+                                # # 15% 몸집을 줄여본다.
+                                # if int(distance / 7) == 0:
+                                #     distance = 1
+                                # else:
+                                #     distance = int(distance / 7)
+                                #     if distance % 7 > 0:
+                                #         carrier_size += 1
+                                # for i in range(distance):
+                                #     if i % 2 == 0:
+                                #         body.extend(carry_body_even)
+                                #     else:
+                                #         body.extend(carry_body_odd)
 
                                 print('2nd body({}): {}'.format(len(body), body))
                                 spawning = spawn.createCreep(

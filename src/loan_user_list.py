@@ -1,7 +1,7 @@
 import role_harvester
 import role_hauler
 import role_upgrader
-import structure as building_action
+import structure_misc as building_action
 import role_scout
 import role_carrier
 import role_soldier
