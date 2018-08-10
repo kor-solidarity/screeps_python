@@ -550,7 +550,6 @@ def main():
                 or (chambro.memory.options and chambro.memory.options.reset):
             # 이거 돌리는데 얼마나 걸리는지 확인하기 위한 작업.
             structure_cpu = Game.cpu.getUsed()
-            chambro.memory.options.reset = 0
             # 목록 초기화.
             if not chambro.memory[STRUCTURE_TOWER] or chambro.memory.options.reset:
                 chambro.memory[STRUCTURE_TOWER] = []
@@ -622,7 +621,7 @@ def main():
 
                     chambro.memory[STRUCTURE_CONTAINER]\
                         .push({'id': stc.id, 'for_upgrade': for_upgrade, 'for_harvest': for_harvest})
-
+            chambro.memory.options.reset = 0
             print('{}방 메모리에 건물현황 갱신하는데 {}CPU 소모'
                   .format(chambro.name, round(Game.cpu.getUsed() - structure_cpu, 2)))
 
@@ -654,17 +653,22 @@ def main():
                     room_cpu_num += 1
                     building_action.run_tower(Game.getObjectById(i), enemy, repairs, malsana_amikoj)
                 else:
-                    del chambro.memory[STRUCTURE_TOWER][for_str]
+                    chambro.memory[STRUCTURE_TOWER].splice(for_str, 1)
                 for_str += 1
 
         if chambro.memory[STRUCTURE_LINK] and len(chambro.memory[STRUCTURE_LINK]) > 0:
             for_str = 0
             for link in chambro.memory[STRUCTURE_LINK]:
+                if not link:
+                    print('link?')
+                    chambro.memory.options.reset = 1
+                    continue
+
                 if Game.getObjectById(link.id):
                     room_cpu_num += 1
                     building_action.run_links(link.id)
                 else:
-                    del chambro.memory[STRUCTURE_LINK][for_str]
+                    chambro.memory[STRUCTURE_LINK].splice(for_str, 1)
                 for_str += 1
         # check every 20 ticks.
         if Game.time % 20 == 0 and chambro.memory[STRUCTURE_CONTAINER] \
@@ -672,7 +676,7 @@ def main():
             for_str = 0
             for cc in chambro.memory[STRUCTURE_CONTAINER]:
                 if not Game.getObjectById(cc.id):
-                    del chambro.memory[STRUCTURE_CONTAINER][for_str]
+                    chambro.memory[STRUCTURE_CONTAINER].splice(for_str, 1)
                 for_str += 1
                 room_cpu_num += 1
 

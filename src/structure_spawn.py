@@ -142,6 +142,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
             return
 
         plus = 0
+        print('+++++')
         # 위에 컨테이너로 인한 플러스 할때 캐리어용 컨테이너로 추가됬는가?
         carrier_plus = False
         # todo 컨테이너가 하베스터 용인지, 업글용도인지 등등을 종합적으로 고려한 새 공식이 필요함.
@@ -155,6 +156,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                 # 60% 이상 차있으면 ++
                 cont_obj = Game.getObjectById(mcont.id)
                 if cont_obj and _.sum(cont_obj.store) >= cont_obj.storeCapacity * .6:
+                    print('plus! 60%')
                     plus += 1
 
             # 캐리어용 컨테이너인가?
@@ -167,6 +169,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                 cont_obj = Game.getObjectById(mcont.id)
                 if cont_obj and _.sum(cont_obj.store) == cont_obj.storeCapacity:
                     plus += 1
+                    print('plus! remote', mcont.id)
                     carrier_plus = True
 
         # 위와 동일. 링크를 센다.
@@ -179,6 +182,8 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                 if mlink_obj and mlink_obj.energy == mlink_obj.energyCapacity \
                         and mlink_obj.cooldown == 0 and not mlink.for_harvest:
                     plus += 1
+                    print('plus! link {}, harvest: {}'
+                          .format(mlink_obj.id, mlink_obj.for_harvest))
 
         # NULLIFIED
         # for harvest_container in harvest_carry_targets:
@@ -236,13 +241,11 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
             if len(creep_haulers) >= 2:
                 if spawning_creep == ERR_NOT_ENOUGH_ENERGY:
                     spawning_creep = spawn.createCreep(
-                        [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE,
-                         MOVE, WORK,
-                         WORK, WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY,
-                         CARRY,
-                         CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY,
-                         CARRY,
-                         CARRY, CARRY],
+                        [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE,
+                         MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK,
+                         WORK, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY,
+                         CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY,
+                         CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY],
                         undefined, {'role': 'hauler', 'assigned_room': spawn.pos.roomName,
                                     'level': 8})
             else:
@@ -283,7 +286,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
 
             return
 
-        # todo NULLIFIED - need one for ranged one too.
+        # todo need one for ranged one too.
         # player_enemy = miscellaneous.filter_enemies(hostile_creeps, False)
         # if len(player_enemy) > 0 and len(creep_home_defenders) == 0:
         #     spawning_creep = spawn.createCreep(

@@ -67,7 +67,8 @@ def run_links(link_id):
     # 내부(테두리 5칸 이상 이내)에 있는 링크는 작동을 안한다.
     link = Game.getObjectById(link_id)
     # current link
-    me = _.filter(Game.getObjectById(link_id).room.memory[STRUCTURE_LINK], lambda l: l.id == link_id)[0]
+    me = _.filter(Game.getObjectById(link_id).room.memory[STRUCTURE_LINK],
+                  lambda l: l.id == link_id)[0]
 
     if link.pos.x > 44:
         align = 'right'

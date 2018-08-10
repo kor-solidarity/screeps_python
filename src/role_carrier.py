@@ -407,6 +407,7 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                             if len(creep.room.findPath(creep.pos, closest_link.pos,
                                                        {'ignoreCreeps': True})) <= 5:
                                 creep.memory.link_target = closest_link.id
+                                check_for_carrier_setting(creep, Game.getObjectById(creep.memory.link_target))
                             else:
                                 # 크립 주변에 링크가 없다는 소리. 위에 루프문 매번 반복 안하기 위해 생성.
                                 creep.memory.no_link = 1
@@ -524,3 +525,6 @@ def check_for_carrier_setting(creep, target_obj):
                 else:
                     ml.for_harvest = 2
                     return
+        # 위에 포문 안에서 리턴이 안된단건 링크가 등록이 안됬단 소리임.
+        creep.room.memory.options.reset = 1
+        return

@@ -93,6 +93,8 @@ def run_upgrader(creep, creeps, all_structures):
                 # 링크를 찾는다.
                 links = []
                 for link in creep.room.memory[STRUCTURE_LINK]:
+                    if not link:
+                        continue
                     # 저장용인 링크만 중요함.
                     if link.for_store:
                         if Game.getObjectById(link.id):
