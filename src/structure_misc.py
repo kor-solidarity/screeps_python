@@ -100,7 +100,7 @@ def run_links(link_id):
                             Game.getObjectById(l.id).energy < Game.getObjectById(l.id).energyCapacity - 100)
 
     # 쏠준비 됨? 그럼 날려!
-    if link.cooldown == 0 and link.energy >= 140 and len(inside_links) > 0:
+    if link.cooldown == 0 and link.energy >= 200 and len(inside_links) > 0:
         # 내부(테두리 5칸 이상 이내)에 있는 링크 중 무작위 하나를 고르고 거기에 보낸다.
         # 만일 없으면? 애초부터 이 설계와 안맞게 만든거. 몰라ㅆㅂ
         random_int = random.randint(0, len(inside_links) - 1)
