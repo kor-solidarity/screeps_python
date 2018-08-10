@@ -836,7 +836,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                     # exclude creeps with less than 100 life ticks so the new guy can be replaced right away
                     remote_harvesters = _.filter(creeps, lambda c: c.memory.role == 'harvester'
                                                                    and c.memory.assigned_room == room_name
-                                                                   and (c.spawning or c.ticksToLive > 120))
+                                                                   and (c.spawning or c.ticksToLive > 150))
                     remote_reservers = _.filter(creeps, lambda c: c.memory.role == 'reserver'
                                                                   and c.memory.assigned_room == room_name)
 
@@ -1012,6 +1012,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                             # 소수점 다 올림처리.
                             if distance % 2 > 0:
                                 carrier_size += 1
+                            carrier_size += random.randint(0, 1)
                             # 여기서 값을 넣는다.
                             for i in range(carrier_size):
                                 # work 부분부터 넣어본다.

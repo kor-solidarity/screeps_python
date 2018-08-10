@@ -575,6 +575,9 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
         # priority 2: build
         elif creep.memory.priority == 2:
 
+            if creep.memory.build_target and not Game.getObjectById(creep.memory.build_target):
+                del creep.memory.build_target
+
             if not creep.memory.build_target:
 
                 closest_construction = creep.pos.findClosestByRange(constructions)
