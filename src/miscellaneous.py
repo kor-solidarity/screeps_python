@@ -88,6 +88,10 @@ def pick_pickup(creep, creeps, storages, terminal_capacity=10000, upgrade=False)
     # if creep.memory.role == 'hauler': print(storages)
     # creeps.
     portist_kripoj = creeps
+    # 업글전용
+    passed_upgr = False
+    if upgrade:
+        print('start')
     # will filter for leftover energy,
     # tldr - if theres already a creep going for it, dont go unless there's some for you.
     while not creep.memory.pickup or len(storages) > 0:
@@ -97,11 +101,30 @@ def pick_pickup(creep, creeps, storages, terminal_capacity=10000, upgrade=False)
         if len(storages) == 0:
             break
 
+        loop_storage = []
+
         # to distinguish storage var. with storages inside while loop.
-        loop_storage = creep.pos.findClosestByRange(storages)
+        # 만일 업글이면 for_upgrade 로 분류된 컨테이너에서 최우선으로 자원을 뽑는다.
+        if creep.room.controller.level < 8 and upgrade and not passed_upgr:
+            u_con_list = []
+            for cont in storages:
+                # 실제 보유중인 컨테이너 중에서 찾는다.
+                if cont.structureType == STRUCTURE_CONTAINER:
+                    for u_cont in creep.room.memory[STRUCTURE_CONTAINER]:
+                        if u_cont.for_upgrade and (u_cont.id == cont.id):
+                            if Game.getObjectById(u_cont.id):
+                                u_con_list.append(Game.getObjectById(u_cont.id))
+                                break
+            if len(u_con_list):
+                loop_storage = creep.pos.findClosestByRange(u_con_list)
+            passed_upgr = True
+        if not len(loop_storage):
+            loop_storage = creep.pos.findClosestByRange(storages)
 
         if not loop_storage:
             break
+        if upgrade:
+            print('type', loop_storage.structureType)
         # if loop_storage only holds energy - STRUCTURE_LINK and STRUCTURE_LAB
         if loop_storage.structureType == STRUCTURE_LINK or loop_storage.structureType == STRUCTURE_LAB:
             stored_energy = loop_storage.energy
@@ -116,10 +139,6 @@ def pick_pickup(creep, creeps, storages, terminal_capacity=10000, upgrade=False)
             for cont in creep.room.memory[STRUCTURE_CONTAINER]:
                 # 아이디 맞는지 확인하고.
                 if cont.id == loop_storage.id:
-                    # if creep.memory.role == 'hauler':
-                    #     print('cont.id', cont.id)
-                    #     print('cont.for_upgrade {} upgrade {} cont.for_harvest {} and _.sum(cont.store) {}'
-                    #           .format(cont.for_upgrade, upgrade, cont.for_harvest, _.sum(cont.store)))
                     available = True
                     # 크립과 컨테이너가 업글용인가?
                     if cont.for_upgrade and upgrade:
@@ -146,6 +165,7 @@ def pick_pickup(creep, creeps, storages, terminal_capacity=10000, upgrade=False)
         else:
             if upgrade:
                 stored_energy = loop_storage.store[RESOURCE_ENERGY]
+                print('the storage energy', stored_energy)
             else:
                 stored_energy = _.sum(loop_storage.store)
 
@@ -157,7 +177,8 @@ def pick_pickup(creep, creeps, storages, terminal_capacity=10000, upgrade=False)
                 # if same id, drop the amount the kripo can carry.
                 if loop_storage.id == kripo.memory.pickup:
                     stored_energy -= kripo.carryCapacity
-                    # print('stored_energy:', stored_energy)
+                    if upgrade:
+                        print('stored_energy:', stored_energy)
                 else:
                     continue
         # if leftover stored_energy has enough energy for carry, set pickup.

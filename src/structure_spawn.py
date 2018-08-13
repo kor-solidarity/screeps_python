@@ -146,6 +146,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
         # 위에 컨테이너로 인한 플러스 할때 캐리어용 컨테이너로 추가됬는가?
         carrier_plus = False
         # todo 컨테이너가 하베스터 용인지, 업글용도인지 등등을 종합적으로 고려한 새 공식이 필요함.
+        # todo 또한 리모트 컨테이너 3개이상이 꽉차면 ++2 합시다...
         # 컨테이너와 링크를 하나씩 돌려서 수확용 칸인지 확인하고 이에 plus를 추가한다.
         for mcont in spawn.room.memory[STRUCTURE_CONTAINER]:
             # 우선, 해당 컨테이너가 일반 하베스트인가?
