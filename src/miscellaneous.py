@@ -16,6 +16,45 @@ __pragma__('noalias', 'update')
 # todo 주제별로 다 분류해야함.
 
 
+def check_for_carrier_setting(creep, target_obj):
+    """
+    배정된 컨테이너의 for_harvest가 캐리어용(2)으로 배정할 자격이 되는지 확인한다.
+    :param creep:
+    :param target_obj: 대상 타겟. 링크 또는 컨테이너.
+    :return: 여기서 배정작업까지 다 끝내기 때문에 뭘 따로 반환할 필요가 없다.
+    """
+    # print('check for carrier setting', target_obj.structureType, target_obj.id)
+    if target_obj.structureType == STRUCTURE_CONTAINER:
+        # 메모리를 뜯어서 캐리어용인지 마킹을 한다.
+        for mc in creep.room.memory[STRUCTURE_CONTAINER]:
+            if mc.id == target_obj.id:
+                # print('memory checked, mc harvest {}'.format(mc.for_harvest))
+                # 이미 2면 건들필요가 있음?
+                if mc.for_harvest == 2:
+                    # print(target_obj.id, '는 이미 포 하베스트 2')
+                    return
+                # 하베스트설정이 2(캐리어용)가 아니고 5칸이내에 존재하면 캐리어용이니 2로 바꾼다.
+                elif not mc.for_harvest == 2 and creep.pos.inRangeTo(target_obj, 5) \
+                        and len(creep.pos.findPathTo(target_obj, {'ignoreCreep': True})) <= 5:
+                    mc.for_harvest = 2
+                    # print(target_obj.id, '변환완료')
+                    return
+                # print('WTFFF')
+                return
+    elif target_obj.structureType == STRUCTURE_LINK:
+        for ml in creep.room.memory[STRUCTURE_LINK]:
+            # 캐리어용인지 마킹하는거.
+            if ml.id == target_obj.id:
+                if ml.for_harvest == 2:
+                    return
+                else:
+                    ml.for_harvest = 2
+                    return
+        # 위에 포문 안에서 리턴이 안된단건 링크가 등록이 안됬단 소리임.
+        creep.room.memory.options.reset = 1
+        return
+
+
 def filter_enemies(foreign_creeps, count_ai=True):
     """
     filter out allies(ones must not be killed) from FIND_HOSTILE_CREEPS

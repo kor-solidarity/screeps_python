@@ -68,6 +68,7 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
 
     # laboro: 0 == pickup something.
     if creep.memory.laboro == 0:
+        # todo 운송 시작할 시 컨테이너에 자원이 있고 그 근처 할당된 링크에 자원을 넣을 수 있는가? 가능하면 옮긴다.
         # if there's no dropped and there's dropped_all
         if not creep.memory.dropped and len(dropped_all) > 0:
             for drop in dropped_all:
@@ -335,7 +336,7 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                 # 만일 컨테이너일 경우 메모리를 뜯어서 캐리어용인지 마킹을 한다.
                 if link_or_container.structureType == STRUCTURE_CONTAINER \
                         or link_or_container.structureType == STRUCTURE_LINK:
-                    check_for_carrier_setting(creep, link_or_container)
+                    miscellaneous.check_for_carrier_setting(creep, link_or_container)
 
                 creep.memory.haul_target = link_or_container.id
 
@@ -420,7 +421,7 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                             if len(creep.room.findPath(creep.pos, closest_link.pos,
                                                        {'ignoreCreeps': True})) <= 6:
                                 creep.memory.link_target = closest_link.id
-                                check_for_carrier_setting(creep, Game.getObjectById(creep.memory.link_target))
+                                miscellaneous.check_for_carrier_setting(creep, Game.getObjectById(creep.memory.link_target))
                             else:
                                 # 크립 주변에 링크가 없다는 소리. 위에 루프문 매번 반복 안하기 위해 생성.
                                 creep.memory.no_link = 1
@@ -450,7 +451,7 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                         # 컨테이너나 링크로 갈아탈 경우 캐려용인지 확인한다.
                         if link_or_container.structureType == STRUCTURE_CONTAINER\
                                 or link_or_container.structureType == STRUCTURE_LINK:
-                            check_for_carrier_setting(creep, link_or_container)
+                            miscellaneous.check_for_carrier_setting(creep, link_or_container)
                         creep.say('교체!', True)
                         creep.memory.err_full = 0
                         creep.moveTo(Game.getObjectById(creep.memory.haul_target),
@@ -510,43 +511,4 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                     creep.memory.priority = 0
                     # 컨테이너 꽉차서 라보로 0인걸 표기.
                     creep.memory.container_full = 1
-        return
-
-
-def check_for_carrier_setting(creep, target_obj):
-    """
-    배정된 컨테이너의 for_harvest가 캐리어용(2)으로 배정할 자격이 되는지 확인한다.
-    :param creep:
-    :param target_obj: 대상 타겟. 링크 또는 컨테이너.
-    :return: 여기서 배정작업까지 다 끝내기 때문에 뭘 따로 반환할 필요가 없다.
-    """
-    # print('check for carrier setting', target_obj.structureType, target_obj.id)
-    if target_obj.structureType == STRUCTURE_CONTAINER:
-        # 메모리를 뜯어서 캐리어용인지 마킹을 한다.
-        for mc in creep.room.memory[STRUCTURE_CONTAINER]:
-            if mc.id == target_obj.id:
-                # print('memory checked, mc harvest {}'.format(mc.for_harvest))
-                # 이미 2면 건들필요가 있음?
-                if mc.for_harvest == 2:
-                    # print(target_obj.id, '는 이미 포 하베스트 2')
-                    return
-                # 하베스트설정이 2(캐리어용)가 아니고 5칸이내에 존재하면 캐리어용이니 2로 바꾼다.
-                elif not mc.for_harvest == 2 and creep.pos.inRangeTo(target_obj, 5) \
-                        and len(creep.pos.findPathTo(target_obj, {'ignoreCreep': True})) <= 5:
-                    mc.for_harvest = 2
-                    # print(target_obj.id, '변환완료')
-                    return
-                # print('WTFFF')
-                return
-    elif target_obj.structureType == STRUCTURE_LINK:
-        for ml in creep.room.memory[STRUCTURE_LINK]:
-            # 캐리어용인지 마킹하는거.
-            if ml.id == target_obj.id:
-                if ml.for_harvest == 2:
-                    return
-                else:
-                    ml.for_harvest = 2
-                    return
-        # 위에 포문 안에서 리턴이 안된단건 링크가 등록이 안됬단 소리임.
-        creep.room.memory.options.reset = 1
         return

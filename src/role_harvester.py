@@ -369,7 +369,6 @@ def run_miner(creep, all_structures):
             creep.say("광물못캐!!", True)
             return
 
-
     # If you have nothing but on laboro 1 => get back to harvesting.
     if _.sum(creep.carry) == 0 and creep.memory.laboro == 1:
         # if about to die, just die lol
@@ -426,6 +425,8 @@ def run_miner(creep, all_structures):
             print('storage:', storage)
             print('id:', storage.id)
             creep.memory.container = storage.id
+            # for_harvest 설정 바꾼다.
+            miscellaneous.check_for_carrier_setting(creep, creep.memory.container)
 
         if creep.memory.container:
             # runs for each type of resources. you know the rest.
