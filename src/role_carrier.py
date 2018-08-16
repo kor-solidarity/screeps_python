@@ -69,6 +69,28 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
     # laboro: 0 == pickup something.
     if creep.memory.laboro == 0:
         # todo 운송 시작할 시 컨테이너에 자원이 있고 그 근처 할당된 링크에 자원을 넣을 수 있는가? 가능하면 옮긴다.
+        # 우선 보류
+        # # 확인을 아직 안했고 크립이 본진이며 링크를 저장해두고 있고 그게 에너지가 안 꽉차있는가?
+        # # memory.refill 로 확인한다 0이면 컨테이너가 아예없음 1이면 확인해야함. 2면 확인함.
+        # if creep.memory.refill == 1 and creep.room.name == creep.memory.home_room \
+        #         and creep.memory.link_target and \
+        #         Game.getObjectById(creep.memory.link_target).energyCapacity > \
+        #         Game.getObjectById(creep.memory.link_target).energy:
+        #     # 컨테이너가 없으면 이걸 돌릴 이유가 없음.
+        #     if not creep.memory.container:
+        #         creep.memory.refill = 0
+        #     # 만일 컨테이너에 내용물이 남아있으면 작업시작.
+        #     elif Game.getObjectById(creep.memory.container).store[RESOURCE_ENERGY] > 0:
+        #         grab = harvest_stuff.grab_energy(creep, creep.memory.container, True, 0.1)
+        #         # 목표물이 없거나 에너지가 없으면 통과
+        #         if grab == ERR_INVALID_TARGET:
+        #             del creep.memory.container
+        #             creep.memory.refill = 0
+        #         elif grab == ERR_NOT_ENOUGH_ENERGY:
+        #             creep.memory.refill = 2
+        #         elif grab == ERR_NOT_IN_RANGE:
+
+
         # if there's no dropped and there's dropped_all
         if not creep.memory.dropped and len(dropped_all) > 0:
             for drop in dropped_all:
