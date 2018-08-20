@@ -183,8 +183,10 @@ def pick_pickup(creep, creeps, storages, terminal_capacity=10000, upgrade=False)
                     if cont.for_upgrade and upgrade:
                         stored_energy = loop_storage.store[RESOURCE_ENERGY]
                     # 업글용이면 허울러, 건들지말것. 다만 캐리어용이면 일부 챙길 수 있음. 꽉찼을때 한정.
+                    # 그리고 방렙 8이면 업글용이 의미가 없어짐. 맘것 가져갑시다.
                     elif cont.for_upgrade and cont.for_harvest == 2 \
-                            and _.sum(loop_storage.store) == loop_storage.storeCapacity:
+                            and (_.sum(loop_storage.store) == loop_storage.storeCapacity
+                                 or creep.room.controller.level == 8):
                         # if creep.memory.role == 'hauler': print('wtf')
                         stored_energy = _.sum(loop_storage.store)
 

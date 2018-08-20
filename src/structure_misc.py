@@ -105,4 +105,11 @@ def run_links(link_id):
         # 내부(테두리 5칸 이상 이내)에 있는 링크 중 무작위 하나를 고르고 거기에 보낸다.
         # 만일 없으면? 애초부터 이 설계와 안맞게 만든거. 몰라ㅆㅂ
         random_int = random.randint(0, len(inside_links) - 1)
-        transfer_result = link.transferEnergy(Game.getObjectById(inside_links[random_int].id))
+        # 해당 링크가 에너지를 받은 시간 갱신. 링크의 전송시간을 낭비하지 않게 하기 위해 고안.
+        if not inside_links[random_int].received_time or \
+                not inside_links[random_int].received_time == Game.time :
+            transfer_result = link.transferEnergy(Game.getObjectById(inside_links[random_int].id))
+
+            if transfer_result == OK:
+                inside_links[random_int].received_time = Game.time
+

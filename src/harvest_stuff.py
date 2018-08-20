@@ -95,42 +95,43 @@ def grab_energy(creep, pickup, only_energy, min_capacity=.5):
         carry_objects = Game.getObjectById(pickup).energy
 
     # print('len(carry_objects)', len(carry_objects))
-
-    if len(carry_objects) == 0:
+    # 에너지만 있는 대상이거나 에너지만 뽑으라고 설정된 경우.
+    if len(carry_objects) == 0 or only_energy:
         # print('pick it up.')
         result = creep.withdraw(Game.getObjectById(pickup), RESOURCE_ENERGY)
         # print(result)
         # pick it up.
         return result
 
-    # else == STRUCTURE_CONTAINER || STRUCTURE_STORAGE
+    # STRUCTURE_CONTAINER || STRUCTURE_STORAGE
     else:
 
-        for resource in Object.keys(carry_objects):
-            # if the creep only need to pick up energy.
-            if only_energy and resource != 'energy':
-                continue
-            # and there's no energy there
-            elif only_energy and Game.getObjectById(pickup).store[resource] == 0:
-                creep.say('noEnergy')
-                # print('noEnergy')
-                # del pickup
-                return ERR_NOT_ENOUGH_ENERGY
+        result = ERR_NOT_ENOUGH_ENERGY
 
-            # if there's no such resource, pass it to next loop.
-            if Game.getObjectById(pickup).store[resource] == 0:
-                # if creep.name == check_name:
-                #     print('WTF')
-                continue
+        # 에너지 외 다른 자원을 먼져 뽑는걸 원칙으로 한다.
+        # 에너지 외 다른게 있을 경우
+        if len(carry_objects) > 1:
+            for resource in Object.keys(carry_objects):
+                # 우선 에너지면 통과.
+                if resource == RESOURCE_ENERGY:
+                    continue
+                # if there's no such resource, pass it to next loop.
+                if Game.getObjectById(pickup).store[resource] == 0:
+                    # if creep.name == check_name:
+                    #     print('WTF')
+                    continue
 
-            # pick it up.
-            grab_action = creep.withdraw(Game.getObjectById(pickup), resource)
+                # pick it up.
+                result = creep.withdraw(Game.getObjectById(pickup), resource)
 
-            if grab_action == ERR_NOT_ENOUGH_RESOURCES:
-                print(resource)
-
-            # 오직 잡기 결과값만 반환한다. 이 함수에서 수거활동 외 활동을 금한다!
-            return grab_action
+                if result == ERR_NOT_ENOUGH_RESOURCES:
+                    print(resource)
+                else:
+                    # 오직 잡기 결과값만 반환한다. 이 함수에서 수거활동 외 활동을 금한다!
+                    return result
+        else:
+            result = creep.withdraw(Game.getObjectById(pickup), RESOURCE_ENERGY)
+            return result
 
 
 def pick_drops(creep, pickup, only_energy):

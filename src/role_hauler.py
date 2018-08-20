@@ -88,7 +88,7 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
         del creep.memory.build_target
         del creep.memory.repair_target
 
-    elif _.sum(creep.carry) > creep.carryCapacity * .90 and creep.memory.laboro == 0:
+    elif _.sum(creep.carry) >= creep.carryCapacity * .5 and creep.memory.laboro == 0:
         # if creep.memory.dropped:
         #     del creep.memory.dropped
             # Memory.initialize_count += 2
@@ -183,8 +183,9 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                 if not creep.memory.pickup:
                     creep.memory.pickup = storage
 
-                # did hauler got order to grab only energy?
-                if creep.memory.only_energy:
+                # did hauler got order to grab only energy? or lab/storage where there can be multiple sources?
+                if creep.memory.only_energy or Game.getObjectById(creep.memory.pickup).structureType == STRUCTURE_LAB \
+                        or Game.getObjectById(creep.memory.pickup).structureType == STRUCTURE_STORAGE:
                     only_energy = True
                     del creep.memory.only_energy
                 else:
@@ -201,12 +202,15 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                             if creep.pos.inRangeTo(c, 1) and not c.name == creep.name:
                                 mv = creep.moveTo(c)
                                 break
+                # 온전하게 집었을 경우.
+                # 여러 자원을 뽑아야 하는 경우도 있는지라 이거 한번에 laboro 를 1로 전환하지 않는다.
                 elif result == 0:
                     creep.say('BEEP BEEP⛟', True)
                     # if _.sum(creep.carry) >= creep.carryCapacity * .5:
-                    del creep.memory.pickup
-                    creep.memory.laboro = 1
-                    creep.memory.priority = 0
+                    # del creep.memory.pickup
+                    # creep.memory.laboro = 1
+                    # creep.memory.priority = 0
+
                 elif result == ERR_NOT_ENOUGH_ENERGY:
                     del creep.memory.pickup
                     return
@@ -339,12 +343,14 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                     # haul_target 이 중간에 폭파되거나 등등...
                     if not target:
                         del creep.memory.haul_target
+                    elif target.structureType == STRUCTURE_TOWER and target.energy >= target.energyCapacity - 20:
+                        del creep.memory.haul_target
                     elif target.structureType != STRUCTURE_CONTAINER and target.energy >= target.energyCapacity:
                         del creep.memory.haul_target
                     elif _.sum(target.store) >= target.storeCapacity:
                         del creep.memory.haul_target
 
-                # haul_target == cela adreso por porti la energion.
+                # haul_target == 에너지 배송해야하는 목적지.
                 if not creep.memory.haul_target and creep.carry.energy > 0:
                     if not passed_priority_0:
                         structures = all_structures.filter(lambda s: ((s.structureType == STRUCTURE_SPAWN
