@@ -59,7 +59,32 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
     if _.sum(creep.carry) == 0 and creep.memory.laboro != 0:
         creep.memory.laboro = 0
         creep.memory.priority = 0
+
+        if not creep.memory.build_target:
+            # 본진에 물건 다 올렸을때만 가동.
+            # 컨테이너와 링크 둘 다 존재하면 캐리어가 컨테이너에 있는 에너지를 링크에 옮겨넣을지 확인한다.
+            if creep.memory.container and creep.memory.link_target:
+                # print('refill setting', creep.name, creep.memory.refill)
+                # 크립에 리필작업이 설정이 안되있는가?
+                if not creep.memory.refill:
+                    creep.memory.refill = 1
+                    # print('null')
+                # 크립이 리필작업을 수행중이었나? 그럼 다 한걸로 친다.
+                elif creep.memory.refill == 1:
+                    creep.memory.refill = 2
+                    # print('1')
+                # 엘스가 걸린다면 refill == 2.
+                # 리필 다 하고 리모트에서 새로 가져오는중이었단거. 리필확인해야함.
+                else:
+                    # print('els')
+                    creep.memory.refill = 1
+            # 해당사항 없으면 리필작업 할필요없음.
+            else:
+                # print('refill wtf', creep.name)
+                creep.memory.refill = 0
+
         del creep.memory.build_target
+
     elif _.sum(creep.carry) == creep.carryCapacity and creep.memory.laboro != 1:
         creep.memory.laboro = 1
 
@@ -70,36 +95,43 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
 
     # laboro: 0 == pickup something.
     if creep.memory.laboro == 0:
-        # todo 운송 시작할 시 컨테이너에 자원이 있고 그 근처 할당된 링크에 자원을 넣을 수 있는가? 가능하면 옮긴다.
-        # # 우선 보류
-        # # 확인을 아직 안했고 크립이 본진이며, 링크 ID를 저장해두고 있고, 그게 에너지가 안 꽉차있는가?
-        # # memory.refill 로 확인한다 0이면 컨테이너가 아예없는거, 1이면 확인해야함. 2면 이미 확인함.
-        # if creep.memory.refill == 1 and creep.room.name == creep.memory.home_room \
-        #         and creep.memory.link_target and \
-        #         Game.getObjectById(creep.memory.link_target).energyCapacity > \
-        #         Game.getObjectById(creep.memory.link_target).energy:
-        #     # 저장된 컨테이너가 없으면 이걸 돌릴 이유가 없음.
-        #     if not creep.memory.container:
-        #         creep.memory.refill = 0
-        #     # 만일 컨테이너에 내용물이 남아있으면 작업시작.
-        #     elif Game.getObjectById(creep.memory.container).store[RESOURCE_ENERGY] > 0:
-        #         grab = harvest_stuff.grab_energy(creep, creep.memory.container, True, 0.1)
-        #         # 컨테이너가 없으면 통과.
-        #         if grab == ERR_INVALID_TARGET:
-        #             del creep.memory.container
-        #             creep.memory.refill = 0
-        #         # 에너지가 없으면 통과.
-        #         elif grab == ERR_NOT_ENOUGH_ENERGY:
-        #             creep.memory.refill = 2
-        #         # 떨어져 있으면 당연 다가간다.
-        #         elif grab == ERR_NOT_IN_RANGE:
-        #             movement.movi(creep, creep.memory.container)
-        #         # 온전히 잡았으면 다 잡은거마냥 행동한다.
-        #         elif grab == OK:
-        #             creep.memory.laboro = 1
-        #             creep.memory.priority = 2
-        #             creep.memory.refill = 2
-        #         return
+        # 운송 시작할 시 컨테이너에 자원이 있고 근처 할당된 링크가 꽉 안참? 그럼 컨테이너에서 링크로 옮긴다.
+        # memory.refill 로 확인한다 0이면 컨테이너가 아예없는거, 1이면 확인해야함. 2면 이미 확인함.
+        # 확인을 아직 안했고 크립이 본진이며, 링크 ID를 저장해두고 있는가?
+        if creep.memory.refill == 1 and creep.room.name == creep.memory.home_room \
+                and creep.memory.link_target:
+            # print('refill', creep.name)
+            # print('link energy', Game.getObjectById(creep.memory.link_target).energy)
+            # print('container', creep.memory.container, 'store',
+            #       Game.getObjectById(creep.memory.container).store[RESOURCE_ENERGY])
+            # 링크안에 에너지가 꽉 찬 상태면 어차피 못채우니 끝.
+            if Game.getObjectById(creep.memory.link_target).energyCapacity == \
+                    Game.getObjectById(creep.memory.link_target).energy:
+                creep.memory.refill = 2
+            # 저장된 컨테이너가 없으면 이걸 돌릴 이유가 없음.
+            elif not creep.memory.container:
+                creep.memory.refill = 0
+            # 만일 컨테이너에 내용물이 남아있으면 작업시작.
+            elif Game.getObjectById(creep.memory.container).store[RESOURCE_ENERGY] > 0:
+                grab = harvest_stuff.grab_energy(creep, creep.memory.container, True, 0.1)
+                creep.say('refilling')
+                # 컨테이너가 없으면 통과.
+                if grab == ERR_INVALID_TARGET:
+                    del creep.memory.container
+                    creep.memory.refill = 0
+                # 에너지가 없으면 통과.
+                elif grab == ERR_NOT_ENOUGH_ENERGY:
+                    creep.memory.refill = 2
+                # 떨어져 있으면 당연 다가간다.
+                elif grab == ERR_NOT_IN_RANGE:
+                    movement.movi(creep, creep.memory.container)
+                # 온전히 잡았으면 다 잡은거마냥 행동한다. 링크로 옮기기 위한 절차.
+                elif grab == OK:
+                    creep.memory.laboro = 1
+                    creep.memory.priority = 2
+                return
+            else:
+                creep.memory.refill = 2
 
         # if there's no dropped and there's dropped_all
         if not creep.memory.dropped and len(dropped_all) > 0:
@@ -433,6 +465,9 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                     if creep.memory.link_target:
                         if not Game.getObjectById(creep.memory.link_target):
                             del creep.memory.link_target
+                    if creep.memory.container:
+                        if not Game.getObjectById(creep.memory.container):
+                            del creep.memory.container
                     # 캐리어는 기본적으로 링크로 운송하는게 원칙이다.
                     # 방금 옮긴 대상건물이 링크가 아니면 찾아서 등록한다. 진짜 없으면... 걍 없는거...
                     if not creep.memory.link_target and not creep.memory.no_link:
@@ -452,6 +487,7 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                                 creep.memory.no_link = 1
                     creep.memory.haul_target = creep.memory.link_target
                     creep.memory.err_full = 3
+
             # only happens inside the home room
             elif transfer_result == ERR_FULL:
                 if not creep.memory.err_full and not creep.memory.err_full == 0:

@@ -142,7 +142,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
             return
 
         plus = 0
-        print('+++++')
+        # print('+++++')
         # 위에 컨테이너로 인한 플러스 할때 캐리어용 컨테이너로 추가됬는가?
         carrier_plus = 0
         # todo 컨테이너가 하베스터 용인지, 업글용도인지 등등을 종합적으로 고려한 새 공식이 필요함.
@@ -156,7 +156,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                 # 60% 이상 차있으면 ++
                 cont_obj = Game.getObjectById(mcont.id)
                 if cont_obj and _.sum(cont_obj.store) >= cont_obj.storeCapacity * .6:
-                    print('plus! 60%')
+                    # print('plus! 60%')
                     plus += 1
 
             # 캐리어용 컨테이너인가?
@@ -164,11 +164,10 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                 # 꽉찬경우 새로 추가. 대상은 캐리어용 및 광물용
                 cont_obj = Game.getObjectById(mcont.id)
                 if cont_obj and _.sum(cont_obj.store) == cont_obj.storeCapacity:
-                    print('plus! remote', mcont.id)
+                    # print('plus! remote', mcont.id)
                     carrier_plus += 1
                     if carrier_plus == 1 or carrier_plus == 3:
-                        plus +=1
-
+                        plus += 1
 
         # 위와 동일. 링크를 센다.
         for mlink in spawn.room.memory[STRUCTURE_LINK]:
@@ -528,6 +527,37 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                     # 설정 끝.
                     flags[flag_name].room.memory.options.haulers = number
                     delete_flag = True
+
+            # 방 안에 미네랄 채취 시작
+            if flag_name.includes('-mine'):
+                print('-mine')
+                # 내 방 맞음?
+                controlled = False
+                # todo 키퍼방일 경우 추가요망. 현재는 내방만.
+                if flags[flag_name].room and flags[flag_name].room.controller:
+                    if flags[flag_name].room.controller.my:
+                        controlled = True
+
+                if controlled:
+                    mineral_loc = flags[flag_name].room.find(FIND_MINERALS)[0]
+                    # 엑스트랙터 생성
+                    mineral_loc.pos.createConstructionSite(STRUCTURE_EXTRACTOR)
+
+                    road_to_spawn = mineral_loc.pos.findPathTo(spawn, {'ignoreCreeps': True})
+                    road_len = len(road_to_spawn)
+                    counter = 0
+                    # 줄따라 놓기
+                    for s in road_to_spawn:
+                        if counter == 0 or counter == road_len:
+                            pass
+                        elif counter == 1:
+                            posi = __new__(RoomPosition(s.x, s.y, flags[flag_name].room.name))
+                            posi.createConstructionSite(STRUCTURE_CONTAINER)
+                        else:
+                            posi = __new__(RoomPosition(s.x, s.y, flags[flag_name].room.name))
+                            posi.createConstructionSite(STRUCTURE_ROAD)
+                        counter += 1
+                delete_flag = True
 
             # 방내 설정값 표기.
             if flag_name.includes('-dsp'):

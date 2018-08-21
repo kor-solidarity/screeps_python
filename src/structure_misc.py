@@ -63,9 +63,15 @@ def run_links(link_id):
     :return:
     """
 
-    # todo 테두리로 확인하는게 아니라 내부에 진짜 에너지가 제대로 있는지 확인한다.
-    # 내부(테두리 5칸 이상 이내)에 있는 링크는 작동을 안한다.
     link = Game.getObjectById(link_id)
+
+    # 방렙이 몇이냐에 따라 쏘기 시작하는 최저수량을 규정한다.
+    # 8이면 400 아니면 200
+    if link.room.controller.level == 8:
+        amount_to_shoot = 400
+    else:
+        amount_to_shoot = 200
+
     # current link
     me = _.filter(Game.getObjectById(link_id).room.memory[STRUCTURE_LINK],
                   lambda l: l.id == link_id)[0]
@@ -101,7 +107,7 @@ def run_links(link_id):
                             Game.getObjectById(l.id).energy < Game.getObjectById(l.id).energyCapacity - 100)
 
     # 쏠준비 됨? 그럼 날려!
-    if link.cooldown == 0 and link.energy >= 200 and len(inside_links) > 0:
+    if link.cooldown == 0 and link.energy >= amount_to_shoot and len(inside_links) > 0:
         # 내부(테두리 5칸 이상 이내)에 있는 링크 중 무작위 하나를 고르고 거기에 보낸다.
         # 만일 없으면? 애초부터 이 설계와 안맞게 만든거. 몰라ㅆㅂ
         random_int = random.randint(0, len(inside_links) - 1)

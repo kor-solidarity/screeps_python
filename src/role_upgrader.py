@@ -65,16 +65,6 @@ def run_upgrader(creep, creeps, all_structures):
         if not creep.memory.pickup:
 
             # for_upgrade 로 분류된 컨테이너에서 최우선으로 자원을 뽑는다.
-            # if creep.room.controller.level < 8:
-            #     for ctn in creep.room.memory[STRUCTURE_CONTAINER]:
-            #         if ctn.for_upgrade:
-            #             # 컨테이너 안에 실제 내용물이 있는지 파악.
-            #             if Game.getObjectById(ctn.id):
-            #                 if Game.getObjectById(ctn.id).store[RESOURCE_ENERGY] >= creep.carryCapacity * .5:
-            #                     creep.memory.pickup = ctn.id
-            #                     break
-            # if not creep.memory.pickup:
-
             # find any storages with any energy inside
             containers_or_links = all_structures.filter(lambda s: (s.structureType == STRUCTURE_CONTAINER
                                                         and s.store[RESOURCE_ENERGY] >= creep.carryCapacity * .5))
