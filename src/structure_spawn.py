@@ -210,10 +210,10 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
 
         # 허울러 수 계산법: 방별로 지정된 허울러(기본값 2) + 위에 변수값
         hauler_capacity = Memory.rooms[spawn.room.name].options.haulers + plus
-        # minimum number of haulers in the room is 1, max 4
+        # minimum number of haulers in the room is 1, max 4. always max when lvl 4 or less
         if hauler_capacity <= 0:
             hauler_capacity = 1
-        elif hauler_capacity > 4:
+        elif hauler_capacity > 4 or chambro.controller.level < 4:
             hauler_capacity = 4
 
         if spawn.room.terminal:

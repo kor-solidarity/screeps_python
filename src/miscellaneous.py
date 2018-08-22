@@ -124,13 +124,13 @@ def pick_pickup(creep, creeps, storages, terminal_capacity=10000, upgrade=False)
     """
     # print("{} the {} upgrade: {}".format(creep.name, creep.memory.role, upgrade))
     # storage with closest.... yeah
-    # if creep.memory.role == 'hauler': print(storages)
+    # if creep.memory.role == 'hauler': print(creep.name, storages)
     # creeps.
     portist_kripoj = creeps
     # 업글전용
     passed_upgr = False
-    if upgrade:
-        print('start')
+    # if upgrade:
+    #     print('start')
     # will filter for leftover energy,
     # tldr - if theres already a creep going for it, dont go unless there's some for you.
     while not creep.memory.pickup or len(storages) > 0:
@@ -162,8 +162,8 @@ def pick_pickup(creep, creeps, storages, terminal_capacity=10000, upgrade=False)
 
         if not loop_storage:
             break
-        if upgrade:
-            print('type', loop_storage.structureType)
+        # if upgrade:
+        #     print('type', loop_storage.structureType)
         # if loop_storage only holds energy - STRUCTURE_LINK and STRUCTURE_LAB
         if loop_storage.structureType == STRUCTURE_LINK or loop_storage.structureType == STRUCTURE_LAB:
             stored_energy = loop_storage.energy
@@ -195,33 +195,29 @@ def pick_pickup(creep, creeps, storages, terminal_capacity=10000, upgrade=False)
                         # if creep.memory.role == 'hauler': print('so what')
                         stored_energy = _.sum(loop_storage.store)
 
-                    # 위와 해당사항 없으면 이건 볼거없음.
-                    else:
-                        loop_index = storages.indexOf(loop_storage)
-                        storages.splice(loop_index, 1)
-
                     break
 
         # else == storage.
         else:
             if upgrade:
                 stored_energy = loop_storage.store[RESOURCE_ENERGY]
-                print('the storage energy', stored_energy)
+                # print('the storage energy', stored_energy)
             else:
                 stored_energy = _.sum(loop_storage.store)
 
-        for kripo in portist_kripoj:
-            # if hauler dont have pickup, pass
-            if not kripo.memory.pickup:
-                continue
-            else:
-                # if same id, drop the amount the kripo can carry.
-                if loop_storage.id == kripo.memory.pickup:
-                    stored_energy -= kripo.carryCapacity
-                    if upgrade:
-                        print('stored_energy:', stored_energy)
-                else:
+        if stored_energy:
+            for kripo in portist_kripoj:
+                # if hauler dont have pickup, pass
+                if not kripo.memory.pickup:
                     continue
+                else:
+                    # if same id, drop the amount the kripo can carry.
+                    if loop_storage.id == kripo.memory.pickup:
+                        stored_energy -= kripo.carryCapacity
+                        # if upgrade:
+                        #     print('stored_energy:', stored_energy)
+                    else:
+                        continue
         # if leftover stored_energy has enough energy for carry, set pickup.
         if stored_energy >= int((creep.carryCapacity - _.sum(creep.carry)) * .5):
             # if creep.memory.role == 'hauler':

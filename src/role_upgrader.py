@@ -80,8 +80,8 @@ def run_upgrader(creep, creeps, all_structures):
             containers_or_links.extend(links)
             if creep.room.storage:
                 containers_or_links.extend([creep.room.storage])
-            print(creep.name)
-            print(containers_or_links)
+            # print(creep.name)
+            # print(containers_or_links)
             # 가장 가까운곳에서 빼오는거임. 원래 스토리지가 최우선이었는데 바뀜.
             pickup_id = miscellaneous.pick_pickup(creep, creeps, containers_or_links, 10000, True)
 
