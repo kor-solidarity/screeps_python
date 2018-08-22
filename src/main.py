@@ -233,7 +233,7 @@ def main():
                 # 운송크립의 수. 기본수가 숫자만큼 많아진다. 물론 최대치는 무조건 4
                 if not Memory.rooms[chambra_nomo].options.haulers \
                         and not Memory.rooms[chambra_nomo].options.haulers == 0:
-                    Memory.rooms[chambra_nomo].options.haulers = 2
+                    Memory.rooms[chambra_nomo].options.haulers = 1
                 # 타워 공격시킬건가? 1이면 공격. 또한 매 1만턴마다 리셋한다.
                 if (not Memory.rooms[chambra_nomo].options.tow_atk
                         and not Memory.rooms[chambra_nomo].options.tow_atk == 0) \

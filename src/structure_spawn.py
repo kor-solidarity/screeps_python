@@ -153,10 +153,12 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                 # 업그레이드 용도면 안센다. 단 렙8미만일때만.
                 if spawn.room.controller.level < 8 and mcont.for_upgrade:
                     continue
-                # 60% 이상 차있으면 ++
+                # 60% 이상 차있으면 ++, 꽉차면 두배.
                 cont_obj = Game.getObjectById(mcont.id)
-                if cont_obj and _.sum(cont_obj.store) >= cont_obj.storeCapacity * .6:
+                if cont_obj and _.sum(cont_obj.store) == cont_obj.storeCapacity:
                     # print('plus! 60%')
+                    plus += 2
+                elif cont_obj and _.sum(cont_obj.store) >= cont_obj.storeCapacity * .6:
                     plus += 1
 
             # 캐리어용 컨테이너인가?
