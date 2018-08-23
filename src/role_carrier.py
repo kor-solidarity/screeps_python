@@ -454,6 +454,9 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                 if creep.memory.last_switch:
                     del creep.memory.last_switch
 
+                if not creep.memory.refill and creep.memory.link_target and creep.memory.container:
+                    creep.memory.refill = 1
+
                 # 이동 완료했는데 픽업도없고 그렇다고 일할수있는것도 아니면 죽어야함.
                 # 프론티어일 경우도 해당.
                 if (not Game.getObjectById(creep.memory.pickup) and not creep.memory.work) \
