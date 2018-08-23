@@ -293,7 +293,9 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                     for rcont in creep.room.memory[STRUCTURE_CONTAINER]:
                         # 업글용 컨테이너고 수확저장용도가 아닌가? 그러면 허울러가 넣는다.
                         if rcont.for_upgrade and not rcont.for_harvest:
-                            if Game.getObjectById(rcont.id):
+                            if Game.getObjectById(rcont.id) \
+                                    and not _.sum(Game.getObjectById(rcont.id).store) \
+                                    == Game.getObjectById(rcont.id).storeCapacity:
                                 container.extend([Game.getObjectById(rcont.id)])
 
                 structures.extend(container)
@@ -383,7 +385,9 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                             for rcont in creep.room.memory[STRUCTURE_CONTAINER]:
                                 # 업글용 컨테이너고 수확저장용도가 아닌가? 그러면 허울러가 넣는다.
                                 if rcont.for_upgrade and not rcont.for_harvest:
-                                    if Game.getObjectById(rcont.id):
+                                    if Game.getObjectById(rcont.id) \
+                                        and not _.sum(Game.getObjectById(rcont.id).store) \
+                                                == Game.getObjectById(rcont.id).storeCapacity:
                                         container.extend([Game.getObjectById(rcont.id)])
                         structures.extend(container)
 
