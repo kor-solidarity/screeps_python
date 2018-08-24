@@ -513,8 +513,10 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                             len(creep.room.findPath(creep.pos, link_or_container.pos, {'ignoreCreeps': True})) <= 5:
                         creep.memory.haul_target = link_or_container.id
                         # 컨테이너나 링크로 갈아탈 경우 캐려용인지 확인한다.
-                        if link_or_container.structureType == STRUCTURE_CONTAINER\
-                                or link_or_container.structureType == STRUCTURE_LINK:
+                        if link_or_container.structureType == STRUCTURE_CONTAINER:
+                            creep.memory.container = link_or_container.id
+                            miscellaneous.check_for_carrier_setting(creep, link_or_container)
+                        elif link_or_container.structureType == STRUCTURE_LINK:
                             miscellaneous.check_for_carrier_setting(creep, link_or_container)
                         creep.say('교체!', True)
                         creep.memory.err_full = 0

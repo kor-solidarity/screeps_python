@@ -56,7 +56,7 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
     if not creep.memory.upgrade_target:
         creep.memory.upgrade_target = Game.rooms[creep.memory.assigned_room].controller['id']
 
-    end_is_near = 30
+    end_is_near = 10
     # in case it's gonna die soon. this noble act is only allowed if there's a storage in the room.
     if creep.ticksToLive < end_is_near and _.sum(creep.carry) != 0 and creep.room.storage:
         creep.say('endIsNear')
@@ -156,13 +156,23 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
         if not creep.memory.dropped:
             # only search if there's nothing to pick up.
             if not creep.memory.pickup:
+                # 방 안에 에너지수용량이 총량의 20% 이하면 반반 확률로 스토리지로 직접 빼러 간다.
+                # 물론 안에 에너지가 있어야겠지.
+                if creep.room.energyAvailable < creep.room.energyCapacityAvailable * .20 \
+                        and creep.room.storage and creep.room.storage.store[RESOURCE_ENERGY] > 600:
+                    to_storage_chance = random.randint(0, 1)
+                else:
+                    to_storage_chance = 0
 
-                # find any containers/links with any resources inside
-                storages = all_structures.filter(lambda s:
-                                                 (s.structureType == STRUCTURE_CONTAINER
-                                                  and _.sum(s.store) >= creep.carryCapacity * .5)
-                                                 or (s.structureType == STRUCTURE_LINK
-                                                     and s.energy >= creep.carryCapacity * .5))
+                if not to_storage_chance:
+                    # find any containers/links with any resources inside
+                    storages = all_structures.filter(lambda s:
+                                                     (s.structureType == STRUCTURE_CONTAINER
+                                                      and _.sum(s.store) >= creep.carryCapacity * .5)
+                                                     or (s.structureType == STRUCTURE_LINK
+                                                         and s.energy >= creep.carryCapacity * .5))
+                else:
+                    storages = []
 
                 # 위 목록 중에서 가장 가까이 있는 컨테이너를 뽑아간다.
                 # 만약 뽑아갈 대상이 없을 시 터미널, 스토리지를 각각 찾는다.

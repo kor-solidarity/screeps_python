@@ -559,6 +559,9 @@ def main():
                 chambro.memory[STRUCTURE_CONTAINER] = []
             if not chambro.memory[STRUCTURE_LAB] or chambro.memory.options.reset:
                 chambro.memory[STRUCTURE_LAB] = []
+            # 수리를 위한 목록
+            if not chambro.memory['repair_targets'] or chambro.memory.options.reset:
+                chambro.memory['repair_targets'] = []
 
             # 매번 완전초기화 하면 너무 자원낭비. 수량 틀릴때만 돌린다.
             # 타워세기.
