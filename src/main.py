@@ -11,6 +11,7 @@ import random
 import pathfinding
 import miscellaneous
 import role_soldier_h_defender
+from _custom_constants import *
 
 
 # defs is a package which claims to export all constants and some JavaScript objects, but in reality does
@@ -183,7 +184,7 @@ def main():
     passing_creep_counter = 0
 
     # 스트럭쳐 목록 초기화 위한 숫자
-    structure_renew_count = 200
+    structure_renew_count = 100
     # JSON string to be put into memory
     for_json = ''
 
@@ -234,6 +235,9 @@ def main():
                 if not Memory.rooms[chambra_nomo].options.haulers \
                         and not Memory.rooms[chambra_nomo].options.haulers == 0:
                     Memory.rooms[chambra_nomo].options.haulers = 1
+                # 업글크립 최대수. 기본값 12
+                if not Memory.rooms[chambra_nomo].options[max_upgraders]:
+                    Memory.rooms[chambra_nomo].options[max_upgraders] = 12
                 # 타워 공격시킬건가? 1이면 공격. 또한 매 1만턴마다 리셋한다.
                 if (not Memory.rooms[chambra_nomo].options.tow_atk
                         and not Memory.rooms[chambra_nomo].options.tow_atk == 0) \
@@ -546,7 +550,7 @@ def main():
 
         # renew structures
         # todo ADD LABS
-        if (Game.time % 100 == 0 and chambro.controller and chambro.controller.my) \
+        if (Game.time % structure_renew_count == 0 and chambro.controller and chambro.controller.my) \
                 or (chambro.memory.options and chambro.memory.options.reset):
             # 이거 돌리는데 얼마나 걸리는지 확인하기 위한 작업.
             structure_cpu = Game.cpu.getUsed()
@@ -559,9 +563,17 @@ def main():
                 chambro.memory[STRUCTURE_CONTAINER] = []
             if not chambro.memory[STRUCTURE_LAB] or chambro.memory.options.reset:
                 chambro.memory[STRUCTURE_LAB] = []
-            # 수리를 위한 목록
-            if not chambro.memory['repair_targets'] or chambro.memory.options.reset:
-                chambro.memory['repair_targets'] = []
+            # todo 수리를 위한 목록. 이건 무조건 한번씩 리셋. 다만 다른거 정상적으로 돌때의 반만.
+            if chambro.memory.options.reset or Game.time % structure_renew_count * 2 == 0:
+                chambro.memory[repair_targets] = []
+                # 수리를 위한 건물목록은 단계별 수리로 지정된 것들, 즉 STRUCTURE_WALL / STRUCTURE_RAMPART 두가지만 넣는다.
+                walls_n_ramparts = all_structures.filter(lambda s: s.structureType == STRUCTURE_RAMPART
+                                                         and s.structureType == STRUCTURE_WALL)
+                # repair_targets 안에 넣는다.
+                # 안에 들어갈건 크게 세가지: id, pos, hits, structureType
+                for w in walls_n_ramparts:
+                    chambro.memory[repair_targets].append({'id': w.id, 'pos': w.pos, 'hits': w.hits,
+                                                           'structureType': w.structureType})
 
             # 매번 완전초기화 하면 너무 자원낭비. 수량 틀릴때만 돌린다.
             # 타워세기.
@@ -630,20 +642,18 @@ def main():
 
         # running tower, links
         if chambro.memory[STRUCTURE_TOWER] and len(chambro.memory[STRUCTURE_TOWER]) > 0:
-            # 수리작업을 할때 벽·방어막 체력 300 이하가 있으면 그걸 최우선으로 고친다.
+            tow_repairs = []
+            # 타워는 벽·방어막 체력 1000 이하만 고친다.
             # 적이 있을 시 수리 자체를 안하니 있으면 아예 무시.
             if len(hostile_creeps) == 0 and chambro.controller.level > 4 \
                     and Game.cpu.bucket > cpu_bucket_emergency:
                 for repair_obj in repairs:
                     if (repair_obj.structureType == STRUCTURE_WALL
-                        or repair_obj.structureType == STRUCTURE_RAMPART) \
-                            and repair_obj.hits < 300:
-                        repairs = [repair_obj]
-                        break
-                    elif (repair_obj.structureType == STRUCTURE_CONTAINER
-                          or repair_obj.structureType == STRUCTURE_ROAD) \
-                            and repair_obj.hits < repair_obj.hitsMax * .05:
-                        repairs = [repair_obj]
+                        or repair_obj.structureType == STRUCTURE_RAMPART
+                        or repair_obj.structureType == STRUCTURE_CONTAINER
+                        or repair_obj.structureType == STRUCTURE_ROAD) \
+                            and repair_obj.hits < 1000:
+                        tow_repairs = [repair_obj]
                         break
             # 한놈만 팬다.
             if len(hostile_creeps) > 1:
@@ -654,7 +664,7 @@ def main():
             for i in chambro.memory[STRUCTURE_TOWER]:
                 if Game.getObjectById(i):
                     room_cpu_num += 1
-                    building_action.run_tower(Game.getObjectById(i), enemy, repairs, malsana_amikoj)
+                    building_action.run_tower(Game.getObjectById(i), enemy, tow_repairs, malsana_amikoj)
                 else:
                     chambro.memory[STRUCTURE_TOWER].splice(for_str, 1)
                 for_str += 1

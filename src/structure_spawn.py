@@ -2,6 +2,7 @@ from defs import *
 import random
 import miscellaneous
 import pathfinding
+from _custom_constants import *
 
 __pragma__('noalias', 'name')
 __pragma__('noalias', 'undefined')
@@ -166,8 +167,14 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                 if cont_obj and _.sum(cont_obj.store) == cont_obj.storeCapacity:
                     # print('plus! remote', mcont.id)
                     carrier_plus += 1
-                    if carrier_plus == 2 or carrier_plus == 3:
-                        plus += 1
+                    # 초반엔 이송거리 문제도 있고 해서 허울러 혼자론 무리일수도 있음.
+                    # 렙8 이후에야 어느정도 감당이 된다고 판단.
+                    if chambro.controller.level == 8:
+                        if carrier_plus == 2 or carrier_plus == 3:
+                            plus += 1
+                    else:
+                        if carrier_plus == 1 or carrier_plus == 3:
+                            plus += 1
 
         # 위와 동일. 링크를 센다.
         for mlink in spawn.room.memory[STRUCTURE_LINK]:
@@ -191,7 +198,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
         # minimum number of haulers in the room is 1, max 4. always max when lvl 4 or less
         if hauler_capacity <= 0:
             hauler_capacity = 1
-        elif hauler_capacity > 4 or chambro.controller.level < 4:
+        elif hauler_capacity > 4 or not chambro.storage:
             hauler_capacity = 4
 
         if spawn.room.terminal:
@@ -308,7 +315,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
 
         # 업그레이더는 버켓 비상 근접시부터 생산 고려 자체를 안한다.
         if Game.cpu.bucket > cpu_bucket_emergency + cpu_bucket_emergency_spawn_start:
-
+            max_num_upgraders = chambro.memory.options[max_upgraders]
             if spawn.room.controller.level == 8:
                 proper_level = 1
             # start making upgraders after there's a storage
@@ -325,14 +332,14 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                     proper_level = 1
                     # extra upgrader every expected_reserve
                     proper_level += int(spawn.room.storage.store[RESOURCE_ENERGY] / expected_reserve)
-                    # max upgraders: 12
-                    if proper_level > 12:
-                        proper_level = 12
+                    # max_num_upgraders
+                    if proper_level > max_num_upgraders:
+                        proper_level = max_num_upgraders
                 else:
                     proper_level = 0
-            elif spawn.room.energyCapacityAvailable <= 1000:
-                # 어차피 여기올쯤이면 소형애들만 생성됨.
-                proper_level = 4
+            elif spawn.room.energyCapacityAvailable <= 1000 or not chambro.storage:
+                # 이시점엔 소형애들만 생성됨.
+                proper_level = max_num_upgraders
             else:
                 proper_level = 0
 

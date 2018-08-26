@@ -845,9 +845,9 @@ def grab_haul_list(roomName, totalStructures):
     # for_upgrade :스토리지가 컨트롤러에서 많이 떨어져 있을때 대비해 두는 컨테이너.
     if Game.rooms[roomName].controller.level < 8:
         for rcont in Game.rooms[roomName].memory[STRUCTURE_CONTAINER]:
-            # 업글용 컨테이너고 수확저장용도가 아닌가? 그러면 허울러가 넣는다.
+            # 업글용 컨테이너고 수확저장용도가 아닌가? 그러면 허울러가 넣는다. 80% 이하로 차있을때만.
             if rcont.for_upgrade and not rcont.for_harvest \
-                    and not _.sum(Game.getObjectById(rcont.id).store) == Game.getObjectById(rcont.id).storeCapacity:
+                    and _.sum(Game.getObjectById(rcont.id).store) < Game.getObjectById(rcont.id).storeCapacity * .8:
                 container.append(Game.getObjectById(rcont.id))
 
     structures.extend(container)

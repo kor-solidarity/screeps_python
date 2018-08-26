@@ -81,13 +81,6 @@ def run_harvester(creep, all_structures, constructions, creeps, dropped_all):
                                                   and not c.name == creep.name)
             if creep.memory.flag_name:
                 remote_containers = _.filter(all_structures, lambda s: s.structureType == STRUCTURE_CONTAINER)
-            # print('???', remote_structures)
-            # kripoj_3k_aux_pli = _.filter(creeps,
-            #                              lambda c: c.tickstolive > 100 and c.memory.size >= 3000
-            #                              and c.memory.role == 'harvester')
-        # print('creeps:', creeps)
-        # print('kripoj:', rikoltist_kripoj)
-        # print('len(rikoltist_kripoj): {} || len(sources): {}'.format(len(rikoltist_kripoj), len(sources)))
 
         # tie estus 3 kazoj en ĉi tio:
         # 1 - no creeps at all.
@@ -180,7 +173,6 @@ def run_harvester(creep, all_structures, constructions, creeps, dropped_all):
         # needs to be done: 아래.
         # 이게 또 뜨는 경우가 아예 없는거 외에 이미 꽉찬건데 이 경우에는 아직 살아있는애가 있어서 겹치는 경우인데
         # 이럴때는 우선 크립의 ttl, 그리고 크립의 담당 수확지역을 찾는다.
-        # print('creep.memory.source_num:', creep.memory.source_num)
         if not creep.memory.source_num:
             my_creeps = creeps
             harvester_that_is_gonna_die_soon = _.filter(my_creeps, lambda c: c.memory.role == 'harvester'
@@ -260,7 +252,7 @@ def run_harvester(creep, all_structures, constructions, creeps, dropped_all):
             proper_link = []
             for i in proper_links:
                 if i:
-                    proper_link.push(Game.getObjectById(i.id))
+                    proper_link.append(Game.getObjectById(i.id))
             if len(proper_link) > 0:
                 containers.extend(proper_link)
 

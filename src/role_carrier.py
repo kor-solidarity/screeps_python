@@ -113,8 +113,8 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                 creep.memory.refill = 0
             # 만일 컨테이너에 내용물이 남아있으면 작업시작.
             elif Game.getObjectById(creep.memory.container).store[RESOURCE_ENERGY] > 0:
-                grab = harvest_stuff.grab_energy(creep, creep.memory.container, True, 0.1)
-                creep.say('refilling')
+                grab = harvest_stuff.grab_energy(creep, creep.memory.container, True, 0)
+                creep.say("refill", grab)
                 # 컨테이너가 없으면 통과.
                 if grab == ERR_INVALID_TARGET:
                     del creep.memory.container
