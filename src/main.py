@@ -238,6 +238,9 @@ def main():
                 # 업글크립 최대수. 기본값 12
                 if not Memory.rooms[chambra_nomo].options[max_upgraders]:
                     Memory.rooms[chambra_nomo].options[max_upgraders] = 12
+                # 스토리지 안 채울 최대 에너지량. 기본값 육십만
+                if not Memory.rooms[chambra_nomo].options[max_energy]:
+                    Memory.rooms[chambra_nomo].options[max_energy] = 600000
                 # 타워 공격시킬건가? 1이면 공격. 또한 매 1만턴마다 리셋한다.
                 if (not Memory.rooms[chambra_nomo].options.tow_atk
                         and not Memory.rooms[chambra_nomo].options.tow_atk == 0) \
@@ -268,7 +271,7 @@ def main():
 
                 # 화면안에 위에 설정값들 표기.
                 if Memory.rooms[chambra_nomo].options.display \
-                    and len(Memory.rooms[chambra_nomo].options.display) > 0:
+                        and len(Memory.rooms[chambra_nomo].options.display) > 0:
                     remotes_txt = ''
                     if Memory.rooms[chambra_nomo].options.remotes:
                         check_num = 0
@@ -296,6 +299,8 @@ def main():
                     nuke_txt = Memory.rooms[chambra_nomo].options.fill_nuke
                     lab_txt = Memory.rooms[chambra_nomo].options.fill_labs
                     tow_txt = Memory.rooms[chambra_nomo].options.tow_atk
+                    upg_txt = Memory.rooms[chambra_nomo].options[max_upgraders]
+                    energy_txt = Memory.rooms[chambra_nomo].options[max_energy]
 
                     # 찍힐 좌표
                     disp_x = Memory.rooms[chambra_nomo].options.display.x
@@ -308,12 +313,13 @@ def main():
                                         disp_x, disp_y-2)
                     chambro.visual.text('remotes(def): {}'.format(remotes_txt),
                                         disp_x, disp_y-1)
-                    chambro.visual.text('haulers: {} | 수리: {} | 방벽(open): {}({})'
-                                        .format(hauler_txt, repair_txt, ramparts_txt, ramp_open_txt),
+                    chambro.visual.text('허울러: {} | 업글러: {} | 수리: {} | 방벽(open): {}({})'
+                                        .format(hauler_txt, upg_txt, repair_txt, ramparts_txt, ramp_open_txt),
                                         disp_x, disp_y)
                     chambro.visual.text('fillNuke/Labs: {}/{}, tow_atk/reset: {}/{}'
                                         .format(nuke_txt, lab_txt, tow_txt, 10000 - Game.time % 10000),
                                         disp_x, disp_y+1)
+                    chambro.visual.text('에너지할당량: {}'.format(energy_txt), disp_x, disp_y+2)
                     # chambro.visual.text(display_txt, disp_x, disp_y+2)
 
         # ALL .find() functions are done in here. THERE SHOULD BE NONE INSIDE CREEP FUNCTIONS!
@@ -331,11 +337,6 @@ def main():
             for t in tomes:
                 if _.sum(t.store) > 0:
                     dropped_all.append(t)
-
-        # rand_shit = ['a']
-        # print('before:', rand_shit)
-        # rand_shit.append('b')
-        # print('after:', rand_shit)
 
         # 필터하면서 목록을 삭제하는거 같음.... 그래서 이리 초기화
         foreign_creeps = chambro.find(FIND_HOSTILE_CREEPS)
@@ -645,15 +646,14 @@ def main():
             tow_repairs = []
             # 타워는 벽·방어막 체력 1000 이하만 고친다.
             # 적이 있을 시 수리 자체를 안하니 있으면 아예 무시.
-            if len(hostile_creeps) == 0 and chambro.controller.level > 4 \
-                    and Game.cpu.bucket > cpu_bucket_emergency:
+            if len(hostile_creeps) == 0 and Game.cpu.bucket > cpu_bucket_emergency:
                 for repair_obj in repairs:
                     if (repair_obj.structureType == STRUCTURE_WALL
                         or repair_obj.structureType == STRUCTURE_RAMPART
                         or repair_obj.structureType == STRUCTURE_CONTAINER
                         or repair_obj.structureType == STRUCTURE_ROAD) \
                             and repair_obj.hits < 1000:
-                        tow_repairs = [repair_obj]
+                        tow_repairs.append(repair_obj)
                         break
             # 한놈만 팬다.
             if len(hostile_creeps) > 1:

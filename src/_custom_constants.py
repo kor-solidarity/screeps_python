@@ -2,3 +2,4 @@
 
 repair_targets = 'repair_targets'
 max_upgraders = 'max_upgraders'
+max_energy = 'max_energy'

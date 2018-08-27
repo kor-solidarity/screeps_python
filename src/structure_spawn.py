@@ -337,7 +337,8 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                         proper_level = max_num_upgraders
                 else:
                     proper_level = 0
-            elif spawn.room.energyCapacityAvailable <= 1000 or not chambro.storage:
+            # 렙4부터는 스토리지 건설이 최우선이기에 업글러 스폰에 총력가하면 망함...
+            elif spawn.room.energyCapacityAvailable <= 1000 or chambro.controller.level > 4:
                 # 이시점엔 소형애들만 생성됨.
                 proper_level = max_num_upgraders
             else:
@@ -416,7 +417,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                         print('? yolo?')
                         if Memory.rooms[i].options.remotes:
                             for r in Memory.rooms[i].options.remotes:
-                                if r.roomName == Game.flags[flag_name].room.name:
+                                if r.roomName == Game.flags[flag_name].pos.roomName:
                                     del r
                                     found_and_deleted = True
                                     break
@@ -448,6 +449,8 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                 number_added = False
                 included = name_list.index('-def')
                 # 트라이에 걸린다는건 숫자 빼먹었거나 숫자가 아니라는거.
+                # 초기화
+                number = 0
                 try:
                     number = name_list[included + 1]
                     number = int(number)

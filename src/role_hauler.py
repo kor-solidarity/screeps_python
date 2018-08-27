@@ -3,6 +3,7 @@ from movement import *
 import harvest_stuff
 import random
 import miscellaneous
+from _custom_constants import *
 
 __pragma__('noalias', 'name')
 __pragma__('noalias', 'undefined')
@@ -47,7 +48,11 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
     # 주의! 1 == 100%
     outer_work_perc = .7
 
-    max_energy_in_storage = 600000
+    # 스토리지 내 에너지값. 사실 저 엘스문 걸릴경우는 허울러가 실수로 다른방 넘어갔을 뿐....
+    if creep.room.memory.options and creep.room.memory.options[max_energy]:
+        max_energy_in_storage = creep.room.memory.options[max_energy]
+    else:
+        max_energy_in_storage = 600000
 
     # priority 0 통과했는가? 통과했으면 priority 1 쓸때 스트럭쳐 필터 안해도됨.
     passed_priority_0 = False
@@ -154,11 +159,13 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                         break
 
         if not creep.memory.dropped:
+            if creep.memory.pickup and not Game.getObjectById(creep.memory.pickup):
+                del creep.memory.pickup
             # only search if there's nothing to pick up.
             if not creep.memory.pickup:
-                # 방 안에 에너지수용량이 총량의 20% 이하면 반반 확률로 스토리지로 직접 빼러 간다.
+                # 방 안에 에너지수용량이 총량의 30% 이하면 반반 확률로 스토리지로 직접 빼러 간다.
                 # 물론 안에 에너지가 있어야겠지.
-                if creep.room.energyAvailable < creep.room.energyCapacityAvailable * .20 \
+                if creep.room.energyAvailable <= creep.room.energyCapacityAvailable * .30 \
                         and creep.room.storage and creep.room.storage.store[RESOURCE_ENERGY] > 600:
                     to_storage_chance = random.randint(0, 1)
                 else:
@@ -192,7 +199,7 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
 
             # if creep already have pickup memory, no need to search for storage.
             else:
-                storage = []
+                storage = 0
 
             if storage or creep.memory.pickup:
                 if not creep.memory.pickup:
