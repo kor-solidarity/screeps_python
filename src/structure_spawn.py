@@ -60,6 +60,9 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
         creep_miners = _.filter(creeps, lambda c: (c.memory.role == 'miner'
                                                    and c.memory.assigned_room == spawn.pos.roomName
                                                    and (c.spawning or c.ticksToLive > 150)))
+        creep_fixers = _.filter(creeps, lambda c: (c.memory.role == 'fixer'
+                                                   and c.memory.assigned_room == spawn.pos.roomName
+                                                   and (c.spawning or c.ticksToLive > 150)))
         # cpu 비상시 고려 자체를 안한다. 세이프모드일때도 마찬가지.
         if Game.cpu.bucket > cpu_bucket_emergency + cpu_bucket_emergency_spawn_start \
                 or spawn.room.controller.safeModeCooldown:
@@ -310,8 +313,6 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                                 undefined,
                                 {'role': 'miner', 'assigned_room': spawn.pos.roomName})
 
-                        if spawning_creep == 0:
-                            return
 
         # 업그레이더는 버켓 비상 근접시부터 생산 고려 자체를 안한다.
         if Game.cpu.bucket > cpu_bucket_emergency + cpu_bucket_emergency_spawn_start:
@@ -372,6 +373,17 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                     if little == -6:
                         spawn.createCreep([WORK, WORK, CARRY, CARRY, MOVE, MOVE], undefined,
                                           {'role': 'upgrader', 'assigned_room': spawn.pos.roomName})
+
+        # 렙 7 이상일때부터 수리병을 부름.
+        if chambro.controller.level >= 7 and chambro.storage and chambro.storage.store[RESOURCE_ENERGY] >= 10000:
+            if len(creep_fixers) < 3:
+                fixer_spawn = spawn.createCreep(
+                    [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK,
+                     WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, CARRY, CARRY,
+                     CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY,
+                     CARRY, CARRY, CARRY, CARRY]
+                    , undefined,
+                    {'role': 'fixer', 'assigned_room': spawn.pos.roomName, 'level': 5})
 
         if Memory.debug or Game.time % interval == 0 or Memory.tick_check:
             print("이 시점까지 스폰 {} 소모량: {}, 이하 remote"

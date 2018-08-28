@@ -1,5 +1,6 @@
 import role_harvester
 import role_hauler
+import role_fixer
 import role_upgrader
 import structure_misc as building_action
 import role_scout
@@ -493,6 +494,17 @@ def main():
             elif creep.memory.role == 'hauler':
                 role_hauler.run_hauler(creep, all_structures, constructions,
                                        room_creeps, dropped_all, repairs, terminal_capacity)
+                """
+                :param creep:
+                :param all_structures: creep.room.find(FIND_STRUCTURES)
+                :param constructions: creep.room.find(FIND_CONSTRUCTION_SITES)
+                :param creeps: creep.room.find(FIND_MY_CREEPS)
+                :param dropped_all: creep.room.find(FIND_DROPPED_RESOURCES)
+                :return:
+                """
+            elif creep.memory.role == 'fixer':
+                role_fixer.run_fixer(creep, all_structures, constructions,
+                                     room_creeps, dropped_all, repairs, terminal_capacity)
                 """
                 :param creep:
                 :param all_structures: creep.room.find(FIND_STRUCTURES)

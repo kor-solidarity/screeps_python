@@ -114,7 +114,7 @@ def filter_friends(foreign_creeps):
 
 def pick_pickup(creep, creeps, storages, terminal_capacity=10000, upgrade=False):
     """
-    designate pickup memory by targeted haulers/upgraders
+    designate pickup memory by targeted haulers/upgraders/fixers
     :param terminal_capacity:
     :param creep: 크립본인
     :param creeps: 방안에 모든 크립

@@ -179,7 +179,11 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                                                      or (s.structureType == STRUCTURE_LINK
                                                          and s.energy >= creep.carryCapacity * .5))
                 else:
-                    storages = []
+                    if creep.room.storage and \
+                            creep.room.storage.store[RESOURCE_ENERGY] >= creep.carryCapacity * .5:
+                        storages = [creep.room.storage]
+                    else:
+                        storages = []
 
                 # 위 목록 중에서 가장 가까이 있는 컨테이너를 뽑아간다.
                 # 만약 뽑아갈 대상이 없을 시 터미널, 스토리지를 각각 찾는다.
@@ -446,6 +450,8 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                             break
                         elif transfer_minerals_result == 0:
                             break
+                        elif transfer_minerals_result == ERR_FULL:
+                            creep.memory.pickup = creep.room.terminal.id
 
                 else:
                     # 니가 가진것이 에너지느뇨

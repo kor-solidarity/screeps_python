@@ -48,6 +48,7 @@ dependency-reduced-pom.xml
 ############################
 .Python
 env/
+venv/
 bin/
 build/
 develop-eggs/
