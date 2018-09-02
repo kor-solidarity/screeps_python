@@ -2,7 +2,7 @@ from defs import *
 from movement import *
 import harvest_stuff
 import random
-import miscellaneous
+from miscellaneous import *
 from _custom_constants import *
 
 __pragma__('noalias', 'name')
@@ -47,6 +47,7 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
     # 운송업 외 다른일은 지극히 제한적으로만 써야한다.
     # 주의! 1 == 100%
     outer_work_perc = .7
+    structures = []
 
     # 스토리지 내 에너지값. 사실 저 엘스문 걸릴경우는 허울러가 실수로 다른방 넘어갔을 뿐....
     if creep.room.memory.options and creep.room.memory.options[max_energy]:
@@ -85,25 +86,27 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
 
     # if there's nothing to carry then get to harvesting.
     # being not zero also includes being None lol
-    if _.sum(creep.carry) == 0 and creep.memory.laboro != 0:
+    if _.sum(creep.carry) == 0 and not creep.memory.laboro == 0:
         creep.memory.laboro = 0
         creep.say('🚛운송투쟁!', True)
         del creep.memory.to_storage
         del creep.memory.haul_target
         del creep.memory.build_target
         del creep.memory.repair_target
+        del creep.memory.last_swap
 
     elif creep.memory.laboro == 0 and \
-            ((_.sum(creep.carry) >= creep.carryCapacity * .5
-              and creep.memory.laboro == 0 and not creep.memory.dropped)
-                or _.sum(creep.carry) == creep.carryCapacity):
+        ((_.sum(creep.carry) >= creep.carryCapacity * .5
+          and creep.memory.laboro == 0 and not creep.memory.dropped)
+         or _.sum(creep.carry) == creep.carryCapacity):
         # if creep.memory.dropped:
         #     del creep.memory.dropped
-            # Memory.initialize_count += 2
+        # Memory.initialize_count += 2
         if creep.memory.pickup:
             del creep.memory.pickup
         creep.memory.laboro = 1
         creep.memory.priority = 0
+        del creep.memory.last_swap
 
     # laboro: 0 == pickup something.
     if creep.memory.laboro == 0:
@@ -147,7 +150,7 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
             for drop in dropped_all:
                 # if there's a dropped resources near 5
                 if creep.pos.inRangeTo(drop, 5):
-                    # if not energy and there's no storage, pass.
+                    # if not energy and there's no storage, 스토리지 못넣어서 엉킴 통과.
                     if not creep.room.storage and drop.resourceType != RESOURCE_ENERGY:
                         continue
                     else:
@@ -190,11 +193,11 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                 # 만일 연구소를 안채우기로 했으면 거기서도 뽑는다.
                 if Memory.rooms[creep.room.name].options.fill_labs == 0:
                     # print('no nuke')
-                    labs = all_structures\
+                    labs = all_structures \
                         .filter(lambda s: s.structureType == STRUCTURE_LAB and s.energy >= creep.carryCapacity * .5)
                     storages.extend(labs)
 
-                pickup_id = miscellaneous.pick_pickup(creep, creeps, storages, terminal_capacity)
+                pickup_id = pick_pickup(creep, creeps, storages, terminal_capacity)
                 # print('pickupId', pickup_id)
                 if pickup_id == ERR_INVALID_TARGET:
                     pass
@@ -211,7 +214,7 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
 
                 # did hauler got order to grab only energy? or lab/storage where there can be multiple sources?
                 if creep.memory.only_energy or Game.getObjectById(creep.memory.pickup).structureType == STRUCTURE_LAB \
-                        or Game.getObjectById(creep.memory.pickup).structureType == STRUCTURE_STORAGE:
+                    or Game.getObjectById(creep.memory.pickup).structureType == STRUCTURE_STORAGE:
                     only_energy = True
                     del creep.memory.only_energy
                 else:
@@ -220,22 +223,27 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                 result = harvest_stuff.grab_energy(creep, creep.memory.pickup, only_energy)
                 # print(creep.name, creep.memory.pickup, result)
                 if result == ERR_NOT_IN_RANGE:
-                    move_it = creep.moveTo(Game.getObjectById(creep.memory.pickup),
-                                           {'visualizePathStyle': {'stroke': '#ffffff'}, 'reusePath': 25})
-                    # print('moveIt', move_it)
-                    if move_it == ERR_NO_PATH:
-                        for c in creeps:
-                            if creep.pos.inRangeTo(c, 1) and not c.name == creep.name:
-                                mv = creep.moveTo(c)
-                                break
+                    # 현재 위치한 곳이 이전 틱에도 있던곳인지 확인하고 옮기는 등의 절차.
+                    swap_check = check_loc_and_swap_if_needed(creep, creeps, True)
+
+                    # 아무 문제 없으면 평소마냥 움직이는거.
+                    if swap_check == OK:
+                        movi(creep, creep.memory.pickup, 0, 40, True)
+                    # 확인용. 아직 어찌할지 못정함....
+                    elif swap_check == ERR_NO_PATH:
+                        creep.say('ERR_NO_PATH')
+                    # 위 둘 외에 다른게 넘어왔다는 소리는 실질적으로 어느 위치를 갔다는게 아니라
+                    # 다른 크립와 위치 바꿔치기를 시전했다는 소리. 메모리 옮긴다.
+                    else:
+                        creep.memory.last_swap = swap_check
+                # 근데 이거 절대 뜰일없음...
+                elif result == ERR_NO_PATH:
+                    # 모듈화한걸로 대체시도
+                    swapping(creep, creeps)
                 # 온전하게 집었을 경우.
                 # 여러 자원을 뽑아야 하는 경우도 있는지라 이거 한번에 laboro 를 1로 전환하지 않는다.
                 elif result == 0:
                     creep.say('BEEP BEEP⛟', True)
-                    # if _.sum(creep.carry) >= creep.carryCapacity * .5:
-                    # del creep.memory.pickup
-                    # creep.memory.laboro = 1
-                    # creep.memory.priority = 0
 
                 elif result == ERR_NOT_ENOUGH_ENERGY:
                     del creep.memory.pickup
@@ -269,7 +277,7 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
         # something else other than this one.
 
         if creep.room.name != creep.memory.assigned_room:
-            miscellaneous.get_to_da_room(creep, creep.memory.assigned_room, False)
+            get_to_da_room(creep, creep.memory.assigned_room, False)
             return
 
         if not creep.memory.priority and not creep.memory.priority == 0:
@@ -288,38 +296,40 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
             if not picker:
                 # defining structures to fill the energy on. originally above of this spot but replaced for cpu eff.
                 # towers only fills 80% since it's gonna repair here and there all the time.
-                structures = all_structures.filter(lambda s: ((s.structureType == STRUCTURE_SPAWN
-                                                               or s.structureType == STRUCTURE_EXTENSION)
-                                                              and s.energy < s.energyCapacity)
-                                                             or (s.structureType == STRUCTURE_TOWER
-                                                                 and s.energy < s.energyCapacity * 0.8)
-                                                             or (s.structureType == STRUCTURE_STORAGE
-                                                                 and s.store[RESOURCE_ENERGY] < max_energy_in_storage)
-                                                             or (s.structureType == STRUCTURE_TERMINAL
-                                                                 and s.store[RESOURCE_ENERGY] < terminal_capacity))
-                # 핵에 에너지 넣는걸로 함?
-                if Memory.rooms[creep.room.name].options.fill_nuke:
-                    nuke_structure_add = all_structures.filter(lambda s: s.structureType == STRUCTURE_NUKER
-                                                               and s.energy < s.energyCapacity)
-                    structures.extend(nuke_structure_add)
-                # 연구소에 에너지 넣는걸로 함?
-                if Memory.rooms[creep.room.name].options.fill_labs:
-                    structure_add = all_structures.filter(lambda s: s.structureType == STRUCTURE_LAB
-                                                               and s.energy < s.energyCapacity)
-                    structures.extend(structure_add)
-
-                container = []
-                # for_upgrade :스토리지가 컨트롤러에서 많이 떨어져 있을때 대비해 두는 컨테이너.
-                if creep.room.controller.level < 8:
-                    for rcont in creep.room.memory[STRUCTURE_CONTAINER]:
-                        # 업글용 컨테이너고 수확저장용도가 아닌가? 그러면 허울러가 넣는다.
-                        if rcont.for_upgrade and not rcont.for_harvest:
-                            if Game.getObjectById(rcont.id) \
-                                    and not _.sum(Game.getObjectById(rcont.id).store) \
-                                    == Game.getObjectById(rcont.id).storeCapacity:
-                                container.extend([Game.getObjectById(rcont.id)])
-
-                structures.extend(container)
+                structures = grab_haul_list(creep.room.name, all_structures, True)
+                # 위에 함수로 대체
+                # structures = all_structures.filter(lambda s: ((s.structureType == STRUCTURE_SPAWN
+                #                                                or s.structureType == STRUCTURE_EXTENSION)
+                #                                               and s.energy < s.energyCapacity)
+                #                                              or (s.structureType == STRUCTURE_TOWER
+                #                                                  and s.energy < s.energyCapacity * 0.8)
+                #                                              or (s.structureType == STRUCTURE_STORAGE
+                #                                                  and s.store[RESOURCE_ENERGY] < max_energy_in_storage)
+                #                                              or (s.structureType == STRUCTURE_TERMINAL
+                #                                                  and s.store[RESOURCE_ENERGY] < terminal_capacity))
+                # # 핵에 에너지 넣는걸로 함?
+                # if Memory.rooms[creep.room.name].options.fill_nuke:
+                #     nuke_structure_add = all_structures.filter(lambda s: s.structureType == STRUCTURE_NUKER
+                #                                                and s.energy < s.energyCapacity)
+                #     structures.extend(nuke_structure_add)
+                # # 연구소에 에너지 넣는걸로 함?
+                # if Memory.rooms[creep.room.name].options.fill_labs:
+                #     structure_add = all_structures.filter(lambda s: s.structureType == STRUCTURE_LAB
+                #                                                and s.energy < s.energyCapacity)
+                #     structures.extend(structure_add)
+                #
+                # container = []
+                # # for_upgrade :스토리지가 컨트롤러에서 많이 떨어져 있을때 대비해 두는 컨테이너.
+                # if creep.room.controller.level < 8:
+                #     for rcont in creep.room.memory[STRUCTURE_CONTAINER]:
+                #         # 업글용 컨테이너고 수확저장용도가 아닌가? 그러면 허울러가 넣는다.
+                #         if rcont.for_upgrade and not rcont.for_harvest:
+                #             if Game.getObjectById(rcont.id) \
+                #                     and not _.sum(Game.getObjectById(rcont.id).store) \
+                #                     == Game.getObjectById(rcont.id).storeCapacity:
+                #                 container.extend([Game.getObjectById(rcont.id)])
+                #
+                # structures.extend(container)
             else:
                 structures = []
 
@@ -330,14 +340,14 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                 # 여기서 스토리지를 목록에서 없앤다.
                 # 스토리지는 항상 마지막에 채운다. 우선 있는지 확인부터 한거
                 if creep.room.storage and \
-                        creep.room.storage.store[RESOURCE_ENERGY] < max_energy_in_storage:
+                    creep.room.storage.store[RESOURCE_ENERGY] < max_energy_in_storage:
                     index = structures.indexOf(creep.room.storage)
                     structures.splice(index, 1)
 
             elif len(constructions) > 0:
                 creep.say('🚧건설,염려말라!', True)
                 creep.memory.priority = 2
-            elif len(repairs) > 0:
+            elif len(repairs) > 0 and creep.room.controller.level > 1:
                 creep.say('☭ 세상을 고치자!', True)
                 creep.memory.priority = 3
             else:
@@ -346,274 +356,150 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
 
         # priority 1: transfer
         if creep.memory.priority == 1:
-            # if creep is assigned to store to storage - all resources must be stored
-            if creep.memory.to_storage:
-                for resource in Object.keys(creep.carry):
-                    storage_transfer = creep.transfer(creep.room.storage, resource)
-                    if storage_transfer == ERR_NOT_IN_RANGE:
-                        move_it = creep.moveTo(creep.room.storage, {'visualizePathStyle': {'stroke': '#ffffff'}
-                            , 'reusePath': 20})
-                        # 사각지대 안에 갇힐 경우 크립이 겹친거니 바로옆 크립 아무한테나 간다.
-                        # print('{} the {} moveit: {}'.format(creep.name, creep.memory.role, move_it))
-                        if move_it == ERR_NO_PATH:
-                            for c in creeps:
-                                if creep.pos.inRangeTo(c, 1) and not c.name == creep.name:
-                                    creep.moveTo(c)
-                                    break
-                        break
-                    elif storage_transfer == 0:
-                        break
-                    else:
-                        print('to storage error:', storage_transfer)
-            else:
-                # check if haul_target's capacity is full
-                if creep.memory.haul_target:
-                    target = Game.getObjectById(creep.memory.haul_target)
-                    # haul_target 이 중간에 폭파되거나 등등...
-                    if not target:
-                        del creep.memory.haul_target
-                    elif target.structureType == STRUCTURE_TOWER and target.energy >= target.energyCapacity - 20:
-                        del creep.memory.haul_target
-                    elif target.structureType != STRUCTURE_CONTAINER and target.energy >= target.energyCapacity:
-                        del creep.memory.haul_target
-                    elif _.sum(target.store) >= target.storeCapacity:
-                        del creep.memory.haul_target
+            # todo 모든걸 다 건드려야 함....
+            # 1. 우선 모든 운송은 다 크립 쌩깐다!
+            # 2. 스토리지용 운송 없앤다.
+            # 3. 터미널 이송 등 재설정.
 
-                # haul_target == 에너지 배송해야하는 목적지.
-                if not creep.memory.haul_target and creep.carry.energy > 0:
-                    if not passed_priority_0:
-                        structures = all_structures.filter(lambda s: ((s.structureType == STRUCTURE_SPAWN
-                                                                       or s.structureType == STRUCTURE_EXTENSION)
-                                                                      and s.energy < s.energyCapacity)
-                                                                     or (s.structureType == STRUCTURE_TOWER
-                                                                         and s.energy < s.energyCapacity * 0.8))
-                        # 핵을 넣는걸로 함?
-                        if Memory.rooms[creep.room.name].options.fill_nuke:
-                            nuke_structure_add = all_structures.filter(lambda s: s.structureType == STRUCTURE_NUKER
-                                                                                 and s.energy < s.energyCapacity)
-                            structures.extend(nuke_structure_add)
-                        # 연구소 채우는걸로 함?
-                        if Memory.rooms[creep.room.name].options.fill_labs:
-                            structure_add = all_structures.filter(lambda s: s.structureType == STRUCTURE_LAB
-                                                                            and s.energy < s.energyCapacity)
-                            structures.extend(structure_add)
+            """
+            절차는 다음과 같다. 
+            1. haul_target이 있는지 확인한다. 없으면 다음으로 넘어간다. 여기까진 동일. 
+            2. 만일 에너지가 다 떨어졌는데 안에 뭔가가 있을 경우. - 방에서 생산하는거면 터미널로. haul_target 을 그걸로 지정한다. 
+            3. 터미널대상이 아니면 스토리지로 가야겠지? haul_target를 스토리지로 하고 이때 전부 꼴아박는걸로 하면 되잖음.
 
-                        # 업그레이드용 컨테이너가 보일 경우.
-                        # 만렙때 기능 끈다.
-                        container = []
-                        # for_upgrade :스토리지가 컨트롤러에서 많이 떨어져 있을때 대비해 두는 컨테이너.
-                        if creep.room.controller.level < 8:
-                            for rcont in creep.room.memory[STRUCTURE_CONTAINER]:
-                                # 업글용 컨테이너고 수확저장용도가 아닌가? 그러면 허울러가 넣는다.
-                                if rcont.for_upgrade and not rcont.for_harvest:
-                                    if Game.getObjectById(rcont.id) \
-                                        and not _.sum(Game.getObjectById(rcont.id).store) \
-                                                == Game.getObjectById(rcont.id).storeCapacity:
-                                        container.extend([Game.getObjectById(rcont.id)])
-                        structures.extend(container)
+            """
+            # 단순 초기화 용도.
+            transfer_minerals_result = -100
+            haul_target_filtered = 0
 
-                    portist_kripoj = _.filter(creeps, lambda c: c.memory.role == 'hauler')
+            # 근처에 컨트롤러랑 리페어 대상 있으면 건들면서 간다.
+            repair_on_the_way(creep, repairs)
 
+            # check if haul_target's capacity is full
+            target = Game.getObjectById(creep.memory.haul_target)
+            # haul_target 이 중간에 폭파되거나 이미 꽉 찼을 시...
+            if not target \
+                or (target.structureType == STRUCTURE_TOWER and target.energy >= target.energyCapacity - 20) \
+                or (target.structureType != STRUCTURE_CONTAINER and target.energy >= target.energyCapacity) \
+                or _.sum(target.store) >= target.storeCapacity:
+                del creep.memory.haul_target
+            # 에너지 외 자원 운송중인데 대상이 에너지 채우는거면 통과한다.
+            if target and \
+                    (target.structureType == STRUCTURE_EXTENSION
+                     or target.structureType == STRUCTURE_TOWER
+                     or target.structureType == STRUCTURE_NUKER
+                     or target.structureType == STRUCTURE_SPAWN) \
+                    and creep.carry[RESOURCE_ENERGY] == 0:
+                del creep.memory.haul_target
+
+            if not creep.memory.haul_target:
+                # 위에 priority 0 거치지 않았으면 여기 지금 텅 비었음.
+                if not len(structures):
+                    # 크립 허울대상 확인
+                    structures = grab_haul_list(creep.room.name, all_structures)
+                # 이 경우 기준점: 크립이 에너지를 가지고 있는가?
+                if creep.carry[RESOURCE_ENERGY] > 0:
                     # 목표타겟 확보.
-                    haul_target = filter_haul_targets(creep, structures, portist_kripoj)
-                    if haul_target == ERR_INVALID_TARGET:
+                    haul_target_filtered = filter_haul_targets(creep, structures, creeps)
+                    if haul_target_filtered == ERR_INVALID_TARGET:
                         del creep.memory.haul_target
                     else:
-                        creep.memory.haul_target = haul_target
-
-                # if we have something that's not energy
-                if _.sum(creep.carry) != 0 and creep.carry[RESOURCE_ENERGY] == 0:
-                    ht = Game.getObjectById(creep.memory.haul_target)
-                    if ht:
-                        # 만약 이 시점에서 에너지 자원을 배분중이면 취소한다.
-                        if ht.structureType == STRUCTURE_EXTENSION or ht.structureType == STRUCTURE_SPAWN or \
-                                ht.structureType == STRUCTURE_NUKER or ht.structureType == STRUCTURE_TOWER:
-                            del creep.memory.haul_target
-
-                    if not ht:
-                        minerals = creep.room.find(FIND_MINERALS)
-
-                        # 터미널이 존재하고 크립이 가지고 있는 템이 방에서 나오는 자원일 경우 터미널에 넣는다.
-                        if creep.room.terminal and creep.carry[minerals[0].mineralType] > 0:
-                            creep.memory.haul_target = creep.room.terminal.id
-                        else:
-                            creep.memory.haul_target = creep.room.storage.id
-                    # reset
-                    ht = Game.getObjectById(creep.memory.haul_target)
-
-                    for minerals in Object.keys(creep.carry):
-
-                        transfer_minerals_result = creep.transfer(ht, minerals)
-
-                        if transfer_minerals_result == ERR_NOT_IN_RANGE:
-                            creep.moveTo(ht, {'visualizePathStyle': {'stroke': '#ffffff'}, 'reusePath': 20})
-                            break
-                        elif transfer_minerals_result == 0:
-                            break
-                        elif transfer_minerals_result == ERR_FULL:
-                            creep.memory.pickup = creep.room.terminal.id
-
-                else:
-                    # 니가 가진것이 에너지느뇨
-                    transfer_result = creep.transfer(Game.getObjectById(creep.memory.haul_target), RESOURCE_ENERGY)
-                    # 멀리 떨어져 있으면 당연히 가서 붙는다...
-                    if transfer_result == ERR_NOT_IN_RANGE:
-                        if len(repairs) > 0:
-                            repair = creep.pos.findClosestByRange(repairs)
-                            creep.repair(repair)
-
-                        # counter for checking the current location
-                        if not creep.memory.move_ticks:
-                            creep.memory.move_ticks = 1
-
-                        # checking current location - only needed when check in par with move_ticks
-                        if not creep.memory.cur_Location:
-                            creep.memory.cur_Location = creep.pos
-                        else:
-                            # 만약 있으면 현재 크립위치와 대조해본다. 동일하면 move_ticks 에 1 추가 아니면 1로 초기화.
-
-                            if JSON.stringify(creep.memory.cur_Location) \
-                                    == JSON.stringify(creep.pos):
-                                creep.memory.move_ticks += 1
-                            else:
-                                creep.memory.move_ticks = 1
-                        # renew
-                        creep.memory.cur_Location = creep.pos
-
-                        # 5보다 더 올라갔다는건 앞에 뭔가에 걸렸다는 소리.
-                        if creep.memory.move_ticks > 5:
-                            for c in creeps:
-                                if creep.pos.inRangeTo(c, 1) and not c.name == creep.name \
-                                        and not c.id == creep.memory.last_switch:
-                                    creep.say('GTFO', True)
-                                    # 바꿔치기.
-                                    mv = c.moveTo(creep)
-                                    creep.moveTo(c)
-                                    creep.memory.move_ticks = 1
-                                    # 여럿이 겹쳤을때 마지막 움직였던애랑 계속 바꿔치기 안하게끔.
-                                    creep.memory.last_switch = c.id
-                                    return
-
-                            # 여기까지 왔으면 틱이 5 넘겼는데 주변에 크립이 없는거임...
-                            creep.memory.move_ticks = 1
-
-                        # 해당사항 없으면 그냥 평소처럼 움직인다.
-                        else:
-                            # se nur moveTo, vi ne povas pasi se la kripo lokigis
-                            movi(creep, creep.memory.haul_target, 0, 40, True)
-
-                            if creep.memory.last_switch:
-                                del creep.memory.last_switch
-                    # if done, check if there's anything left. if there isn't then priority resets.
-                    elif transfer_result == ERR_INVALID_TARGET:
-                        del creep.memory.haul_target
-
-                        # chk if there's something to build
+                        creep.memory.haul_target = haul_target_filtered
+                # 에너지가 아니면 다른걸 저 기준에 맞지 않으므로 새로 찾아야함.
+                if not creep.carry[RESOURCE_ENERGY] > 0 or haul_target_filtered == ERR_INVALID_TARGET:
+                    minerals = creep.room.find(FIND_MINERALS)
+                    # 터미널이 존재하고 크립이 가지고 있는 템이 방에서 나오는 자원일 경우 터미널에 넣는다.
+                    if creep.room.terminal and creep.carry[minerals[0].mineralType] > 0:
+                        # creep.memory.
+                        creep.memory.haul_target = creep.room.terminal.id
+                    # 그외는 싹 스토리지로. 여럿이 붙으면? 알게뭐야.
+                    else:
                         if len(constructions) > 0:
                             creep.say('🚧 공사전환!', True)
                             creep.memory.priority = 2
-                            creep.memory.move_ticks = 1
-                            return
+                        elif creep.room.storage:
+                            creep.say('📦 저장합시다', True)
+                            creep.memory.haul_target = creep.room.storage.id
+                        # 스토리지가 없으면?
+            # 이 시점까지 타겟이 없다면 스토리지고 뭐고 넣을 수 있는 공간이 전혀 없다는거.
+            if not creep.memory.haul_target:
+                if len(constructions) > 0:
+                    creep.say('🚧 공사전환!', True)
+                    creep.memory.priority = 2
+                elif len(repairs) > 0 and creep.room.controller.level > 4:
+                    creep.say('✊단결투쟁!', True)
+                    creep.memory.priority = 3
+                else:
+                    creep.say('⚡ 발전에총력!', True)
+                    creep.memory.priority = 4
 
-                        # 건설대상도 없을 경우 터미널 비었나 확인한다. 그리고 채움.
-                        # 그후에 저장고가 있는지 확인한다. 있으면 넣는다.
-                        # 방렙이 8인가? 아니면 발전에 간다.
-                        # 그 다음은 50/50 확률로 저장 또는 수리를 한다.
-                        # 단, 이때 운송크립 전원이 수리·발전중이면 무조건 저장고로 간다.
+            # haul_target 있으면 우선 거기로 간다.
+            if creep.memory.haul_target:
+                target = Game.getObjectById(creep.memory.haul_target)
+                # if creep.name == 'Dominic':
+                #     print('creep.pos.isNearTo(target)', creep.pos.isNearTo(target))
+                # 당장 넣을 수 있는 상황이 아니면 간다.
+                if not creep.pos.isNearTo(target):
+                    # 먼져 위치확인.
+                    swap_check = check_loc_and_swap_if_needed(creep, creeps, True)
+                    if swap_check == OK:
+                        movi(creep, creep.memory.haul_target, 0, 40, True)
+                    elif swap_check == ERR_NO_PATH:
+                        creep.say('noPathWTF')
+                        # pass
+                    else:
+                        creep.memory.last_swap = swap_check
+                # 바로 옆이면 시작.
+                else:
+                    # 에너지만 들어가는것인가?
+                    if target.structureType == STRUCTURE_EXTENSION \
+                            or target.structureType == STRUCTURE_TOWER \
+                            or target.structureType == STRUCTURE_NUKER \
+                            or target.structureType == STRUCTURE_SPAWN:
+                        only_energy = True
+                    else:
+                        only_energy = False
 
-                        # 터미널이 있는가?
-                        if creep.room.terminal:
-                            # 터미널에 쌓인 에너지가 설정해둔 양 이하인가? 그러면 넣는다.
-                            if creep.room.terminal.store[RESOURCE_ENERGY] <= terminal_capacity:
-                                creep.say('경제활성화!', True)
-                                creep.memory.haul_target = creep.room.terminal.id
-                                creep.moveTo(Game.getObjectById(creep.memory.haul_target),
-                                             {'visualizePathStyle': {'stroke': '#ffffff'}, 'ignoreCreeps': True,
-                                              'reusePath': 40})
-                                return
-
-                        # 스토리지 존재.
-                        if creep.room.storage:
-                            # 스토리지에 할당량 만큼의 에너지가 있는가? 없으면 가즈아.
-                            if creep.room.storage.store[RESOURCE_ENERGY] < max_energy_in_storage:
-                                creep.say('📦 저장합시다', True)
-                                creep.memory.to_storage = True
-                                move_it = creep.moveTo(creep.room.storage,
-                                                       {'visualizePathStyle': {'stroke': '#ffffff'}, 'reusePath': 20})
-                                creep.memory.move_ticks = 1
-                                return
-                        # 여기까지 왔다는건 수리·발전밖에 없단 소리임.
-                        # 방 레벨이 8 이하인가? 그럼 발전에 보탠다.
-                        if creep.room.controller.level != 8:
-                            creep.say('발전으로!', True)
-                            creep.memory.move_ticks = 1
-                            creep.memory.priority = 4
-                            return
-
-                        # 여기까지 오면 이제 진짜 수리뿐인데... 무조건, 무조건!! 운송크립 하나는 운송에만 전념해야 한다.
-
-                        # 크립중에 공사·운송을 하는 애가 남아있는가?
-                        leftover_haulers = creeps.filter(lambda c: c.memory.role == 'hauler' \
-                                                           and c.name != creep.name
-                                                           and (c.memory.priority == 1 or c.memory.priority == 2))
-                        # 있으면 수리 가즈아, 다만 이건 렙 8때만 적용된다.
-                        if leftover_haulers and creep.room.controller.level == 8:
-                            creep.say('✊단결투쟁!', True)
-                            creep.memory.priority = 3
-                            creep.memory.move_ticks = 1
-                            return
-                        # 없으면 laboro = 0 초기화
-                        else:
-                            creep.say('끝일수록 처음처럼!', True)
-                            creep.memory.laboro = 0
-                            creep.memory.move_ticks = 1
-                            del creep.memory.haul_target
-                            del creep.memory.to_storage
-                            return
-
-                    elif transfer_result == 0 or transfer_result == ERR_FULL:
-                        # creep.say('done!')
-                        creep.memory.move_ticks = 1
-                        # 다 끝나면 바로 다음 목적지로 보내야한다.
-                        end_structures = all_structures.filter(lambda s: ((s.structureType == STRUCTURE_SPAWN
-                                                                       or s.structureType == STRUCTURE_EXTENSION)
-                                                                      and s.energy < s.energyCapacity)
-                                                                     or (s.structureType == STRUCTURE_TOWER
-                                                                         and s.energy < s.energyCapacity * 0.8))
-                        # 핵을 넣는걸로 함?
-                        if Memory.rooms[creep.room.name].options.fill_nuke:
-                            nuke_structure_add = all_structures.filter(lambda s: s.structureType == STRUCTURE_NUKER
-                                                                                 and s.energy < s.energyCapacity)
-                            end_structures.extend(nuke_structure_add)
-                        # 연구소를 채우는걸로 함?
-                        if Memory.rooms[creep.room.name].options.fill_labs:
-                            structure_add = all_structures.filter(lambda s: s.structureType == STRUCTURE_LAB
-                                                                            and s.energy < s.energyCapacity)
-                            end_structures.extend(structure_add)
-                        for s in end_structures:
+                    # 이제 넣는다. 어차피 에너지를 옮기는게 가장 중요하기 때문에 그외에 뭐가 어디로 들어가는진 알바아님...
+                    if only_energy:
+                        transfer_minerals_result = creep.transfer(target, RESOURCE_ENERGY)
+                    else:
+                        for minerals in Object.keys(creep.carry):
+                            transfer_minerals_result = creep.transfer(target, minerals)
+                            if transfer_minerals_result == 0:
+                                break
+                            elif transfer_minerals_result == ERR_FULL:
+                                creep.memory.pickup = creep.room.terminal.id
+                    # 에너지만 넣은 상태면 바로 다음으로 넘어간다.
+                    if only_energy and (transfer_minerals_result == OK or transfer_minerals_result == ERR_FULL):
+                        # print(creep, 'transfer_minerals_result', transfer_minerals_result)
+                        # 크립 허울대상 확인
+                        structures = grab_haul_list(creep.room.name, all_structures)
+                        for s in structures:
                             if s.id == creep.memory.haul_target:
-                                s_index = end_structures.indexOf(s)
-                                end_structures.splice(s_index, 1)
+                                s_index = structures.indexOf(s)
+                                structures.splice(s_index, 1)
                                 break
                         del creep.memory.haul_target
-                        # print(creep.name, 'end_structures', end_structures)
-                        # print(len(end_structures))
-                        if len(end_structures) == 0:
-                            target = ERR_INVALID_TARGET
+                        if len(structures):
+                            # 목표타겟 확보.
+                            haul_target = filter_haul_targets(creep, structures, creeps)
+                            if haul_target == ERR_INVALID_TARGET:
+                                del creep.memory.haul_target
+                            else:
+                                creep.memory.haul_target = haul_target
+                        # 스트럭쳐가 텅 비었다는건 즉 채울건 다 채웠다는 소리. 스토리지로 보낸다.
                         else:
-                            target = filter_haul_targets(creep, end_structures, creeps)
-                        # creep.say('a', target)
-                        if target == ERR_INVALID_TARGET:
-                            return
-                        else:
-                            creep.memory.haul_target = target
-                            if not creep.pos.isNearTo(target):
-                                movi(creep, creep.memory.haul_target, 0, 40, True)
-
+                            if creep.room.storage:
+                                creep.say('📦 저장합시다', True)
+                                creep.memory.haul_target = creep.room.storage.id
                     else:
-                        creep.say(transfer_result)
-                        creep.memory.move_ticks = 1
-                        del creep.memory.haul_target
+                        pass
+
+            # 이 시점에 haul_target 이 있으면 거기로 간다.
+            if creep.memory.haul_target and not transfer_minerals_result == -100:
+                target = Game.getObjectById(creep.memory.haul_target)
+                move = movi(creep, creep.memory.haul_target, 0, 40, True)
 
         # priority 2: build
         elif creep.memory.priority == 2:
@@ -635,8 +521,23 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
             build_result = creep.build(Game.getObjectById(creep.memory.build_target))
 
             if build_result == ERR_NOT_IN_RANGE:
-                creep.moveTo(Game.getObjectById(creep.memory.build_target)
-                             , {'visualizePathStyle': {'stroke': '#ffffff'}, 'range': 3, 'reusePath': 10})
+                if not creep.pos.inRangeTo(Game.getObjectById(creep.memory.build_target), 6):
+                    # 현재 위치한 곳이 이전 틱에도 있던곳인지 확인하고 옮기는 등의 절차.
+                    swap_check = check_loc_and_swap_if_needed(creep, creeps, True)
+                    # creep.say('swap {}'.format(swap_check))
+                    # 아무 문제 없으면 평소마냥 움직이는거.
+                    if swap_check == OK:
+                        movi(creep, creep.memory.build_target, 6, 40, True)
+                    # 확인용. 아직 어찌할지 못정함....
+                    elif swap_check == ERR_NO_PATH:
+                        creep.say('ERR_NO_PATH')
+                    # 위 둘 외에 다른게 넘어왔다는 소리는 실질적으로 어느 위치를 갔다는게 아니라
+                    # 다른 크립와 위치 바꿔치기를 시전했다는 소리. 메모리 옮긴다.
+                    else:
+                        creep.memory.last_swap = swap_check
+                else:
+                    build_result = movi(creep, creep.memory.build_target, 3, 5)
+                    creep.say('build {}'.format(build_result), True)
 
             # if there's nothing to build or something
             elif build_result == ERR_INVALID_TARGET:
@@ -652,6 +553,7 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
             # if having anything other than energy when not on priority 1 switch to 1
             if _.sum(creep.carry) != 0 and creep.carry[RESOURCE_ENERGY] == 0:
                 creep.memory.priority = 1
+                del creep.memory.last_swap
                 del creep.memory.build_target
 
         # priority 3: repair
@@ -673,7 +575,22 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
             repair_result = creep.repair(repair)
             # print('{} the {}: repair_result {}'.format(creep.name, creep.memory.role, repair_result))
             if repair_result == ERR_NOT_IN_RANGE:
-                creep.moveTo(repair, {'visualizePathStyle': {'stroke': '#ffffff'}, 'reusePath': 10, 'range': 3})
+                if not creep.pos.inRangeTo(Game.getObjectById(creep.memory.repair_target), 6):
+                    # 현재 위치한 곳이 이전 틱에도 있던곳인지 확인하고 옮기는 등의 절차.
+                    swap_check = check_loc_and_swap_if_needed(creep, creeps, True)
+                    # 아무 문제 없으면 평소마냥 움직이는거.
+                    if swap_check == OK:
+                        movi(creep, creep.memory.repair_target, 3, 40, True)
+                    # 확인용. 아직 어찌할지 못정함....
+                    elif swap_check == ERR_NO_PATH:
+                        creep.say('ERR_NO_PATH')
+                    # 위 둘 외에 다른게 넘어왔다는 소리는 실질적으로 어느 위치를 갔다는게 아니라
+                    # 다른 크립와 위치 바꿔치기를 시전했다는 소리. 메모리 옮긴다.
+                    else:
+                        creep.memory.last_swap = swap_check
+                else:
+                    creep.moveTo(Game.getObjectById(creep.memory.repair_target)
+                                 , {'visualizePathStyle': {'stroke': '#ffffff'}, 'range': 3, 'reusePath': 10})
             elif repair_result == ERR_INVALID_TARGET:
                 del creep.memory.repair_target
 
@@ -684,15 +601,28 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
 
             # 어쨌건 운송이 주다. 다만 레벨 8이면 수리에 전념할 수 있다.
             if (_.sum(creep.carry) < creep.carryCapacity * outer_work_perc and creep.room.controller.level != 8) \
-                    or creep.carry[RESOURCE_ENERGY] == 0:
+                or creep.carry[RESOURCE_ENERGY] == 0:
                 creep.memory.priority = 1
 
         # priority 4: upgrade the controller
         elif creep.memory.priority == 4:
             upgrade_result = creep.upgradeController(Game.getObjectById(creep.memory.upgrade_target))
             if upgrade_result == ERR_NOT_IN_RANGE:
-                creep.moveTo(Game.getObjectById(creep.memory.upgrade_target)
-                             , {'visualizePathStyle': {'stroke': '#ffffff'}, 'range': 3, 'reusePath': 10})
+                if not creep.pos.inRangeTo(Game.getObjectById(creep.memory.upgrade_target), 6):
+                    # 현재 위치한 곳이 이전 틱에도 있던곳인지 확인하고 옮기는 등의 절차.
+                    swap_check = check_loc_and_swap_if_needed(creep, creeps, True)
+                    # 아무 문제 없으면 평소마냥 움직이는거.
+                    if swap_check == OK:
+                        movi(creep, creep.memory.upgrade_target, 3, 40, True)
+                    # 확인용. 아직 어찌할지 못정함....
+                    elif swap_check == ERR_NO_PATH:
+                        creep.say('ERR_NO_PATH')
+                    # 위 둘 외에 다른게 넘어왔다는 소리는 실질적으로 어느 위치를 갔다는게 아니라
+                    # 다른 크립와 위치 바꿔치기를 시전했다는 소리. 메모리 옮긴다.
+                    else:
+                        creep.memory.last_swap = swap_check
+                else:
+                    movi(creep, creep.memory.upgrade_target, 3, 10)
 
             elif upgrade_result == ERR_NO_BODYPART:
                 creep.say('운송이 본분!', True)
@@ -702,7 +632,7 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
             # if having anything other than energy when not on priority 1 switch to 1
             # 운송크립은 발전에 심혈을 기울이면 안됨.
             if (creep.carry[RESOURCE_ENERGY] <= 0 or _.sum(creep.carry) <= creep.carryCapacity * outer_work_perc) \
-                    and creep.room.controller.level > 3:
+                    and creep.room.controller.level > 4:
                 creep.memory.priority = 1
                 creep.say('복귀!', True)
                 del creep.memory.to_storage
@@ -717,7 +647,8 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
 def filter_haul_targets(creep, ujoj, haulers):
     """
     위에 허울러가 에너지 채울 컨테이너 등을 선택하는 함수.
-    :param creep:
+
+    :param creep: 크립(..)
     :param ujoj: 에너지 채울 대상.
     :param haulers: 허울러라 써있지만 실질적으로는 모든 크립.
     :return: creep.memory.haul_target 에 들어갈 아이디.
@@ -824,34 +755,42 @@ def filter_haul_targets(creep, ujoj, haulers):
 
 
 # noinspection PyPep8Naming
-def grab_haul_list(roomName, totalStructures):
+def grab_haul_list(roomName, totalStructures, add_storage=False):
     """
     위에 허울러가 에너지를 채울 목록 확인.
+
     :param roomName: 방이름.
     :param totalStructures: 본문 all_structures 와 동일
-    :param get_storage: 스토리지를 포함할 것인가? priority == 0 인 상황 아니면 포함할일이 없음.
+    :param add_storage: 스토리지를 포함할 것인가? priority == 0 인 상황 아니면 포함할일이 없음.
     :return: 허울러의 에너지 채울 대상목록
     """
+    # 초기화
+    structures = []
+
     # defining structures to fill the energy on. originally above of this spot but replaced for cpu eff.
     # towers only fills 80% since it's gonna repair here and there all the time.
     structures = totalStructures.filter(lambda s: ((s.structureType == STRUCTURE_SPAWN
-                                                   or s.structureType == STRUCTURE_EXTENSION)
-                                                  and s.energy < s.energyCapacity)
-                                                 or (s.structureType == STRUCTURE_TOWER
-                                                     and s.energy < s.energyCapacity * 0.8)
-                                                 or (s.structureType == STRUCTURE_STORAGE
-                                                     and s.store[RESOURCE_ENERGY] < 800000)
-                                                 or (s.structureType == STRUCTURE_TERMINAL
-                                                     and s.store[RESOURCE_ENERGY] < 10000))
+                                                    or s.structureType == STRUCTURE_EXTENSION)
+                                                   and s.energy < s.energyCapacity)
+                                                  or (s.structureType == STRUCTURE_TOWER
+                                                      and s.energy < s.energyCapacity * 0.8)
+                                                  or (s.structureType == STRUCTURE_TERMINAL
+                                                      and s.store[RESOURCE_ENERGY] < 10000))
+
+    if add_storage:
+        structures.extend(totalStructures.filter
+                          (lambda s: s.structureType == STRUCTURE_STORAGE
+                                     and s.store[RESOURCE_ENERGY] < Game.rooms[roomName].memory.options[max_energy]))
+        # print('if add_storage', structures)
     # 핵에 에너지 넣는걸로 함?
     if Memory.rooms[roomName].options.fill_nuke:
         nuke_structure_add = totalStructures.filter(lambda s: s.structureType == STRUCTURE_NUKER
-                                                             and s.energy < s.energyCapacity)
+                                                              and s.energy < s.energyCapacity)
         structures.extend(nuke_structure_add)
     # 연구소에 에너지 넣는걸로 함?
     if Memory.rooms[roomName].options.fill_labs:
         structure_add = totalStructures.filter(lambda s: s.structureType == STRUCTURE_LAB
-                                                        and s.energy < s.energyCapacity)
+                                                         and s.energy < s.energyCapacity)
         structures.extend(structure_add)
 
     container = []

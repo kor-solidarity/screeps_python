@@ -27,10 +27,11 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
     :return:
     """
 
-    # 현 문제점:
+    # todo 현 문제점:
     # - 건설 필요 시 배정.(?)
     # - 운송 시 목표지점 배정관련: 자꾸 스폰당시 위치에서 가장 가까운거에 해버림.
     # - 원래 픽업위치 파괴됐을 시 배정 관련. 방에 자원이 둘일때 엉켜버림. 수리가 시급함.
+    # - 운송중 떨어진거 주웠는데 일정량보다 많으면 걍 돌아가게끔. 방금 뭔 10남았는데 계속가...
 
     # 인생정리모드 돌입(?)
     end_is_near = 40
@@ -85,7 +86,7 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
 
         del creep.memory.build_target
 
-    elif _.sum(creep.carry) == creep.carryCapacity and creep.memory.laboro != 1:
+    elif _.sum(creep.carry) == creep.carryCapacity * .6 and creep.memory.laboro != 1:
         creep.memory.laboro = 1
 
         if len(constructions) > 0:

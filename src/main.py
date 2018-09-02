@@ -141,8 +141,8 @@ def main():
                           'updated using {} CPUs'.format(alliance_name, round(Game.cpu.getUsed() - ally_start, 2)))
                 else:
                     Memory.allianceArray = []
-                    print('alliance not updated. not alligned with any.'
-                          ' {} CPU used'.format(round(Game.cpu.getUsed() - ally_start, 2)))
+                    print('alliance not updated. not allied with any.',
+                          '{} CPU used'.format(round(Game.cpu.getUsed() - ally_start, 2)))
 
             else:
                 Memory.allianceArray = []
@@ -655,6 +655,8 @@ def main():
 
         # running tower, links
         if chambro.memory[STRUCTURE_TOWER] and len(chambro.memory[STRUCTURE_TOWER]) > 0:
+            tow_repairs = repairs
+            # 임시조치
             tow_repairs = []
             # 타워는 벽·방어막 체력 1000 이하만 고친다.
             # 적이 있을 시 수리 자체를 안하니 있으면 아예 무시.

@@ -1,7 +1,8 @@
 from defs import *
 import harvest_stuff
 import random
-import miscellaneous
+from miscellaneous import *
+from movement import *
 
 __pragma__('noalias', 'name')
 __pragma__('noalias', 'undefined')
@@ -80,10 +81,9 @@ def run_upgrader(creep, creeps, all_structures):
             containers_or_links.extend(links)
             if creep.room.storage:
                 containers_or_links.extend([creep.room.storage])
-            # print(creep.name)
-            # print(containers_or_links)
+
             # 가장 가까운곳에서 빼오는거임. 원래 스토리지가 최우선이었는데 바뀜.
-            pickup_id = miscellaneous.pick_pickup(creep, creeps, containers_or_links, 10000, True)
+            pickup_id = pick_pickup(creep, creeps, containers_or_links, 10000, True)
 
             if pickup_id == ERR_INVALID_TARGET:
                 pass
@@ -98,25 +98,47 @@ def run_upgrader(creep, creeps, all_structures):
         # se vi jam havas pickup, ne bezonas sercxi por ujojn
         if creep.memory.pickup:
             result = harvest_stuff.grab_energy(creep, creep.memory.pickup, True)
-            # print('result', result)
             if result == ERR_NOT_IN_RANGE:
-                creep.moveTo(Game.getObjectById(creep.memory.pickup),
-                             {'visualizePathStyle': {'stroke': '#ffffff'}, 'reusePath': 20})
+                # 현재 위치한 곳이 이전 틱에도 있던곳인지 확인하고 옮기는 등의 절차.
+                swap_check = check_loc_and_swap_if_needed(creep, creeps, True)
+                # 아무 문제 없으면 평소마냥 움직이는거.
+                if swap_check == OK:
+                    movi(creep, creep.memory.pickup, 0, 40, True)
+                # 확인용. 아직 어찌할지 못정함....
+                elif swap_check == ERR_NO_PATH:
+                    creep.say('ERR_NO_PATH')
+                # 위 둘 외에 다른게 넘어왔다는 소리는 실질적으로 어느 위치를 갔다는게 아니라
+                # 다른 크립와 위치 바꿔치기를 시전했다는 소리. 메모리 옮긴다.
+                else:
+                    creep.memory.last_swap = swap_check
             elif result == 0:
+                del creep.memory.last_swap
                 del creep.memory.pickup
                 creep.memory.laboro = 1
             elif result == ERR_NOT_ENOUGH_ENERGY or result == ERR_INVALID_TARGET:
                 del creep.memory.pickup
-            return
 
     # laboro: 1 == UPGRADE
-    elif creep.memory.laboro == 1:
-
-        result = creep.upgradeController(Game.getObjectById(creep.memory.upgrade_target))
+    if creep.memory.laboro == 1:
+        up_tar = Game.getObjectById(creep.memory.upgrade_target)
+        result = creep.upgradeController(up_tar)
         # if there's no controller around, go there.
         if result == ERR_NOT_IN_RANGE:
-            creep.moveTo(Game.getObjectById(creep.memory.upgrade_target),
-                         {vis_key: {stroke_key: '#FFFFFF'}, 'range': 3})
+            if not creep.pos.inRangeTo(Game.getObjectById(creep.memory.upgrade_target), 6):
+                # 현재 위치한 곳이 이전 틱에도 있던곳인지 확인하고 옮기는 등의 절차.
+                swap_check = check_loc_and_swap_if_needed(creep, creeps, True)
+                # 아무 문제 없으면 평소마냥 움직이는거.
+                if swap_check == OK:
+                    movi(creep, creep.memory.upgrade_target, 3, 40, True)
+                # 확인용. 아직 어찌할지 못정함....
+                elif swap_check == ERR_NO_PATH:
+                    creep.say('ERR_NO_PATH')
+                # 위 둘 외에 다른게 넘어왔다는 소리는 실질적으로 어느 위치를 갔다는게 아니라
+                # 다른 크립와 위치 바꿔치기를 시전했다는 소리. 메모리 옮긴다.
+                else:
+                    creep.memory.last_swap = swap_check
+            else:
+                movi(creep, creep.memory.upgrade_target, 3, 10)
 
     return
 
@@ -130,7 +152,7 @@ def run_reserver(creep):
 
         # if creep is not in it's flag's room.
         if creep.room.name != creep.memory.assigned_room:
-            miscellaneous.get_to_da_room(creep, creep.memory.assigned_room, False)
+            get_to_da_room(creep, creep.memory.assigned_room, False)
         # if in.
         else:
             # reserve the room

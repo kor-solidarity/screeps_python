@@ -59,6 +59,7 @@ def harvest_energy(creep, source_num):
 def grab_energy(creep, pickup, only_energy, min_capacity=.5):
     """
     grabbing energy from local storages(container, storage, etc.)
+
     :param creep:
     :param pickup: creep.memory. 가장 가까운 또는 목표 storage의 ID
     :param only_energy: bool
@@ -137,6 +138,7 @@ def grab_energy(creep, pickup, only_energy, min_capacity=.5):
 def pick_drops(creep, pickup, only_energy):
     """
     pick up dropped resources, or tombstones.
+
     :param creep:
     :param pickup: 집을 대상 id
     :param only_energy:

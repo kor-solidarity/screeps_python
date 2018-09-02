@@ -1,6 +1,6 @@
 from defs import *
 import harvest_stuff
-import miscellaneous
+from miscellaneous import *
 
 __pragma__('noalias', 'name')
 __pragma__('noalias', 'undefined')
@@ -36,9 +36,10 @@ def run_harvester(creep, all_structures, constructions, creeps, dropped_all):
     """
     vis_key = "visualizePathStyle"
     stroke_key = "stroke"
+    min_range_to_container = 4
     # 할당된 방에 없으면 방으로 우선 가고 본다.
     if creep.room.name != creep.memory.assigned_room:
-        miscellaneous.get_to_da_room(creep, creep.memory.assigned_room, False)
+        get_to_da_room(creep, creep.memory.assigned_room, False)
         return
 
     # no memory.laboro? make one.
@@ -224,12 +225,10 @@ def run_harvester(creep, all_structures, constructions, creeps, dropped_all):
                                                            {'stroke': '#0000FF', 'opacity': .25}})
                         return
         else:
-            # grab_result = creep.pickup(Game.getObjectById(creep.memory.pickup))
             grab_result = harvest_stuff.pick_drops(creep, creep.memory.pickup, True)
-            # print(creep.memory.pickup)
-            # print(creep.name, grab_result)
             creep.say('cc{}'.format(grab_result))
             if grab_result == ERR_NOT_IN_RANGE:
+
                 creep.moveTo(Game.getObjectById(creep.memory.pickup), {'visualizePathStyle':
                                                                        {'stroke': '#0000FF', 'opacity': .25}})
                 return
@@ -256,12 +255,12 @@ def run_harvester(creep, all_structures, constructions, creeps, dropped_all):
             if len(proper_link) > 0:
                 containers.extend(proper_link)
 
-            storage = Game.getObjectById(creep.memory.source_num).pos.findClosestByRange(containers)
+            storage = Game.getObjectById(creep.memory.source_num).pos.findClosestByPath(containers)
             
             if len(storage) == 0:
                 del creep.memory.container
             # 근처에 스토리지가 있는게 아니면 낭비임. 그냥 주변에 건설이나 실시한다.
-            elif not Game.getObjectById(creep.memory.source_num).pos.inRangeTo(storage, 3):
+            elif not Game.getObjectById(creep.memory.source_num).pos.inRangeTo(storage, min_range_to_container):
                 del creep.memory.container
             else:
                 creep.memory.container = storage.id
@@ -272,7 +271,7 @@ def run_harvester(creep, all_structures, constructions, creeps, dropped_all):
                 return
 
             if not Game.getObjectById(creep.memory.source_num).pos.inRangeTo(
-                    Game.getObjectById(creep.memory.container), 3):
+                    Game.getObjectById(creep.memory.container), min_range_to_container):
                 # print('huh?')
                 del creep.memory.container
                 return

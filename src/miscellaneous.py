@@ -366,3 +366,37 @@ def get_to_da_room(creep, roomName, ignoreRoads=True):
                           , {'visualizePathStyle': {'stroke': '#ffffff'}, 'reusePath': 15, 'range': 21
                               , 'maxOps': 1000, 'ignoreRoads': ignoreRoads})
     return result
+
+
+def swapping(creep, creeps, avoid_id=0, avoid_role=''):
+    """
+    길막할 경우 위치변환.
+    :param creep:
+    :param creeps:
+    :param avoid_id:
+    :param avoid_role:
+    :return:
+    """
+    for c in creeps:
+        if creep.pos.inRangeTo(c, 1) and not c.name == creep.name \
+                and not (c.id == avoid_id or c.memory.role == avoid_role):
+            creep.say('GTFO', True)
+            mv = c.moveTo(creep)
+            creep.moveTo(c)
+            return c.id
+
+    return ERR_NO_PATH
+
+
+def repair_on_the_way(creep, repairs):
+    """
+    운송크립 운송작업중 주변에 컨트롤러나 수리해야하는거 있으면 무조건 하고 지나간다.
+    :param creep:
+    :param repairs:
+    :return:
+    """
+    if creep.room.controller and creep.room.controller.my and creep.room.controller.level < 8:
+        creep.upgradeController(Game.getObjectById(creep.memory.upgrade_target))
+    if len(repairs) > 0:
+        repair = creep.pos.findClosestByRange(repairs)
+        creep.repair(repair)

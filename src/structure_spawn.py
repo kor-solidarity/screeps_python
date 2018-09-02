@@ -35,7 +35,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                 if spawn.pos.inRangeTo(enemy, 2):
                     hostile_around = True
                     break
-        if hostile_around:
+        if hostile_around and chambro.controller.level == 8:
             return
 
         # ALL creeps you have
@@ -140,9 +140,12 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                 if spawn.createCreep(
                         [WORK, WORK, WORK, WORK, WORK, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE], undefined,
                         {'role': 'harvester', 'assigned_room': spawn.pos.roomName, 'size': 1}) == -6:
-                    # final barrier
-                    spawn.createCreep([MOVE, WORK, WORK, CARRY], undefined,
-                                      {'role': 'harvester', 'assigned_room': spawn.pos.roomName, 'size': 1})
+                    # 3 WORK
+                    if spawn.createCreep([MOVE,MOVE,WORK,WORK,WORK,CARRY,CARRY], undefined,
+                                      {'role': 'harvester', 'assigned_room': spawn.pos.roomName, 'size': 1}) == -6:
+                        # final barrier
+                        spawn.createCreep([MOVE, WORK, WORK, CARRY], undefined,
+                                          {'role': 'harvester', 'assigned_room': spawn.pos.roomName, 'size': 1})
             return
 
         plus = 0
@@ -313,7 +316,6 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                                 undefined,
                                 {'role': 'miner', 'assigned_room': spawn.pos.roomName})
 
-
         # 업그레이더는 버켓 비상 근접시부터 생산 고려 자체를 안한다.
         if Game.cpu.bucket > cpu_bucket_emergency + cpu_bucket_emergency_spawn_start:
             max_num_upgraders = chambro.memory.options[max_upgraders]
@@ -339,8 +341,9 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                 else:
                     proper_level = 0
             # 렙4부터는 스토리지 건설이 최우선이기에 업글러 스폰에 총력가하면 망함...
-            elif spawn.room.energyCapacityAvailable <= 1000 or chambro.controller.level > 4:
+            elif chambro.controller.level < 4:
                 # 이시점엔 소형애들만 생성됨.
+                # print('이시점엔 소형애들만 생성됨.')
                 proper_level = max_num_upgraders
             else:
                 proper_level = 0
@@ -374,16 +377,17 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                         spawn.createCreep([WORK, WORK, CARRY, CARRY, MOVE, MOVE], undefined,
                                           {'role': 'upgrader', 'assigned_room': spawn.pos.roomName})
 
-        # 렙 7 이상일때부터 수리병을 부름.
-        if chambro.controller.level >= 7 and chambro.storage and chambro.storage.store[RESOURCE_ENERGY] >= 10000:
-            if len(creep_fixers) < 3:
-                fixer_spawn = spawn.createCreep(
-                    [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK,
-                     WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, CARRY, CARRY,
-                     CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY,
-                     CARRY, CARRY, CARRY, CARRY]
-                    , undefined,
-                    {'role': 'fixer', 'assigned_room': spawn.pos.roomName, 'level': 5})
+        # # todo 임시조치상태
+        # # 렙 7 이상일때부터 수리병을 부름.
+        # if chambro.controller.level >= 7 and chambro.storage and chambro.storage.store[RESOURCE_ENERGY] >= 10000:
+        #     if len(creep_fixers) < 3:
+        #         fixer_spawn = spawn.createCreep(
+        #             [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK,
+        #              WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, CARRY, CARRY,
+        #              CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY,
+        #              CARRY, CARRY, CARRY, CARRY]
+        #             , undefined,
+        #             {'role': 'fixer', 'assigned_room': spawn.pos.roomName, 'level': 5})
 
         if Memory.debug or Game.time % interval == 0 or Memory.tick_check:
             print("이 시점까지 스폰 {} 소모량: {}, 이하 remote"
