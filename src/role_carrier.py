@@ -1,7 +1,8 @@
 from defs import *
 import harvest_stuff
 import random
-import miscellaneous
+from miscellaneous import *
+from _custom_constants import *
 import movement
 
 __pragma__('noalias', 'name')
@@ -47,9 +48,6 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
         creep.memory.priority = 2
     elif _.sum(creep.carry) == 0 and creep.ticksToLive < end_is_near:
         creep.suicide()
-        # creep.say('TTL: ' + creep.ticksToLive)
-        # creep.moveTo(Game.getObjectById(creep.memory.upgrade_target),
-        #              {'visualizePathStyle': {'stroke': '#ffffff'}, 'ignoreRoads': True, 'reusePath': 40})
         return
 
     elif not creep.memory.upgrade_target:
@@ -86,13 +84,14 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
 
         del creep.memory.build_target
 
-    elif _.sum(creep.carry) == creep.carryCapacity * .6 and creep.memory.laboro != 1:
+    elif _.sum(creep.carry) >= creep.carryCapacity * .6 and creep.memory.laboro != 1:
         creep.memory.laboro = 1
-
         if len(constructions) > 0:
             creep.memory.priority = 1
+            # print(creep.name, '11')
         else:
             creep.memory.priority = 2
+            # print(creep.name, 22)
 
     # laboro: 0 == pickup something.
     if creep.memory.laboro == 0:
@@ -238,7 +237,7 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
             # 이게 안뜬다는건 방이 안보인다는 소리. 우선 가고본다.
             # 캐리어가 소스 없는 방으로 갈리가....
             if not Game.rooms[creep.memory.assigned_room]:
-                miscellaneous.get_to_da_room(creep, creep.memory.assigned_room, False)
+                get_to_da_room(creep, creep.memory.assigned_room, False)
                 return
 
             # 여기로 왔다는건 할당 컨테이너가 없다는 소리. 한마디로 not creep.memory.pickup == True
@@ -325,7 +324,7 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                 if creep.memory.assigned_room != creep.room.name and not creep.memory.build_target:
                     # constructions = Game.flags[creep.memory.flag_name].room.find(FIND_CONSTRUCTION_SITES)
                     # print('?', constructions)
-                    miscellaneous.get_to_da_room(creep, creep.memory.assigned_room, False)
+                    get_to_da_room(creep, creep.memory.assigned_room, False)
                     # creep.moveTo(Game.flags[creep.memory.flag_name], {'visualizePathStyle': {'stroke': '#ffffff'}
                     #     , 'reusePath': 25})
                     return
@@ -352,13 +351,18 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
             # if there's nothing to build or something
             elif build_result == ERR_INVALID_TARGET:
                 # if there's no more construction sites, get back grabbing energy.
-                if len(constructions) == 0:
+                if len(constructions) == 0 and _.sum(creep.carry) >= creep.carryCapacity * .6:
+                    # print(creep.name, 'con', 11)
+                    creep.memory.priority = 2
+                    del creep.memory.build_target
+                elif len(constructions) == 0:
+                    # print(creep.name, 'con', 22)
                     creep.memory.priority = 0
                     creep.memory.laboro = 0
                     del creep.memory.build_target
-                    return
                 # if there are more, return to priority 0 to decide what to do.
                 else:
+                    # print(creep.name, 'con', 33)
                     creep.memory.priority = 0
                     del creep.memory.build_target
             elif build_result == ERR_NO_BODYPART:
@@ -375,7 +379,7 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                 if len(repairs) > 0 and creep.memory.work:
                     repair = creep.pos.findClosestByRange(repairs)
                     creep.repair(repair)
-                miscellaneous.get_to_da_room(creep, creep.memory.home_room, False)
+                get_to_da_room(creep, creep.memory.home_room, False)
                 return
 
             # fixed container/link target to move to.
@@ -393,9 +397,9 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                 # 메모리를 뜯어서 캐리어용인지 마킹을 한다.
                 if link_or_container.structureType == STRUCTURE_CONTAINER:
                     creep.memory.container = link_or_container.id
-                    miscellaneous.check_for_carrier_setting(creep, link_or_container)
+                    check_for_carrier_setting(creep, link_or_container)
                 elif link_or_container.structureType == STRUCTURE_LINK:
-                    miscellaneous.check_for_carrier_setting(creep, link_or_container)
+                    check_for_carrier_setting(creep, link_or_container)
 
                 creep.memory.haul_target = link_or_container.id
 
@@ -485,7 +489,7 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                             if len(creep.room.findPath(creep.pos, closest_link.pos,
                                                        {'ignoreCreeps': True})) <= 6:
                                 creep.memory.link_target = closest_link.id
-                                miscellaneous.check_for_carrier_setting(creep, Game.getObjectById(creep.memory.link_target))
+                                check_for_carrier_setting(creep, Game.getObjectById(creep.memory.link_target))
                             else:
                                 # 크립 주변에 링크가 없다는 소리. 위에 루프문 매번 반복 안하기 위해 생성.
                                 creep.memory.no_link = 1
@@ -516,9 +520,9 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                         # 컨테이너나 링크로 갈아탈 경우 캐려용인지 확인한다.
                         if link_or_container.structureType == STRUCTURE_CONTAINER:
                             creep.memory.container = link_or_container.id
-                            miscellaneous.check_for_carrier_setting(creep, link_or_container)
+                            check_for_carrier_setting(creep, link_or_container)
                         elif link_or_container.structureType == STRUCTURE_LINK:
-                            miscellaneous.check_for_carrier_setting(creep, link_or_container)
+                            check_for_carrier_setting(creep, link_or_container)
                         creep.say('교체!', True)
                         creep.memory.err_full = 0
                         creep.moveTo(Game.getObjectById(creep.memory.haul_target),

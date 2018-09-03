@@ -1,6 +1,8 @@
 from defs import *
 import harvest_stuff
 from miscellaneous import *
+from _custom_constants import *
+from movement import *
 
 __pragma__('noalias', 'name')
 __pragma__('noalias', 'undefined')
@@ -36,9 +38,8 @@ def run_harvester(creep, all_structures, constructions, creeps, dropped_all):
     """
     vis_key = "visualizePathStyle"
     stroke_key = "stroke"
-    min_range_to_container = 4
     # 할당된 방에 없으면 방으로 우선 가고 본다.
-    if creep.room.name != creep.memory.assigned_room:
+    if not creep.memory.source_num and creep.room.name != creep.memory.assigned_room:
         get_to_da_room(creep, creep.memory.assigned_room, False)
         return
 
@@ -238,7 +239,11 @@ def run_harvester(creep, all_structures, constructions, creeps, dropped_all):
         if _.sum(creep.carry) > creep.carryCapacity - 10:
             creep.memory.laboro = 1
         else:
-            harvest_stuff.harvest_energy(creep, creep.memory.source_num)
+            harvest = harvest_stuff.harvest_energy(creep, creep.memory.source_num)
+            # print(creep.name, harvest)
+            # if harvest == ERR_NOT_IN_RANGE:
+            #     mov = movi(creep, creep.memory.source_num)
+            #     print(mov)
 
     # if carryCapacity is full - then go to nearest container or storage to store the energy.
     elif creep.memory.laboro == 1:
@@ -260,7 +265,7 @@ def run_harvester(creep, all_structures, constructions, creeps, dropped_all):
             if len(storage) == 0:
                 del creep.memory.container
             # 근처에 스토리지가 있는게 아니면 낭비임. 그냥 주변에 건설이나 실시한다.
-            elif not Game.getObjectById(creep.memory.source_num).pos.inRangeTo(storage, min_range_to_container):
+            elif not Game.getObjectById(creep.memory.source_num).pos.inRangeTo(storage, max_range_to_container):
                 del creep.memory.container
             else:
                 creep.memory.container = storage.id
@@ -271,7 +276,7 @@ def run_harvester(creep, all_structures, constructions, creeps, dropped_all):
                 return
 
             if not Game.getObjectById(creep.memory.source_num).pos.inRangeTo(
-                    Game.getObjectById(creep.memory.container), min_range_to_container):
+                    Game.getObjectById(creep.memory.container), max_range_to_container):
                 # print('huh?')
                 del creep.memory.container
                 return
@@ -417,7 +422,7 @@ def run_miner(creep, all_structures):
             print('id:', storage.id)
             creep.memory.container = storage.id
             # for_harvest 설정 바꾼다.
-            miscellaneous.check_for_carrier_setting(creep, creep.memory.container)
+            check_for_carrier_setting(creep, creep.memory.container)
 
         if creep.memory.container:
             # runs for each type of resources. you know the rest.

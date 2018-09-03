@@ -1,5 +1,5 @@
 from defs import *
-import random
+from movement import *
 
 __pragma__('noalias', 'name')
 __pragma__('noalias', 'undefined')
@@ -42,7 +42,8 @@ def harvest_energy(creep, source_num):
     # creep.say(harvested)
     if harvested == ERR_NOT_IN_RANGE:
         # then go.
-        creep.moveTo(Game.getObjectById(source_num), {vis_key: {stroke_key: '#ffffff'}})
+        creep.moveTo(Game.getObjectById(source_num), {vis_key: {stroke_key: '#ffffff'},
+                                                      'maxOps': 5000})
 
     # did the energy from the sources got depleted?
     # PROCEED TO NEXT PHASE IF THERE ARE ANYTHING IN CARRY

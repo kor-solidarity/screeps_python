@@ -12,7 +12,7 @@ __pragma__('noalias', 'update')
 
 
 # noinspection PyPep8Naming
-def movi(creep, target, range_to=0, reusePath=20, ignoreCreeps=False, color='#ffffff'):
+def movi(creep, target, range_to=0, reusePath=20, ignoreCreeps=False, maxOps=2000, color='#ffffff'):
     """
     크립 움직이는거 관련.
 
@@ -21,12 +21,14 @@ def movi(creep, target, range_to=0, reusePath=20, ignoreCreeps=False, color='#ff
     :param range_to: 거리
     :param reusePath: 재사용틱
     :param ignoreCreeps: 크립무시여부, 기본값 False
+    :param maxOps: 패스파인딩 할때 돌릴 시뮬 수. 2천이 게임 기본임.
     :param color: 기본값 #ffffff
     :return: 결과
     """
     target_obj = Game.getObjectById(target)
     return creep.moveTo(target_obj, {'range': range_to, 'ignoreCreeps': ignoreCreeps
-                        , 'visualizePathStyle': {'stroke': color}, 'reusePath': reusePath})
+                        , 'visualizePathStyle': {'stroke': color},
+                                     'reusePath': reusePath, 'maxOps': maxOps})
 
 
 def check_loc_and_swap_if_needed(creep, creeps, avoid_id=False, avoid_role=False):

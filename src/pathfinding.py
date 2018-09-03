@@ -127,7 +127,8 @@ class Costs:
         if that cost is < 255"""
 
         """
-        opts = {'trackCreeps': True, 'costByArea': {'objects': [controller], 'size': 1, 'cost': 255}}
+        opts = {'trackCreeps': True, 'refreshMatrix': True, 
+                'costByArea': {'objects': [controller], 'size': 1, 'cost': 255}}
         costs = Costs(room_name, opts).load_matrix()
         """
 

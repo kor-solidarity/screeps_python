@@ -297,39 +297,6 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                 # defining structures to fill the energy on. originally above of this spot but replaced for cpu eff.
                 # towers only fills 80% since it's gonna repair here and there all the time.
                 structures = grab_haul_list(creep.room.name, all_structures, True)
-                # 위에 함수로 대체
-                # structures = all_structures.filter(lambda s: ((s.structureType == STRUCTURE_SPAWN
-                #                                                or s.structureType == STRUCTURE_EXTENSION)
-                #                                               and s.energy < s.energyCapacity)
-                #                                              or (s.structureType == STRUCTURE_TOWER
-                #                                                  and s.energy < s.energyCapacity * 0.8)
-                #                                              or (s.structureType == STRUCTURE_STORAGE
-                #                                                  and s.store[RESOURCE_ENERGY] < max_energy_in_storage)
-                #                                              or (s.structureType == STRUCTURE_TERMINAL
-                #                                                  and s.store[RESOURCE_ENERGY] < terminal_capacity))
-                # # 핵에 에너지 넣는걸로 함?
-                # if Memory.rooms[creep.room.name].options.fill_nuke:
-                #     nuke_structure_add = all_structures.filter(lambda s: s.structureType == STRUCTURE_NUKER
-                #                                                and s.energy < s.energyCapacity)
-                #     structures.extend(nuke_structure_add)
-                # # 연구소에 에너지 넣는걸로 함?
-                # if Memory.rooms[creep.room.name].options.fill_labs:
-                #     structure_add = all_structures.filter(lambda s: s.structureType == STRUCTURE_LAB
-                #                                                and s.energy < s.energyCapacity)
-                #     structures.extend(structure_add)
-                #
-                # container = []
-                # # for_upgrade :스토리지가 컨트롤러에서 많이 떨어져 있을때 대비해 두는 컨테이너.
-                # if creep.room.controller.level < 8:
-                #     for rcont in creep.room.memory[STRUCTURE_CONTAINER]:
-                #         # 업글용 컨테이너고 수확저장용도가 아닌가? 그러면 허울러가 넣는다.
-                #         if rcont.for_upgrade and not rcont.for_harvest:
-                #             if Game.getObjectById(rcont.id) \
-                #                     and not _.sum(Game.getObjectById(rcont.id).store) \
-                #                     == Game.getObjectById(rcont.id).storeCapacity:
-                #                 container.extend([Game.getObjectById(rcont.id)])
-                #
-                # structures.extend(container)
             else:
                 structures = []
 
@@ -356,7 +323,6 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
 
         # priority 1: transfer
         if creep.memory.priority == 1:
-            # todo 모든걸 다 건드려야 함....
             # 1. 우선 모든 운송은 다 크립 쌩깐다!
             # 2. 스토리지용 운송 없앤다.
             # 3. 터미널 이송 등 재설정.
@@ -373,15 +339,16 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
             haul_target_filtered = 0
 
             # 근처에 컨트롤러랑 리페어 대상 있으면 건들면서 간다.
-            repair_on_the_way(creep, repairs)
+            repair_on_the_way(creep, repairs, constructions)
 
             # check if haul_target's capacity is full
             target = Game.getObjectById(creep.memory.haul_target)
             # haul_target 이 중간에 폭파되거나 이미 꽉 찼을 시...
             if not target \
-                or (target.structureType == STRUCTURE_TOWER and target.energy >= target.energyCapacity - 20) \
-                or (target.structureType != STRUCTURE_CONTAINER and target.energy >= target.energyCapacity) \
-                or _.sum(target.store) >= target.storeCapacity:
+                    or ((target.structureType == STRUCTURE_TOWER and target.energy >= target.energyCapacity - 20)
+                        or (target.structureType != STRUCTURE_CONTAINER
+                            and target.energy >= target.energyCapacity * .8)
+                        or _.sum(target.store) == target.storeCapacity):
                 del creep.memory.haul_target
             # 에너지 외 자원 운송중인데 대상이 에너지 채우는거면 통과한다.
             if target and \
@@ -414,7 +381,7 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                         creep.memory.haul_target = creep.room.terminal.id
                     # 그외는 싹 스토리지로. 여럿이 붙으면? 알게뭐야.
                     else:
-                        if len(constructions) > 0:
+                        if len(constructions) > 0 and creep.carry[RESOURCE_ENERGY] > 0:
                             creep.say('🚧 공사전환!', True)
                             creep.memory.priority = 2
                         elif creep.room.storage:
@@ -497,7 +464,8 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                         pass
 
             # 이 시점에 haul_target 이 있으면 거기로 간다.
-            if creep.memory.haul_target and not transfer_minerals_result == -100:
+            if creep.memory.haul_target and not transfer_minerals_result == -100\
+                    and not creep.pos.isNearTo(Game.getObjectById(creep.memory.haul_target)):
                 target = Game.getObjectById(creep.memory.haul_target)
                 move = movi(creep, creep.memory.haul_target, 0, 40, True)
 
@@ -527,7 +495,7 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                     # creep.say('swap {}'.format(swap_check))
                     # 아무 문제 없으면 평소마냥 움직이는거.
                     if swap_check == OK:
-                        movi(creep, creep.memory.build_target, 6, 40, True)
+                        movi(creep, creep.memory.build_target, 3, 40, True)
                     # 확인용. 아직 어찌할지 못정함....
                     elif swap_check == ERR_NO_PATH:
                         creep.say('ERR_NO_PATH')
@@ -537,7 +505,7 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                         creep.memory.last_swap = swap_check
                 else:
                     build_result = movi(creep, creep.memory.build_target, 3, 5)
-                    creep.say('build {}'.format(build_result), True)
+                    # creep.say('build {}'.format(build_result))
 
             # if there's nothing to build or something
             elif build_result == ERR_INVALID_TARGET:
@@ -714,7 +682,7 @@ def filter_haul_targets(creep, ujoj, haulers):
                         if _.sum(structure.store) < structure.storeCapacity * .5:
                             # nur plusas 1 ĉar en ĉi tio stato ni bezonas 3 kripoj
                             size_counter += 1
-                        elif _.sum(structure.store) < structure.storeCapacity * .8:
+                        elif _.sum(structure.store) < structure.storeCapacity * .7:
                             size_counter += 2
                         else:
                             size_counter += 3
@@ -795,7 +763,7 @@ def grab_haul_list(roomName, totalStructures, add_storage=False):
 
     container = []
     # for_upgrade :스토리지가 컨트롤러에서 많이 떨어져 있을때 대비해 두는 컨테이너.
-    if Game.rooms[roomName].controller.level < 8:
+    if 3 <= Game.rooms[roomName].controller.level < 8:
         for rcont in Game.rooms[roomName].memory[STRUCTURE_CONTAINER]:
             # 업글용 컨테이너고 수확저장용도가 아닌가? 그러면 허울러가 넣는다. 80% 이하로 차있을때만.
             if rcont.for_upgrade and not rcont.for_harvest \

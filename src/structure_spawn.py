@@ -85,10 +85,10 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
         # 소스 주변에 자원채취용 컨테이너·링크가 얼마나 있는가 확인.
         for rs in room_sources:
             for s in containers_and_links:
-                # 세칸이내에 존재하는가?
-                if s.structureType == STRUCTURE_CONTAINER and rs.pos.inRangeTo(s, 3):
-                    # 실제 거리도 세칸 이내인가?
-                    if len(rs.pos.findPathTo(s, {'ignoreCreeps': True})) <= 3:
+                # 설정된 칸이내에 존재하는가?
+                if s.structureType == STRUCTURE_CONTAINER and rs.pos.inRangeTo(s, max_range_to_container):
+                    # 실제 거리도 그 이내인가?
+                    if len(rs.pos.findPathTo(s, {'ignoreCreeps': True})) <= max_range_to_container:
                         # 여기까지 들어가있으면 요건충족한거.
                         harvest_carry_targets.push(s.id)
                         break
@@ -344,7 +344,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
             elif chambro.controller.level < 4:
                 # 이시점엔 소형애들만 생성됨.
                 # print('이시점엔 소형애들만 생성됨.')
-                proper_level = max_num_upgraders
+                proper_level = int(max_num_upgraders / 2)
             else:
                 proper_level = 0
 
@@ -749,6 +749,12 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
             if delete_flag:
                 aa = flags[flag_name].remove()
 
+        # 이하 진짜 리모트-------------------------------------------------
+
+        # 렙3 이하면 그냥 무시
+        if chambro.controller.level < 3:
+            return
+
         if len(Memory.rooms[spawn.room.name].options.remotes) > 0:
             # 깃발로 돌렸던걸 메모리로 돌린다.
             for r in Memory.rooms[spawn.room.name].options.remotes:
@@ -887,6 +893,10 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                     flag_mineral = Game.rooms[room_name].find(FIND_MINERALS)
                     flag_constructions = Game.rooms[room_name].find(FIND_CONSTRUCTION_SITES)
 
+                    flag_containers_const = flag_constructions.filter(lambda s: s.structureType == STRUCTURE_CONTAINER)
+
+                    flag_containers.extend(flag_containers_const)
+
                     if flag_room_controller and len(remote_reservers) == 0:
                         # 예약되지 않은 컨트롤러거나
                         # 컨트롤러의 예약시간이 1200 이하거나
@@ -937,15 +947,21 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                         containter_exist = False
                         print('carrier_source 위치:', target_source.pos)
                         # loop all structures. I'm not gonna use filter. just loop it at once.
-                        for st in flag_containers:
-                            # 컨테이너만 따진다.
-                            if st.structureType == STRUCTURE_CONTAINER:
-                                # 가까이 있으면 하나의 컨테이너로 퉁치기.
-                                # 소스 세칸 이내에 컨테이너가 있는가? 있으면 carrier_pickup으로 배정
-                                if target_source.pos.inRangeTo(st, 3):
-                                    containter_exist = True
-                                    carrier_pickup_id = st.id
-                                    break
+                        if len(flag_containers) > 0:
+                            closest_cont = target_source.pos.findClosestByPath(flag_containers)
+                            if target_source.pos.inRangeTo(closest_cont, 4):
+                                containter_exist = True
+                                carrier_pickup_id = closest_cont.id
+                        # 위로 대체
+                        # for st in flag_containers:
+                        #     # 컨테이너만 따진다.
+                        #     if st.structureType == STRUCTURE_CONTAINER:
+                        #         # 가까이 있으면 하나의 컨테이너로 퉁치기.
+                        #         # 소스 세칸 이내에 컨테이너가 있는가? 있으면 carrier_pickup으로 배정
+                        #         if target_source.pos.inRangeTo(st, 4) and :
+                        #             containter_exist = True
+                        #             carrier_pickup_id = st.id
+                        #             break
                         # 컨테이너가 존재하지 않는 경우.
                         if not containter_exist:
                             # 건설장 존재여부. 있으면 참.
@@ -977,21 +993,18 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                                 objs = flag_energy_sources
 
                                 if flag_room_controller:
-                                    objs.push(flag_room_controller)
+                                    objs.append(flag_room_controller)
                                 # does this room have keeper lairs?
-                                # if len(flag_lairs) > 0:
-                                #     objs.extend(flag_lairs)
                                 if len(flag_mineral) > 0:
                                     objs.extend(flag_mineral)
-
+                                print('objs', objs)
                                 # 키퍼가 있으면 중간에 크립도 있는지라.
                                 if keeper_lair:
-                                    opts = {'trackCreeps': True,
-                                            'costByArea': {'objects': [objs], 'size': 1, 'cost': 6}}
+                                    opts = {'trackCreeps': True, 'refreshMatrix': True,
+                                            'costByArea': {'objects': objs, 'size': 1, 'cost': 6}}
                                 else:
-                                    opts = {'trackCreeps': False,
-                                            'costByArea': {'objects': [objs], 'size': 1, 'cost': 6}}
-
+                                    opts = {'trackCreeps': False, 'refreshMatrix': True,
+                                            'costByArea': {'objects': objs, 'size': 1, 'cost': 6}}
                                 # RoomPosition 목록. 컨테이너 건설한 김에 길도 깐다.
                                 constr_roads_pos = \
                                     PathFinder.search(constr_pos, spawn.pos,
@@ -1035,11 +1048,8 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                             else:
                                 work_chance = random.randint(0, 1)
                             # 굳이 따로 둔 이유: 캐리 둘에 무브 하나.
-                            # carry_body_odd = [MOVE, CARRY, CARRY, CARRY]
-                            # carry_body_even = [MOVE, MOVE, CARRY, CARRY, CARRY]
                             carry_body_odd = [CARRY]
                             carry_body_even = [CARRY, MOVE]
-                            carry_body_extra = [MOVE, CARRY]
                             work_body = [WORK, WORK, MOVE]
                             body = []
 
@@ -1106,21 +1116,6 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                                     else:
                                         body.extend(carry_body_odd)
 
-                                # if work_chance == 1:
-                                #     body.extend(work_body)
-                                # # 15% 몸집을 줄여본다.
-                                # if int(distance / 7) == 0:
-                                #     distance = 1
-                                # else:
-                                #     distance = int(distance / 7)
-                                #     if distance % 7 > 0:
-                                #         carrier_size += 1
-                                # for i in range(distance):
-                                #     if i % 2 == 0:
-                                #         body.extend(carry_body_even)
-                                #     else:
-                                #         body.extend(carry_body_odd)
-
                                 print('2nd body({}): {}'.format(len(body), body))
                                 spawning = spawn.createCreep(
                                     body,
@@ -1151,7 +1146,6 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                                         , 'source_num': carrier_source, 'frontier': 1})
                             continue
 
-                    # elif len(flag_containers) > len(remote_harvesters):
                     # 하베스터도 소스 수 만큼!
                     elif len(flag_energy_sources) > len(remote_harvesters):
                         # 4000 for keeper lairs
@@ -1159,7 +1153,8 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                         regular_spawn = -6
                         if keeper_lair:
                             regular_spawn = spawn.createCreep(
-                                [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, WORK,
+                                [TOUGH, TOUGH, TOUGH, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE,
+                                 WORK, WORK, WORK, WORK, WORK, WORK, WORK,
                                  CARRY, CARRY, CARRY, CARRY], undefined,
                                 {'role': 'harvester', 'assigned_room': room_name,
                                  'home_room': spawn.room.name,

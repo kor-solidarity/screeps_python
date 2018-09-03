@@ -1,5 +1,7 @@
 import random
 from defs import *
+from _custom_constants import *
+
 
 __pragma__('noalias', 'name')
 __pragma__('noalias', 'undefined')
@@ -388,15 +390,21 @@ def swapping(creep, creeps, avoid_id=0, avoid_role=''):
     return ERR_NO_PATH
 
 
-def repair_on_the_way(creep, repairs):
+def repair_on_the_way(creep, repairs, constructions):
     """
-    운송크립 운송작업중 주변에 컨트롤러나 수리해야하는거 있으면 무조건 하고 지나간다.
+    운송크립 운송작업중 주변에 컨트롤러나 수리해야하는거 등 있으면 무조건 하고 지나간다.
+
     :param creep:
     :param repairs:
+    :param constructions:
     :return:
     """
     if creep.room.controller and creep.room.controller.my and creep.room.controller.level < 8:
         creep.upgradeController(Game.getObjectById(creep.memory.upgrade_target))
-    if len(repairs) > 0:
+    bld = err_undone_constant
+    if len(constructions) > 0:
+        building = creep.pos.findClosestByRange(constructions)
+        bld = creep.build(building)
+    if len(repairs) > 0 and not bld == 0:
         repair = creep.pos.findClosestByRange(repairs)
         creep.repair(repair)
