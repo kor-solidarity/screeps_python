@@ -20,7 +20,8 @@ __pragma__('noalias', 'update')
 
 def check_for_carrier_setting(creep, target_obj):
     """
-    배정된 컨테이너의 for_harvest가 캐리어용(2)으로 배정할 자격이 되는지 확인한다.
+    배정된 컨테이너의 for_harvest 가 캐리어용(2)으로 배정할 자격이 되는지 확인한다.
+
     :param creep:
     :param target_obj: 대상 타겟. 링크 또는 컨테이너.
     :return: 여기서 배정작업까지 다 끝내기 때문에 뭘 따로 반환할 필요가 없다.
@@ -167,8 +168,18 @@ def pick_pickup(creep, creeps, storages, terminal_capacity=10000, upgrade=False)
         # if upgrade:
         #     print('type', loop_storage.structureType)
         # if loop_storage only holds energy - STRUCTURE_LINK and STRUCTURE_LAB
-        if loop_storage.structureType == STRUCTURE_LINK or loop_storage.structureType == STRUCTURE_LAB:
+        if loop_storage.structureType == STRUCTURE_LAB:
             stored_energy = loop_storage.energy
+
+        # 링크인 경우 전송용 링크면 굳이 쫓아가서 집으려 하지 않는다.
+        elif loop_storage.structureType == STRUCTURE_LINK:
+            # 메모리에 있는건지 확인한다.
+            for lk in creep.room.memory[STRUCTURE_LINK]:
+                # 아이디 맞는지 확인.
+                if lk.id == loop_storage.id:
+                    # 저장용 링크만 집는다.
+                    if lk.for_store:
+                        stored_energy = loop_storage.energy
 
         # todo 이 컨테이너 확인을 메모리가 존재할때만 하고 거리도 실질적으로 맞게 변환해야한다.
         # 예전엔 대상을 찾아서 이게 업글용인건지(즉 소스근처가 아닌거) 확인용도였음. 이제 그건 컨테이너 메모리에 적혀있음.

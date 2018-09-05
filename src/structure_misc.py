@@ -61,8 +61,8 @@ def run_tower(tower, hostile_creeps, repairs, malsana_amikoj):
 def run_links(link_id):
     """
     distributing energy to links
+
     :param link_id: room.memory[STRUCTURE_LINK][i].id
-    :old_param my_structures: .find(FIND_MY_STRUCTURES) - NULLIFIED
     :return:
     """
 

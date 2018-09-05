@@ -483,7 +483,7 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                                          lambda s: s.structureType == STRUCTURE_LINK)
                         # 방 안에 링크가 있는지 확인.
                         if len(links) > 0:
-                            # 있으면 가장 가까운거 찾고 그게 5칸이내에 있으면
+                            # 있으면 가장 가까운거 찾고 그게 6칸이내에 있으면
                             # 추후 옮긴대상이 링크가 아닐 경우를 대비한 아이디로 등록한다.
                             closest_link = creep.pos.findClosestByPath(links)
                             if len(creep.room.findPath(creep.pos, closest_link.pos,
@@ -494,7 +494,28 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                                 # 크립 주변에 링크가 없다는 소리. 위에 루프문 매번 반복 안하기 위해 생성.
                                 creep.memory.no_link = 1
                     creep.memory.haul_target = creep.memory.link_target
+                    # 다음번에 안세고 바로 컨테이너행인듯
                     creep.memory.err_full = 3
+                # 링크일 경우 한번 주변에 컨테이너가 있나 둘러봅시다
+                elif Game.getObjectById(creep.memory.haul_target).structureType == STRUCTURE_LINK:
+                    # 컨테이너가 있으면 통과.
+                    if creep.memory.container:
+                        pass
+                    # 없으면 찾아보기. 방법은 위에 컨테이너일때 찾는 절차와 동일하다.
+                    elif not creep.memory.no_container:
+                        hr_containers = _.filter(all_structures,
+                                                 lambda s: s.structureType == STRUCTURE_LINK)
+                        # 컨테이너 못찾았으면 다음에 또 무의미하게 찾을필요 없으니.
+                        checked_alt_cont = False
+                        if len(hr_containers):
+                            closest_cont = creep.pos.findClosestByPath(hr_containers)
+                            if len(creep.room.findPath(creep.pos, closest_cont.pos,
+                                                       {'ignoreCreeps': True})) <= 6:
+                                checked_alt_cont = True
+                                creep.memory.container = closest_cont.id
+                                check_for_carrier_setting(creep, Game.getObjectById(creep.memory.container))
+                        if not checked_alt_cont:
+                            creep.memory.no_container = 1
 
             # only happens inside the home room
             elif transfer_result == ERR_FULL:
