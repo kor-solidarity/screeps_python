@@ -346,9 +346,12 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
             # haul_target 이 중간에 폭파되거나 이미 꽉 찼을 시...
             if not target \
                     or ((target.structureType == STRUCTURE_TOWER and target.energy >= target.energyCapacity - 20)
-                        or (target.structureType != STRUCTURE_CONTAINER
+                        or (target.structureType == STRUCTURE_CONTAINER
                             and target.energy >= target.energyCapacity * .8)
+                        or ((target.structureType == STRUCTURE_SPAWN or target.structureType == STRUCTURE_EXTENSION)
+                            and target.energy == target.energyCapacity)
                         or _.sum(target.store) == target.storeCapacity):
+                # print(creep.name, 'FULL')
                 del creep.memory.haul_target
             # 에너지 외 자원 운송중인데 대상이 에너지 채우는거면 통과한다.
             if target and \
@@ -357,6 +360,7 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                      or target.structureType == STRUCTURE_NUKER
                      or target.structureType == STRUCTURE_SPAWN) \
                     and creep.carry[RESOURCE_ENERGY] == 0:
+                # print(creep.name, 'RES NULL')
                 del creep.memory.haul_target
 
             if not creep.memory.haul_target:
@@ -409,6 +413,7 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                 if not creep.pos.isNearTo(target):
                     # 먼져 위치확인.
                     swap_check = check_loc_and_swap_if_needed(creep, creeps, True)
+                    # creep.say('swap_{}'.format(swap_check))
                     if swap_check == OK:
                         movi(creep, creep.memory.haul_target, 0, 40, True)
                     elif swap_check == ERR_NO_PATH:
@@ -470,7 +475,7 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                 move = movi(creep, creep.memory.haul_target, 0, 40, True)
 
         # priority 2: build
-        elif creep.memory.priority == 2:
+        if creep.memory.priority == 2:
 
             if creep.memory.build_target and not Game.getObjectById(creep.memory.build_target):
                 del creep.memory.build_target

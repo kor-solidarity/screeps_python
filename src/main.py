@@ -63,7 +63,7 @@ def something(a, b):
     print(a, b)
 
 
-js_global._cmd = lambda a, b: something(a, b), print('done')
+# js_global._cmd = lambda a, b: something(a, b), print('done')
 
 
 def _console_log(message):

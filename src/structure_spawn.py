@@ -199,6 +199,10 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
         if len(harvest_carry_targets) == 0:
             plus = -num_o_sources
 
+        # 만일 4렙이하면 두배
+        if chambro.controller.level < 6:
+            plus *= 2
+
         # 허울러 수 계산법: 방별로 지정된 허울러(기본값 2) + 위에 변수값
         hauler_capacity = Memory.rooms[spawn.room.name].options.haulers + plus
         # minimum number of haulers in the room is 1, max 4. always max when lvl 4 or less

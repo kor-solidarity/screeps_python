@@ -453,7 +453,7 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                 creep.memory.err_full = 0
                 creep.memory.priority = 0
                 del creep.memory.haul_target
-            elif transfer_result == 0:
+            elif transfer_result == OK:
                 creep.memory.err_full = 0
                 # 교차이동한 크립이 있었으면 초기화
                 if creep.memory.last_switch:
