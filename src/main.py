@@ -13,6 +13,7 @@ import pathfinding
 import miscellaneous
 import role_soldier_h_defender
 from _custom_constants import *
+import re
 
 
 # defs is a package which claims to export all constants and some JavaScript objects, but in reality does
@@ -275,26 +276,67 @@ def main():
                         and len(Memory.rooms[chambra_nomo].options.display) > 0:
                     remotes_txt = ''
                     if Memory.rooms[chambra_nomo].options.remotes:
-                        check_num = 0
-                        for r in Memory.rooms[chambra_nomo].options.remotes:
+                        # check_num = 0
+
+                        # gyoche = False
+                        # NULLIFIED
+                        # for r in Object.keys(Memory.rooms[chambra_nomo].options.remotes):
+                        #     print('r', r + 1)
+                        #     # print("bool(re.compile(r'^\w\d{1,2}\w\d{1,2}$').match({})) {}"
+                        #     #       .format(r, bool(re.compile(r'^\w\d{1,2}\w\d{1,2}$').match(r))))
+                        #     # if bool(re.compile(r'^\w\d{1,2}\w\d{1,2}$').match(r)):
+                        #     # print('Object.keys({}) Object.keys({})'.format(r, Object.keys(r)))
+                        #     if Object.keys(r) == 0:
+                        #         gyoche = True
+                        #         break
+                        #     else:
+                        #         break
+                        #     NULLIFIED
+                        #     # 지정된 리모트 추가
+                        #     remotes_txt += r.roomName
+                        #     # 배정된 병사 수 추가
+                        #     defenders = Memory.rooms[chambra_nomo].options.remotes[check_num].defenders
+                        #     remotes_txt += '({}) '.format(defenders)
+                        #
+                        #     # 각 리모트에도 설정한다. 당연하지만 안에 시야를 확보했을 경우만...
+                        #     if Memory.rooms[chambra_nomo].options.remotes[check_num].display \
+                        #             and Game.rooms[r.roomName]:
+                        #         rx = Memory.rooms[chambra_nomo].options.remotes[check_num].display.x
+                        #         ry = Memory.rooms[chambra_nomo].options.remotes[check_num].display.y
+                        #         Game.rooms[r.roomName].visual.text('-def {}'.format(defenders), rx, ry)
+                        #     check_num += 1
+                        # 교체 참뜨면 구버전이라 교체해야된단 소리.
+                        # print('gyoche', gyoche)
+                        # if gyoche:
+                        #     changed_data = []
+                        #     for r in Memory.rooms[chambra_nomo].options.remotes:
+                        #         r = {r.roomName: {defenders: r[defenders], init_road: r[init_road],
+                        #                           display: {'x': r[display].x, 'y': r[display].y}}}
+                        #         changed_data.append(r)
+                        #     del Memory.rooms[chambra_nomo].options.remotes
+                        #     Memory.rooms[chambra_nomo].options.remotes = []
+                        #     Memory.rooms[chambra_nomo].options.remotes.extend(changed_data)
+
+                        # 방이름으로 돌린다.
+
+                        for r in Object.keys(Memory.rooms[chambra_nomo][options][remotes]):
                             # 지정된 리모트 추가
-                            remotes_txt += r.roomName
+                            remotes_txt += r
+
                             # 배정된 병사 수 추가
-                            defenders = Memory.rooms[chambra_nomo].options.remotes[check_num].defenders
-                            remotes_txt += '({}) '.format(defenders)
+                            defendistoj = Memory.rooms[chambra_nomo][options][remotes][r][defenders]
+                            remotes_txt += '({}) '.format(defendistoj)
 
-                            # 각 리모트에도 설정한다
-                            # active only when we have visual
-                            if Memory.rooms[chambra_nomo].options.remotes[check_num].display \
-                                    and Game.rooms[r.roomName]:
-                                rx = Memory.rooms[chambra_nomo].options.remotes[check_num].display.x
-                                ry = Memory.rooms[chambra_nomo].options.remotes[check_num].display.y
-                                Game.rooms[r.roomName].visual.text('-def {}'.format(defenders), rx, ry)
+                            # 각 리모트에도 설정한다. 당연하지만 안에 시야를 확보했을 경우만...
+                            if Memory.rooms[chambra_nomo].options.remotes[r].display \
+                                    and Game.rooms[r]:
+                                rx = Memory.rooms[chambra_nomo].options.remotes[r].display.x
+                                ry = Memory.rooms[chambra_nomo].options.remotes[r].display.y
+                                Game.rooms[r].visual.text('-def {}'.format(defendistoj), rx, ry)
 
-                            check_num += 1
                     # 각 메모리 옵션별 값.
                     hauler_txt = Memory.rooms[chambra_nomo].options.haulers
-                    repair_txt = Memory.rooms[chambra_nomo]['options'].repair
+                    repair_txt = Memory.rooms[chambra_nomo][options][repair]
                     ramparts_txt = Memory.rooms[chambra_nomo].options.ramparts
                     ramp_open_txt = Memory.rooms[chambra_nomo].options.ramparts_open
                     nuke_txt = Memory.rooms[chambra_nomo].options.fill_nuke
@@ -563,93 +605,107 @@ def main():
 
         # renew structures
         # todo ADD LABS
-        if (Game.time % structure_renew_count == 0 and chambro.controller and chambro.controller.my) \
-                or (chambro.memory.options and chambro.memory.options.reset):
-            # 이거 돌리는데 얼마나 걸리는지 확인하기 위한 작업.
-            structure_cpu = Game.cpu.getUsed()
-            # 목록 초기화.
-            if not chambro.memory[STRUCTURE_TOWER] or chambro.memory.options.reset:
-                chambro.memory[STRUCTURE_TOWER] = []
-            if not chambro.memory[STRUCTURE_LINK] or chambro.memory.options.reset:
-                chambro.memory[STRUCTURE_LINK] = []
-            if not chambro.memory[STRUCTURE_CONTAINER] or chambro.memory.options.reset:
-                chambro.memory[STRUCTURE_CONTAINER] = []
-            if not chambro.memory[STRUCTURE_LAB] or chambro.memory.options.reset:
-                chambro.memory[STRUCTURE_LAB] = []
-            # todo 수리를 위한 목록. 이건 무조건 한번씩 리셋. 다만 다른거 정상적으로 돌때의 반만.
-            if chambro.memory.options.reset or Game.time % structure_renew_count * 2 == 0:
-                chambro.memory[repair_targets] = []
-                # 수리를 위한 건물목록은 단계별 수리로 지정된 것들, 즉 STRUCTURE_WALL / STRUCTURE_RAMPART 두가지만 넣는다.
-                walls_n_ramparts = all_structures.filter(lambda s: s.structureType == STRUCTURE_RAMPART
-                                                         and s.structureType == STRUCTURE_WALL)
-                # repair_targets 안에 넣는다.
-                # 안에 들어갈건 크게 세가지: id, pos, hits, structureType
-                for w in walls_n_ramparts:
-                    chambro.memory[repair_targets].append({'id': w.id, 'pos': w.pos, 'hits': w.hits,
-                                                           'structureType': w.structureType})
+        # 1차 발동조건: structure_renew_count 만큼의 턴이 지났는가? 또는 스폰있는 방에 리셋명령을 내렸는가?
+        if Game.time % structure_renew_count == 0 or (chambro.memory.options and chambro.memory.options.reset):
+            # 본진인가?
+            if chambro.controller and chambro.controller.my:
+                # 이거 돌리는데 얼마나 걸리는지 확인하기 위한 작업.
+                structure_cpu = Game.cpu.getUsed()
+                # 목록 초기화.
+                if not chambro.memory[STRUCTURE_TOWER] or chambro.memory.options.reset:
+                    chambro.memory[STRUCTURE_TOWER] = []
+                if not chambro.memory[STRUCTURE_LINK] or chambro.memory.options.reset:
+                    chambro.memory[STRUCTURE_LINK] = []
+                if not chambro.memory[STRUCTURE_CONTAINER] or chambro.memory.options.reset:
+                    chambro.memory[STRUCTURE_CONTAINER] = []
+                if not chambro.memory[STRUCTURE_LAB] or chambro.memory.options.reset:
+                    chambro.memory[STRUCTURE_LAB] = []
+                # todo 수리를 위한 목록. 이건 무조건 한번씩 리셋. 다만 다른거 정상적으로 돌때의 반만.
+                if chambro.memory.options.reset or Game.time % structure_renew_count * 2 == 0:
+                    chambro.memory[repair_targets] = []
+                    # 수리를 위한 건물목록은 단계별 수리로 지정된 것들, 즉 STRUCTURE_WALL / STRUCTURE_RAMPART 두가지만 넣는다.
+                    walls_n_ramparts = all_structures.filter(lambda s: s.structureType == STRUCTURE_RAMPART
+                                                             and s.structureType == STRUCTURE_WALL)
+                    # repair_targets 안에 넣는다.
+                    # 안에 들어갈건 크게 세가지: id, pos, hits, structureType
+                    for w in walls_n_ramparts:
+                        chambro.memory[repair_targets].append({'id': w.id, 'pos': w.pos, 'hits': w.hits,
+                                                               'structureType': w.structureType})
 
-            # 매번 완전초기화 하면 너무 자원낭비. 수량 틀릴때만 돌린다.
-            # 타워세기.
-            str_towers = _.filter(all_structures, lambda s: s.structureType == STRUCTURE_TOWER)
-            if not len(str_towers) == len(chambro.memory[STRUCTURE_TOWER]):
-                chambro.memory[STRUCTURE_TOWER] = []
-                for stt in str_towers:
-                    chambro.memory[STRUCTURE_TOWER].push(stt.id)
+                # 매번 완전초기화 하면 너무 자원낭비. 수량 틀릴때만 돌린다.
+                # 타워세기.
+                str_towers = _.filter(all_structures, lambda s: s.structureType == STRUCTURE_TOWER)
+                if not len(str_towers) == len(chambro.memory[STRUCTURE_TOWER]):
+                    chambro.memory[STRUCTURE_TOWER] = []
+                    for stt in str_towers:
+                        chambro.memory[STRUCTURE_TOWER].push(stt.id)
 
-            # add links. 위와 동일한 원리.
-            str_links = _.filter(all_structures, lambda s: s.structureType == STRUCTURE_LINK)
-            if not len(str_links) == len(chambro.memory[STRUCTURE_LINK]):
-                chambro.memory[STRUCTURE_LINK] = []
-                # 안보내는 조건은 주변 5칸거리내에 컨트롤러·스폰·스토리지가 있을 시.
-                str_points = _.filter(all_structures, lambda s: s.structureType == STRUCTURE_STORAGE
-                                      or s.structureType == STRUCTURE_SPAWN or s.structureType == STRUCTURE_TERMINAL
-                                      or s.structureType == STRUCTURE_EXTENSION)
-                # 링크는 크게 두 종류가 존재한다. 하나는 보내는거, 또하난 안보내는거.
-                for stl in str_links:
-                    for_store = 0
+                # add links. 위와 동일한 원리.
+                str_links = _.filter(all_structures, lambda s: s.structureType == STRUCTURE_LINK)
+                if not len(str_links) == len(chambro.memory[STRUCTURE_LINK]):
+                    chambro.memory[STRUCTURE_LINK] = []
                     # 안보내는 조건은 주변 5칸거리내에 컨트롤러·스폰·스토리지가 있을 시.
-                    for stp in str_points:
-                        if len(stl.pos.findPathTo(stp, {'ignoreCreeps': True})) <= 5:
-                            for_store = 1
-                            break
-                    # 추가한다
-                    chambro.memory[STRUCTURE_LINK].push({'id': stl.id, 'for_store': for_store})
-                    for_send = 0
-            # 컨테이너
-            str_cont = _.filter(all_structures, lambda s: s.structureType == STRUCTURE_CONTAINER)
-            if not len(str_cont) == len(chambro.memory[STRUCTURE_CONTAINER]):
-                chambro.memory[STRUCTURE_CONTAINER] = []
-                # 컨테이너는 크게 세종류가 존재한다.
-                # 하베스터용, 캐리어용, 업그레이더용.
-                # 각각 뭐냐에 따라 채울지 말지, 그리고 얼마나 차면 새 허울러를 추가할지를 정한다.
+                    str_points = _.filter(all_structures, lambda s: s.structureType == STRUCTURE_STORAGE
+                                          or s.structureType == STRUCTURE_SPAWN or s.structureType == STRUCTURE_TERMINAL
+                                          or s.structureType == STRUCTURE_EXTENSION)
+                    # 링크는 크게 두 종류가 존재한다. 하나는 보내는거, 또하난 안보내는거.
+                    for stl in str_links:
+                        for_store = 0
+                        # 안보내는 조건은 주변 5칸거리내에 컨트롤러·스폰·스토리지가 있을 시.
+                        for stp in str_points:
+                            if len(stl.pos.findPathTo(stp, {'ignoreCreeps': True})) <= 5:
+                                for_store = 1
+                                break
+                        # 추가한다
+                        chambro.memory[STRUCTURE_LINK].push({'id': stl.id, 'for_store': for_store})
+                        for_send = 0
+                # 컨테이너
+                str_cont = _.filter(all_structures, lambda s: s.structureType == STRUCTURE_CONTAINER)
+                if not len(str_cont) == len(chambro.memory[STRUCTURE_CONTAINER]):
+                    chambro.memory[STRUCTURE_CONTAINER] = []
+                    # 컨테이너는 크게 세종류가 존재한다.
+                    # 하베스터용, 캐리어용, 업그레이더용.
+                    # 각각 뭐냐에 따라 채울지 말지, 그리고 얼마나 차면 새 허울러를 추가할지를 정한다.
 
-                # 하베스터용은 그냥 소스 근처(4이내)에 컨테이너가 존재하는지 확인한다. 캐리어는 당연 정반대.
-                # 업그레이더용은 컨트롤러 근처에 있는지 확인한다.
+                    # 하베스터용은 그냥 소스 근처(4이내)에 컨테이너가 존재하는지 확인한다. 캐리어는 당연 정반대.
+                    # 업그레이더용은 컨트롤러 근처에 있는지 확인한다.
 
-                # 방 안에 소스랑 미네랄
-                room_sources = chambro.find(FIND_SOURCES)
-                room_sources.extend(chambro.find(FIND_MINERALS))
+                    # 방 안에 소스랑 미네랄
+                    room_sources = chambro.find(FIND_SOURCES)
+                    room_sources.extend(chambro.find(FIND_MINERALS))
 
-                for stc in str_cont:
-                    # 하베스터 저장용인가? 맞으면 1, 만일 캐리어 운송용이면 2. 2는 캐리어 쪽에서 건든다.
-                    # 0 이면 방업글 끝나면 계속 갖고있을 이유가 없는 잉여인 셈.
-                    for_harvest = 0
-                    # 방 업글용인가?
-                    for_upgrade = 0
-                    for rs in room_sources:
-                        # 컨테이너 주변 4칸이내에 소스가 있는지 확인한다.
-                        if len(stc.pos.findPathTo(rs, {'ignoreCreeps': True})) <= 4:
-                            # 있으면 이 컨테이너는 하베스터 저장용.
-                            for_harvest = 1
-                            break
-                    # 확인 끝났으면 이제 방 업글용인지 확인한다. 방렙 8 미만 + 컨트롤러부터의 실제 거리가 5 이하인가?
-                    if chambro.controller.level < 8 \
-                            and len(stc.pos.findPathTo(chambro.controller, {'ignoreCreeps': True})) <= 5:
-                        for_upgrade = 1
+                    for stc in str_cont:
+                        # 하베스터 저장용인가? 맞으면 1, 만일 캐리어 운송용이면 2. 2는 캐리어 쪽에서 건든다.
+                        # 0 이면 방업글 끝나면 계속 갖고있을 이유가 없는 잉여인 셈.
+                        for_harvest = 0
+                        # 방 업글용인가?
+                        for_upgrade = 0
+                        for rs in room_sources:
+                            # 컨테이너 주변 4칸이내에 소스가 있는지 확인한다.
+                            if len(stc.pos.findPathTo(rs, {'ignoreCreeps': True})) <= 4:
+                                # 있으면 이 컨테이너는 하베스터 저장용.
+                                for_harvest = 1
+                                break
+                        # 확인 끝났으면 이제 방 업글용인지 확인한다. 방렙 8 미만 + 컨트롤러부터의 실제 거리가 5 이하인가?
+                        if chambro.controller.level < 8 \
+                                and len(stc.pos.findPathTo(chambro.controller, {'ignoreCreeps': True})) <= 5:
+                            for_upgrade = 1
+                        chambro.memory[STRUCTURE_CONTAINER]\
+                            .push({'id': stc.id, 'for_upgrade': for_upgrade, 'for_harvest': for_harvest})
+                chambro.memory.options.reset = 0
+            # 여기로 왔으면 내 방이 아닌거.
+            else:
+                pass
+                # # 해당 방이 내 멀티용 방인지?
+                # my_remote = False
+                # # 각 방 돌린다.
+                # for bang_irum in Object.keys(Memory.rooms):
+                #     # 옵션이 있고 그 옵션 안에 이 방 이름이 있는가? - 이 방을 쓰는 본진인가?
+                #     if Game.rooms[bang_irum].options and Game.rooms[bang_irum].options.remotes:
+                #         for r in Game.rooms[bang_irum].options.remotes:
+                #             # 방이름 일치하면 맞는거
+                #             if r.roomName == chambra_nomo:
 
-                    chambro.memory[STRUCTURE_CONTAINER]\
-                        .push({'id': stc.id, 'for_upgrade': for_upgrade, 'for_harvest': for_harvest})
-            chambro.memory.options.reset = 0
             print('{}방 메모리에 건물현황 갱신하는데 {}CPU 소모'
                   .format(chambro.name, round(Game.cpu.getUsed() - structure_cpu, 2)))
 

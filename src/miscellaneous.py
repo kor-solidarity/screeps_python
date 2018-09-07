@@ -168,7 +168,8 @@ def pick_pickup(creep, creeps, storages, terminal_capacity=10000, upgrade=False)
         # if upgrade:
         #     print('type', loop_storage.structureType)
         # if loop_storage only holds energy - STRUCTURE_LINK and STRUCTURE_LAB
-        if loop_storage.structureType == STRUCTURE_LAB:
+        # if loop_storage.structureType == STRUCTURE_LAB:
+        if loop_storage.structureType == STRUCTURE_LAB or loop_storage.structureType == STRUCTURE_LINK:
             stored_energy = loop_storage.energy
 
         # 링크인 경우 전송용 링크면 굳이 쫓아가서 집으려 하지 않는다.

@@ -49,7 +49,6 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
     elif _.sum(creep.carry) == 0 and creep.ticksToLive < end_is_near:
         creep.suicide()
         return
-
     elif not creep.memory.upgrade_target:
         creep.memory.upgrade_target = creep.room.controller['id']
     elif not creep.memory.home_room:
@@ -85,13 +84,14 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
         del creep.memory.build_target
 
     elif _.sum(creep.carry) >= creep.carryCapacity * .6 and creep.memory.laboro != 1:
+        creep.say('?!?')
         creep.memory.laboro = 1
-        if len(constructions) > 0:
-            creep.memory.priority = 1
-            # print(creep.name, '11')
-        else:
-            creep.memory.priority = 2
-            # print(creep.name, 22)
+        # if len(constructions) > 0:
+        #     creep.memory.priority = 1
+        #     # print(creep.name, '11')
+        # else:
+        #     creep.memory.priority = 2
+        #     # print(creep.name, 22)
 
     # laboro: 0 == pickup something.
     if creep.memory.laboro == 0:
@@ -114,7 +114,7 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
             # 만일 컨테이너에 내용물이 남아있으면 작업시작.
             elif Game.getObjectById(creep.memory.container).store[RESOURCE_ENERGY] > 0:
                 grab = harvest_stuff.grab_energy(creep, creep.memory.container, True, 0)
-                creep.say("refill", grab)
+                creep.say("refill {}".format(grab))
                 # 컨테이너가 없으면 통과.
                 if grab == ERR_INVALID_TARGET:
                     del creep.memory.container
@@ -504,7 +504,7 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                     # 없으면 찾아보기. 방법은 위에 컨테이너일때 찾는 절차와 동일하다.
                     elif not creep.memory.no_container:
                         hr_containers = _.filter(all_structures,
-                                                 lambda s: s.structureType == STRUCTURE_LINK)
+                                                 lambda s: s.structureType == STRUCTURE_CONTAINER)
                         # 컨테이너 못찾았으면 다음에 또 무의미하게 찾을필요 없으니.
                         checked_alt_cont = False
                         if len(hr_containers):

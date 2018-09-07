@@ -347,7 +347,7 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
             if not target \
                     or ((target.structureType == STRUCTURE_TOWER and target.energy >= target.energyCapacity - 20)
                         or (target.structureType == STRUCTURE_CONTAINER
-                            and target.energy >= target.energyCapacity * .8)
+                            and target.energy >= target.energyCapacity * .9)
                         or ((target.structureType == STRUCTURE_SPAWN or target.structureType == STRUCTURE_EXTENSION)
                             and target.energy == target.energyCapacity)
                         or _.sum(target.store) == target.storeCapacity):
@@ -480,8 +480,10 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
             if creep.memory.build_target and not Game.getObjectById(creep.memory.build_target):
                 del creep.memory.build_target
 
-            if not creep.memory.build_target:
+            if creep.room.controller and creep.room.controller.my and creep.room.controller.level < 8:
+                creep.upgradeController(Game.getObjectById(creep.memory.upgrade_target))
 
+            if not creep.memory.build_target:
                 closest_construction = creep.pos.findClosestByRange(constructions)
                 # 이 시점에서 안뜨면 건설할게 없는거임.
                 if not closest_construction:
@@ -579,28 +581,47 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
 
         # priority 4: upgrade the controller
         elif creep.memory.priority == 4:
-            upgrade_result = creep.upgradeController(Game.getObjectById(creep.memory.upgrade_target))
-            if upgrade_result == ERR_NOT_IN_RANGE:
-                if not creep.pos.inRangeTo(Game.getObjectById(creep.memory.upgrade_target), 6):
-                    # 현재 위치한 곳이 이전 틱에도 있던곳인지 확인하고 옮기는 등의 절차.
-                    swap_check = check_loc_and_swap_if_needed(creep, creeps, True)
-                    # 아무 문제 없으면 평소마냥 움직이는거.
-                    if swap_check == OK:
-                        movi(creep, creep.memory.upgrade_target, 3, 40, True)
-                    # 확인용. 아직 어찌할지 못정함....
-                    elif swap_check == ERR_NO_PATH:
-                        creep.say('ERR_NO_PATH')
-                    # 위 둘 외에 다른게 넘어왔다는 소리는 실질적으로 어느 위치를 갔다는게 아니라
-                    # 다른 크립와 위치 바꿔치기를 시전했다는 소리. 메모리 옮긴다.
-                    else:
-                        creep.memory.last_swap = swap_check
-                else:
-                    movi(creep, creep.memory.upgrade_target, 3, 10)
 
-            elif upgrade_result == ERR_NO_BODYPART:
-                creep.say('운송이 본분!', True)
-                creep.memory.priority = 1
-                return
+            if not creep.pos.inRangeTo(Game.getObjectById(creep.memory.upgrade_target), 6):
+                # 현재 위치한 곳이 이전 틱에도 있던곳인지 확인하고 옮기는 등의 절차.
+                swap_check = check_loc_and_swap_if_needed(creep, creeps, True)
+                # 아무 문제 없으면 평소마냥 움직이는거.
+                if swap_check == OK:
+                    movi(creep, creep.memory.upgrade_target, 3, 40, True)
+                # 확인용. 아직 어찌할지 못정함....
+                elif swap_check == ERR_NO_PATH:
+                    creep.say('ERR_NO_PATH')
+                # 위 둘 외에 다른게 넘어왔다는 소리는 실질적으로 어느 위치를 갔다는게 아니라
+                # 다른 크립와 위치 바꿔치기를 시전했다는 소리. 메모리 옮긴다.
+                else:
+                    creep.memory.last_swap = swap_check
+            else:
+                movi(creep, creep.memory.upgrade_target, 3, 5)
+
+            repair_on_the_way(creep, repairs, constructions)
+
+            # upgrade_result = creep.upgradeController(Game.getObjectById(creep.memory.upgrade_target))
+            # if upgrade_result == ERR_NOT_IN_RANGE:
+            #     if not creep.pos.inRangeTo(Game.getObjectById(creep.memory.upgrade_target), 6):
+            #         # 현재 위치한 곳이 이전 틱에도 있던곳인지 확인하고 옮기는 등의 절차.
+            #         swap_check = check_loc_and_swap_if_needed(creep, creeps, True)
+            #         # 아무 문제 없으면 평소마냥 움직이는거.
+            #         if swap_check == OK:
+            #             movi(creep, creep.memory.upgrade_target, 3, 40, True)
+            #         # 확인용. 아직 어찌할지 못정함....
+            #         elif swap_check == ERR_NO_PATH:
+            #             creep.say('ERR_NO_PATH')
+            #         # 위 둘 외에 다른게 넘어왔다는 소리는 실질적으로 어느 위치를 갔다는게 아니라
+            #         # 다른 크립와 위치 바꿔치기를 시전했다는 소리. 메모리 옮긴다.
+            #         else:
+            #             creep.memory.last_swap = swap_check
+            #     else:
+            #         movi(creep, creep.memory.upgrade_target, 3, 10)
+            #
+            # elif upgrade_result == ERR_NO_BODYPART:
+            #     creep.say('운송이 본분!', True)
+            #     creep.memory.priority = 1
+            #     return
 
             # if having anything other than energy when not on priority 1 switch to 1
             # 운송크립은 발전에 심혈을 기울이면 안됨.
