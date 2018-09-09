@@ -30,6 +30,7 @@ __pragma__('noalias', 'update')
 def run_harvester(creep, all_structures, constructions, creeps, dropped_all):
     """
     Runs a creep as a generic harvester.
+
     :param creep: The creep to run
     :param all_structures: creep.room.find(FIND_STRUCTURES)
     :param constructions: creep.room.find(FIND_CONSTRUCTION_SITES)
@@ -54,7 +55,8 @@ def run_harvester(creep, all_structures, constructions, creeps, dropped_all):
     # if there's no source_num, need to distribute it.
     if not creep.memory.source_num:
         # added ifs for remotes
-        # if creep.memory.flag_name and creep.room.name != Game.flags[creep.memory.flag_name].room.name:
+        # todo 리모트 가는거 수정요망
+        # 리모트인데 지금 해당 방에 없는 경우.
         if creep.memory.assigned_room and creep.room.name != creep.memory.assigned_room:
             try:
                 # normale, kripos ne devus havi .find() en la skripto, sed ĉi tio estas por malproksima regiono do...
@@ -118,9 +120,6 @@ def run_harvester(creep, all_structures, constructions, creeps, dropped_all):
 
         # kazo 2
         elif len(rikoltist_kripoj) < len(sources):
-            # print('creep {} assigning energy - case 2 - creeps present, but not as much as number of sources.'
-            #       .format(creep.name, len(rikoltist_kripoj)))
-            # print('이 경우 무조건 공동분배한다')
             # to check for sources not overlapping
             for source in range(len(sources)):
                 source_assigned = False
@@ -329,6 +328,7 @@ def run_harvester(creep, all_structures, constructions, creeps, dropped_all):
 def run_miner(creep, all_structures):
     """
     for mining minerals.
+
     :param creep: The creep to run
     :param all_structures: creep.room.find(FIND_STRUCTURES)
     :param minerals: creep.room.find(FIND_MINERALS)

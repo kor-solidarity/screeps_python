@@ -9,6 +9,7 @@ __pragma__('noalias', 'get')
 __pragma__('noalias', 'set')
 __pragma__('noalias', 'type')
 __pragma__('noalias', 'update')
+__pragma__('kwargs')
 
 
 # noinspection PyPep8Naming
@@ -18,13 +19,14 @@ def movi(creep, target, range_to=0, reusePath=20, ignoreCreeps=False, maxOps=200
 
     :param creep: 크립
     :param target: 목표 ID
-    :param range_to: 거리
-    :param reusePath: 재사용틱
+    :param range_to: 거리, 기본값 1
+    :param reusePath: 재사용틱, 기본값 20
     :param ignoreCreeps: 크립무시여부, 기본값 False
-    :param maxOps: 패스파인딩 할때 돌릴 시뮬 수. 2천이 게임 기본임.
+    :param maxOps: 패스파인딩 할때 돌릴 시뮬 수. 기본값 2천
     :param color: 기본값 #ffffff
     :return: 결과
     """
+    # print(creep.name, 'range_to', range_to)
     target_obj = Game.getObjectById(target)
     return creep.moveTo(target_obj, {'range': range_to, 'ignoreCreeps': ignoreCreeps
                         , 'visualizePathStyle': {'stroke': color},

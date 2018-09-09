@@ -23,8 +23,9 @@ def run_upgrader(creep, creeps, all_structures):
     """
     # memory.pickup = 자원 가져올 대상.
     # upgrader = upgrades the room. UPGRADES ONLY
-    vis_key = "visualizePathStyle"
-    stroke_key = "stroke"
+
+    # todo 터미널 안에 용량인데... 이거 추후 바꿔야함.
+    terminal_capacity = 10000
 
     # in case it's gonna die soon. this noble act is only allowed if there's a storage in the room.
     if creep.ticksToLive < 30 and _.sum(creep.carry) != 0 and creep.room.storage:
@@ -64,29 +65,50 @@ def run_upgrader(creep, creeps, all_structures):
     if creep.memory.laboro == 0:
 
         if not creep.memory.pickup:
+            # 전용 컨테이너가 있고 채워짐?
+            jeonyong = False
+            la_containers = []
+            if creep.room.memory[STRUCTURE_CONTAINER]:
+                for s in creep.room.memory[STRUCTURE_CONTAINER]:
+                    obj = Game.getObjectById(s.id)
+                    if obj and s.for_upgrade:
+                        la_containers.append(obj)
+                # 가장 먼져 전용 컨테이너를 찾는다.
+                pickup_id = pick_pickup(creep, creeps, la_containers, 10000, True)
+            # 전용 컨테이너를 못찾으면 끝.
+            if pickup_id == ERR_INVALID_TARGET:
+                # todo 업글용 컨테이너 뽑는코드 따로 만들어야함.
+                # find any storages with any energy inside
+                containers_or_links = all_structures.filter(lambda s: (s.structureType == STRUCTURE_CONTAINER
+                                                            and s.store[RESOURCE_ENERGY] >= creep.carryCapacity * .5))
+                # 링크를 찾는다.
+                links = []
+                for link in creep.room.memory[STRUCTURE_LINK]:
+                    if not link:
+                        continue
+                    # 저장용인 링크만 중요함.
+                    if link.for_store:
+                        if Game.getObjectById(link.id):
+                            links.extend([Game.getObjectById(link.id)])
+                containers_or_links.extend(links)
+                if creep.room.storage:
+                    containers_or_links.extend([creep.room.storage])
 
-            # for_upgrade 로 분류된 컨테이너에서 최우선으로 자원을 뽑는다.
-            # find any storages with any energy inside
-            containers_or_links = all_structures.filter(lambda s: (s.structureType == STRUCTURE_CONTAINER
-                                                        and s.store[RESOURCE_ENERGY] >= creep.carryCapacity * .5))
-            # 링크를 찾는다.
-            links = []
-            for link in creep.room.memory[STRUCTURE_LINK]:
-                if not link:
-                    continue
-                # 저장용인 링크만 중요함.
-                if link.for_store:
-                    if Game.getObjectById(link.id):
-                        links.extend([Game.getObjectById(link.id)])
-            containers_or_links.extend(links)
-            if creep.room.storage:
-                containers_or_links.extend([creep.room.storage])
-
-            # 가장 가까운곳에서 빼오는거임. 원래 스토리지가 최우선이었는데 바뀜.
-            pickup_id = pick_pickup(creep, creeps, containers_or_links, 10000, True)
+                # 가장 가까운곳에서 빼오는거임. 원래 스토리지가 최우선이었는데 바뀜.
+                pickup_id = pick_pickup(creep, creeps, containers_or_links, 10000, True)
 
             if pickup_id == ERR_INVALID_TARGET:
-                pass
+                print(creep.name, 'pickup_id == ERR_INVALID_TARGET')
+                # todo 다른방법 강구요망
+                if creep.room.terminal and \
+                        creep.room.terminal.store[RESOURCE_ENERGY] >= \
+                        terminal_capacity + creep.carryCapacity:
+                    creep.memory.pickup = creep.room.terminal.id
+                elif creep.room.storage and creep.room.storage.store[RESOURCE_ENERGY] >= creep.carryCapacity * .5:
+                    creep.memory.pickup = creep.room.storage.id
+                else:
+                    # print('pass')
+                    pass
             else:
                 creep.memory.pickup = pickup_id
 
@@ -148,32 +170,68 @@ def run_reserver(creep):
     :param creep:
     :return:
     """
-    try:
 
-        # if creep is not in it's flag's room.
-        if creep.room.name != creep.memory.assigned_room:
+    # 메모리에 표적을 만들어둔다.
+    if not creep.memory.upgrade_target:
+        # print('rooms[creep.memory.assigned_room]', Game.rooms[creep.memory.assigned_room])
+        if not Game.rooms[creep.memory.assigned_room]:
             get_to_da_room(creep, creep.memory.assigned_room, False)
-        # if in.
+            return
+        elif Game.rooms[creep.memory.assigned_room].controller:
+            creep.memory.upgrade_target = Game.rooms[creep.memory.assigned_room].controller.id
         else:
-            # reserve the room
-            creep_action = creep.reserveController(creep.room.controller)
-            if creep_action == ERR_NOT_IN_RANGE:
-                creep.moveTo(creep.room.controller, {'visualizePathStyle': {'stroke': '#ffffff'}, 'reusePath': 20})
-            elif creep_action == OK:
-                if Game.time % 2 == 0:
-                    creep.say('🇰🇵 🇰🇷', True)
-                else:
-                    creep.say('ONWARD!!', True)
-            # not my controller == attack
-            elif creep_action == ERR_INVALID_TARGET:
-                creep.attackController(creep.room.controller)
-                if Game.time % 2 == 0:
-                    creep.say('🔥🔥🔥🔥', True)
-                else:
-                    creep.say('몰아내자!!', True)
-            else:
-                creep.say(creep_action)
+            creep.suicide()
 
-    except:
-        print("ERR!!!")
-        creep.moveTo(Game.flags[creep.memory.flag_name], {'visualizePathStyle': {'stroke': '#ffffff'}, 'reusePath': 20})
+    # reserve the room
+    creep_action = creep.reserveController(creep.room.controller)
+    # creep.say(creep_action)
+    if creep_action == ERR_NOT_IN_RANGE:
+        # res = creep.moveTo(Game.getObjectById(creep.memory.upgrade_target),
+        #                    {'visualizePathStyle': {'stroke': '#ffffff'}, 'reusePath': 20})
+        res = movi(creep, creep.memory.upgrade_target)
+        creep.say(res)
+    elif creep_action == OK:
+        if Game.time % 2 == 0:
+            creep.say('🇰🇵 🇰🇷', True)
+        else:
+            creep.say('ONWARD!!', True)
+    # not my controller == attack
+    elif creep_action == ERR_INVALID_TARGET:
+        creep.attackController(Game.getObjectById(creep.memory.upgrade_target))
+        if Game.time % 2 == 0:
+            creep.say('🔥🔥🔥🔥', True)
+        else:
+            creep.say('몰아내자!!', True)
+    else:
+        creep.say(creep_action)
+
+    # try:
+    #
+    #     # if creep is not in it's flag's room.
+    #     if creep.room.name != creep.memory.assigned_room:
+    #         get_to_da_room(creep, creep.memory.assigned_room, False)
+    #     # if in.
+    #     else:
+    #         # reserve the room
+    #         creep_action = creep.reserveController(creep.room.controller)
+    #         if creep_action == ERR_NOT_IN_RANGE:
+    #             res = creep.moveTo(creep.room.controller, {'visualizePathStyle': {'stroke': '#ffffff'}, 'reusePath': 20})
+    #             creep.say(res)
+    #         elif creep_action == OK:
+    #             if Game.time % 2 == 0:
+    #                 creep.say('🇰🇵 🇰🇷', True)
+    #             else:
+    #                 creep.say('ONWARD!!', True)
+    #         # not my controller == attack
+    #         elif creep_action == ERR_INVALID_TARGET:
+    #             creep.attackController(creep.room.controller)
+    #             if Game.time % 2 == 0:
+    #                 creep.say('🔥🔥🔥🔥', True)
+    #             else:
+    #                 creep.say('몰아내자!!', True)
+    #         else:
+    #             creep.say(creep_action)
+    #
+    # except:
+    #     print("ERR!!!")
+    #     creep.moveTo(Game.flags[creep.memory.flag_name], {'visualizePathStyle': {'stroke': '#ffffff'}, 'reusePath': 20})

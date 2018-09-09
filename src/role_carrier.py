@@ -86,12 +86,9 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
     elif _.sum(creep.carry) >= creep.carryCapacity * .6 and creep.memory.laboro != 1:
         creep.say('?!?')
         creep.memory.laboro = 1
-        # if len(constructions) > 0:
-        #     creep.memory.priority = 1
-        #     # print(creep.name, '11')
-        # else:
-        #     creep.memory.priority = 2
-        #     # print(creep.name, 22)
+
+    if creep.memory.haul_target and not Game.getObjectById(creep.memory.haul_target):
+        del creep.memory.haul_target
 
     # laboro: 0 == pickup something.
     if creep.memory.laboro == 0:
@@ -100,10 +97,10 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
         # 확인을 아직 안했고 크립이 본진이며, 링크 ID를 저장해두고 있는가?
         if creep.memory.refill == 1 and creep.room.name == creep.memory.home_room \
                 and creep.memory.link_target:
-            # print('refill', creep.name)
-            # print('link energy', Game.getObjectById(creep.memory.link_target).energy)
-            # print('container', creep.memory.container, 'store',
-            #       Game.getObjectById(creep.memory.container).store[RESOURCE_ENERGY])
+            # 시작전 컨테이너가 존재하는지 확인.
+            if creep.memory.container and not Game.getObjectById(creep.memory.container):
+                del creep.memory.container
+
             # 링크안에 에너지가 꽉 찬 상태면 어차피 못채우니 끝.
             if Game.getObjectById(creep.memory.link_target).energyCapacity == \
                     Game.getObjectById(creep.memory.link_target).energy:

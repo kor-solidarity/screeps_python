@@ -41,7 +41,6 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
     build_target == 건설 목표
     dropped == 근처에 떨어져있는 리소스
     pickup == 에너지 빼갈 대상.
-    to_storage == 스토리지로 운송할 것인가?(불리언)
     """
 
     # 운송업 외 다른일은 지극히 제한적으로만 써야한다.
@@ -89,7 +88,6 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
     if _.sum(creep.carry) == 0 and not creep.memory.laboro == 0:
         creep.memory.laboro = 0
         creep.say('🚛운송투쟁!', True)
-        del creep.memory.to_storage
         del creep.memory.haul_target
         del creep.memory.build_target
         del creep.memory.repair_target
@@ -161,6 +159,7 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                                      {'visualizePathStyle': {'stroke': '#0000FF', 'opacity': .25}, 'reusePath': 10})
                         break
 
+        # 여기까지 떨군게 없으면 일반 컨테이너로.
         if not creep.memory.dropped:
             if creep.memory.pickup and not Game.getObjectById(creep.memory.pickup):
                 del creep.memory.pickup
@@ -181,6 +180,28 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                                                       and _.sum(s.store) >= creep.carryCapacity * .5)
                                                      or (s.structureType == STRUCTURE_LINK
                                                          and s.energy >= creep.carryCapacity * .5))
+
+                    # 컨테이너 중에 업글용인거 아닌거 걸러낸다.
+                    # 이 작업은 업그레이더가 필요한 시기 업그레이더용 전용 컨테이너를 걸러내기 위해 필요하다.
+                    # 조건: 렙 8 미만 및 방에 스토리지가 있을 때.
+                    if creep.room.controller.level < 8 and creep.room.storage:
+                        # 다끝나고 이걸로 새로 덮을거임
+                        new_storage = []
+                        for s in storages:
+                            # 컨테이너만 필요.
+                            if s.structureType == STRUCTURE_CONTAINER:
+                                # 메모리상 컨테이너 다 돌림
+                                for u_cont in creep.room.memory[STRUCTURE_CONTAINER]:
+                                    # 업글용이면 포함 안되야함.
+                                    if u_cont.id == s.id:
+                                        if not u_cont.for_upgrade:
+                                            new_storage.append(s)
+                                        break
+                            # 해당사항 없으면 그냥 다 넣기
+                            else:
+                                new_storage.append(s)
+                        # 덮어씌우고 끝.
+                        storages = new_storage
                 else:
                     if creep.room.storage and \
                             creep.room.storage.store[RESOURCE_ENERGY] >= creep.carryCapacity * .5:
@@ -196,39 +217,51 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                     labs = all_structures \
                         .filter(lambda s: s.structureType == STRUCTURE_LAB and s.energy >= creep.carryCapacity * .5)
                     storages.extend(labs)
-
                 pickup_id = pick_pickup(creep, creeps, storages, terminal_capacity)
                 # print('pickupId', pickup_id)
                 if pickup_id == ERR_INVALID_TARGET:
-                    pass
+                    # print(creep.name, 'pickup_id == ERR_INVALID_TARGET')
+                    # todo 다른방법 강구요망
+                    if creep.room.terminal and \
+                            creep.room.terminal.store[RESOURCE_ENERGY] >= \
+                            terminal_capacity + creep.carryCapacity:
+                        # print('chk1')
+                        creep.memory.pickup = creep.room.terminal.id
+                    elif creep.room.storage and \
+                            creep.room.storage.store[RESOURCE_ENERGY] >= creep.carryCapacity * .5:
+                        # print('chk2')
+                        creep.memory.pickup = creep.room.storage.id
+                    else:
+                        # print('pass')
+                        pass
                 else:
                     creep.memory.pickup = pickup_id
 
-            # if creep already have pickup memory, no need to search for storage.
-            else:
-                storage = 0
+            # # if creep already have pickup memory, no need to search for storage.
+            # else:
+            #     storage = 0
 
-            if storage or creep.memory.pickup:
-                if not creep.memory.pickup:
-                    creep.memory.pickup = storage
-
+            # print('storage or creep.memory.pickup', storage, creep.memory.pickup)
+            if creep.memory.pickup:
                 # did hauler got order to grab only energy? or lab/storage where there can be multiple sources?
                 if creep.memory.only_energy or Game.getObjectById(creep.memory.pickup).structureType == STRUCTURE_LAB \
-                    or Game.getObjectById(creep.memory.pickup).structureType == STRUCTURE_STORAGE:
+                        or Game.getObjectById(creep.memory.pickup).structureType == STRUCTURE_STORAGE:
                     only_energy = True
                     del creep.memory.only_energy
                 else:
                     only_energy = False
                 # grabs any resources left in the storage if there are any.
+                print('only_ene', only_energy)
                 result = harvest_stuff.grab_energy(creep, creep.memory.pickup, only_energy)
-                # print(creep.name, creep.memory.pickup, result)
+                print(creep.name, creep.memory.pickup, result)
                 if result == ERR_NOT_IN_RANGE:
                     # 현재 위치한 곳이 이전 틱에도 있던곳인지 확인하고 옮기는 등의 절차.
                     swap_check = check_loc_and_swap_if_needed(creep, creeps, True)
 
                     # 아무 문제 없으면 평소마냥 움직이는거.
                     if swap_check == OK:
-                        movi(creep, creep.memory.pickup, 0, 40, True)
+                        res = movi(creep, creep.memory.pickup, ignoreCreeps=True, reusePath=40)
+                        # creep.say(res)
                     # 확인용. 아직 어찌할지 못정함....
                     elif swap_check == ERR_NO_PATH:
                         creep.say('ERR_NO_PATH')
@@ -629,13 +662,11 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                     and creep.room.controller.level > 4:
                 creep.memory.priority = 1
                 creep.say('복귀!', True)
-                del creep.memory.to_storage
                 return
 
         if _.sum(creep.carry) == 0:
             creep.memory.priority = 0
             creep.memory.laboro = 0
-            del creep.memory.to_storage
 
 
 def filter_haul_targets(creep, ujoj, haulers):
@@ -790,6 +821,8 @@ def grab_haul_list(roomName, totalStructures, add_storage=False):
     container = []
     # for_upgrade :스토리지가 컨트롤러에서 많이 떨어져 있을때 대비해 두는 컨테이너.
     if 3 <= Game.rooms[roomName].controller.level < 8:
+        # print("3 <= Game.rooms[{}].controller.level : {}"
+        #       .format(roomName, bool(3 <= Game.rooms[roomName].controller.level)))
         for rcont in Game.rooms[roomName].memory[STRUCTURE_CONTAINER]:
             # 업글용 컨테이너고 수확저장용도가 아닌가? 그러면 허울러가 넣는다. 80% 이하로 차있을때만.
             if rcont.for_upgrade and not rcont.for_harvest \

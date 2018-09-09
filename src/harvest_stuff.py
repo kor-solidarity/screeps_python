@@ -108,7 +108,7 @@ def grab_energy(creep, pickup, only_energy, min_capacity=.5):
     # STRUCTURE_CONTAINER || STRUCTURE_STORAGE
     else:
 
-        result = ERR_NOT_ENOUGH_ENERGY
+        # result = ERR_NOT_ENOUGH_ENERGY
 
         # 에너지 외 다른 자원을 먼져 뽑는걸 원칙으로 한다.
         # 에너지 외 다른게 있을 경우

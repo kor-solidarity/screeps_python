@@ -49,9 +49,11 @@ def check_for_carrier_setting(creep, target_obj):
             # 캐리어용인지 마킹하는거.
             if ml.id == target_obj.id:
                 if ml.for_harvest == 2:
+                    ml.for_store = 0
                     return
                 else:
                     ml.for_harvest = 2
+                    ml.for_store = 0
                     return
         # 위에 포문 안에서 리턴이 안된단건 링크가 등록이 안됬단 소리임.
         creep.room.memory.options.reset = 1
@@ -118,6 +120,7 @@ def filter_friends(foreign_creeps):
 def pick_pickup(creep, creeps, storages, terminal_capacity=10000, upgrade=False):
     """
     designate pickup memory by targeted haulers/upgraders/fixers
+
     :param terminal_capacity:
     :param creep: 크립본인
     :param creeps: 방안에 모든 크립
@@ -125,12 +128,10 @@ def pick_pickup(creep, creeps, storages, terminal_capacity=10000, upgrade=False)
     :param upgrade: 이걸 찾는 대상이 컨트롤러 업글하는애인가?
     :return storage: closest storage with energy left
     """
-    # print("{} the {} upgrade: {}".format(creep.name, creep.memory.role, upgrade))
-    # storage with closest.... yeah
-    # if creep.memory.role == 'hauler': print(creep.name, storages)
+
     # creeps.
     portist_kripoj = creeps
-    # 업글전용
+    # 업글 관련해서전용
     passed_upgr = False
     # if upgrade:
     #     print('start')
@@ -143,81 +144,98 @@ def pick_pickup(creep, creeps, storages, terminal_capacity=10000, upgrade=False)
         if len(storages) == 0:
             break
 
-        loop_storage = []
+        # 필요없음.
+        # if loop_storage
+        # del loop_storage
+        # todo .이딴짓 여기서 하지말고 처음 컨테이너 잡을때 한다!! 개 헷갈림.
 
-        # to distinguish storage var. with storages inside while loop.
-        # 만일 업글이면 for_upgrade 로 분류된 컨테이너에서 최우선으로 자원을 뽑는다.
-        if creep.room.controller.level < 8 and upgrade and not passed_upgr:
-            u_con_list = []
-            for cont in storages:
-                # 실제 보유중인 컨테이너 중에서 찾는다.
-                if cont.structureType == STRUCTURE_CONTAINER:
-                    for u_cont in creep.room.memory[STRUCTURE_CONTAINER]:
-                        if u_cont.for_upgrade and (u_cont.id == cont.id):
-                            if Game.getObjectById(u_cont.id):
-                                u_con_list.append(Game.getObjectById(u_cont.id))
-                                break
-            if len(u_con_list):
-                loop_storage = creep.pos.findClosestByRange(u_con_list)
-            passed_upgr = True
-        if not len(loop_storage):
-            loop_storage = creep.pos.findClosestByRange(storages)
+        # NULLIFIED
+        # # to distinguish storage var. with storages inside while loop.
+        # # 만일 업글이면 for_upgrade 로 분류된 컨테이너에서 최우선으로 자원을 뽑는다.
+        # if creep.room.controller.level < 8 and (upgrade or not creep.room.storage) and not passed_upgr:
+        #     u_con_list = []
+        #     for cont in storages:
+        #         # 실제 보유중인 컨테이너 중에서 찾는다.
+        #         if cont.structureType == STRUCTURE_CONTAINER:
+        #             print(creep.name)
+        #             for u_cont in creep.room.memory[STRUCTURE_CONTAINER]:
+        #                 print("not creep.room.controller.level < 8"
+        #                       , bool(not creep.room.controller.level < 8))
+        #                 print('not creep.room.storage', bool(not creep.room.storage))
+        #                 # 업글용 거르기는 레벨 8 이하 + 방에 컨테이너 없을때만 적용한다.
+        #                 # 그외면 업글 아니어도 집어도 됨.
+        #                 if ((not creep.room.controller.level < 8 and not creep.room.storage)
+        #                         or u_cont.for_upgrade) \
+        #                         and (u_cont.id == cont.id):
+        #                     print('??')
+        #                     if Game.getObjectById(u_cont.id):
+        #                         print(u_cont.id)
+        #                         u_con_list.append(Game.getObjectById(u_cont.id))
+        #                         break
+        #     if len(u_con_list):
+        #         pass
+        #         # loop_storage = creep.pos.findClosestByRange(u_con_list)
+        #     passed_upgr = True
+        # if not len(loop_storage):
+
+        # 가장 가까운 대상
+        loop_storage = creep.pos.findClosestByRange(storages)
 
         if not loop_storage:
             break
-        # if upgrade:
-        #     print('type', loop_storage.structureType)
-        # if loop_storage only holds energy - STRUCTURE_LINK and STRUCTURE_LAB
-        # if loop_storage.structureType == STRUCTURE_LAB:
+
         if loop_storage.structureType == STRUCTURE_LAB or loop_storage.structureType == STRUCTURE_LINK:
             stored_energy = loop_storage.energy
 
-        # 링크인 경우 전송용 링크면 굳이 쫓아가서 집으려 하지 않는다.
-        elif loop_storage.structureType == STRUCTURE_LINK:
-            # 메모리에 있는건지 확인한다.
-            for lk in creep.room.memory[STRUCTURE_LINK]:
-                # 아이디 맞는지 확인.
-                if lk.id == loop_storage.id:
-                    # 저장용 링크만 집는다.
-                    if lk.for_store:
-                        stored_energy = loop_storage.energy
+        # NULLIFIED
+        # # 링크인 경우 전송용 링크면 굳이 쫓아가서 집으려 하지 않는다.
+        # elif loop_storage.structureType == STRUCTURE_LINK:
+        #     # 메모리에 있는건지 확인한다.
+        #     for lk in creep.room.memory[STRUCTURE_LINK]:
+        #         # 아이디 맞는지 확인.
+        #         if lk.id == loop_storage.id:
+        #             # 저장용 링크만 집는다.
+        #             if lk.for_store:
+        #                 stored_energy = loop_storage.energy
 
         # todo 이 컨테이너 확인을 메모리가 존재할때만 하고 거리도 실질적으로 맞게 변환해야한다.
         # 예전엔 대상을 찾아서 이게 업글용인건지(즉 소스근처가 아닌거) 확인용도였음. 이제 그건 컨테이너 메모리에 적혀있음.
         # 컨테이너인 경우
         elif loop_storage.structureType == STRUCTURE_CONTAINER:
-            # 메모리에 있는건지 확인.
-            available = False
-            # 우선 업글용도인지 확인한다.
-            for cont in creep.room.memory[STRUCTURE_CONTAINER]:
-                # 아이디 맞는지 확인하고.
-                if cont.id == loop_storage.id:
-                    available = True
-                    # 크립과 컨테이너가 업글용인가?
-                    if cont.for_upgrade and upgrade:
-                        stored_energy = loop_storage.store[RESOURCE_ENERGY]
-                    # 업글용이면 허울러, 건들지말것. 다만 캐리어용이면 일부 챙길 수 있음. 꽉찼을때 한정.
-                    # 그리고 방렙 8이면 업글용이 의미가 없어짐. 맘것 가져갑시다.
-                    elif cont.for_upgrade and cont.for_harvest == 2 \
-                            and (_.sum(loop_storage.store) == loop_storage.storeCapacity
-                                 or creep.room.controller.level == 8):
-                        # if creep.memory.role == 'hauler': print('wtf')
-                        stored_energy = _.sum(loop_storage.store)
-
-                    # 그냥 포 업그레이드가 아니면 전부 쓸 수 있음.
-                    elif not cont.for_upgrade:
-                        # if creep.memory.role == 'hauler': print('so what')
-                        stored_energy = _.sum(loop_storage.store)
-
-                    break
-
-        # else == storage.
-        else:
+            #
+            stored_energy = _.sum(loop_storage.store)
+            # todo 이건 여기서 하지말고 처음에 컨테이너 불러올때 한다
+            # # 메모리에 있는건지 확인.
+            # # 우선 업글용도인지 확인한다.
+            # for cont in creep.room.memory[STRUCTURE_CONTAINER]:
+            #     # 아이디 맞는지 확인하고.
+            #     if cont.id == loop_storage.id:
+            #         # 크립과 컨테이너가 업글용인가?
+            #         if cont.for_upgrade and upgrade:
+            #             stored_energy = loop_storage.store[RESOURCE_ENERGY]
+            #         # 업글용이면 허울러, 건들지말것. 다만 캐리어용이면 일부 챙길 수 있음. 꽉찼을때 한정.
+            #         # 그리고 방렙 8이면 업글용이 의미가 없어짐. 맘것 가져갑시다.
+            #         elif cont.for_upgrade and cont.for_harvest == 2 \
+            #                 and (_.sum(loop_storage.store) == loop_storage.storeCapacity
+            #                      or creep.room.controller.level == 8):
+            #             # if creep.memory.role == 'hauler': print('wtf')
+            #             stored_energy = _.sum(loop_storage.store)
+            #
+            #         # 그냥 포 업그레이드가 아니면 전부 쓸 수 있음.
+            #         elif not cont.for_upgrade:
+            #             # if creep.memory.role == 'hauler': print('so what')
+            #             stored_energy = _.sum(loop_storage.store)
+            #
+            #         break
+        elif loop_storage.structureType == STRUCTURE_STORAGE:
             if upgrade:
                 stored_energy = loop_storage.store[RESOURCE_ENERGY]
                 # print('the storage energy', stored_energy)
             else:
                 stored_energy = _.sum(loop_storage.store)
+        # 위에 해당사항 없으면 뽑는 대상 자체가 아닌거임.
+        else:
+            stored_energy = 0
 
         if stored_energy:
             for kripo in portist_kripoj:
@@ -228,29 +246,18 @@ def pick_pickup(creep, creeps, storages, terminal_capacity=10000, upgrade=False)
                     # if same id, drop the amount the kripo can carry.
                     if loop_storage.id == kripo.memory.pickup:
                         stored_energy -= kripo.carryCapacity
-                        # if upgrade:
-                        #     print('stored_energy:', stored_energy)
                     else:
                         continue
         # if leftover stored_energy has enough energy for carry, set pickup.
         if stored_energy >= int((creep.carryCapacity - _.sum(creep.carry)) * .5):
-            # if creep.memory.role == 'hauler':
-            #     print('return', loop_storage.id)
             return loop_storage.id
 
         else:
             index = storages.indexOf(loop_storage)
             storages.splice(index, 1)
 
-    # 여기까지 왔다면 현재 남은 빼갈 자원이 없다는거임. 그럼 터미널 스토리지를 각각 확인해서 거기 빈게있으면 빼간다.
-    if creep.room.terminal and creep.room.terminal.store[RESOURCE_ENERGY] >= terminal_capacity + creep.carryCapacity:
-        return creep.room.terminal.id
-    elif creep.room.storage and creep.room.storage.store[RESOURCE_ENERGY] >= creep.carryCapacity * .5:
-        # if creep.memory.role == 'hauler': print('huH???')
-        return creep.room.storage.id
-    else:
-        # 그거마저 없으면 그냥 에러.
-        return ERR_INVALID_TARGET
+    # 와일문 안에서 답이 안나왔으면 망.
+    return ERR_INVALID_TARGET
 
 
 # noinspection PyPep8Naming

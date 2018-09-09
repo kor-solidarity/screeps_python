@@ -327,7 +327,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                 proper_level = 1
             # start making upgraders after there's a storage
             elif spawn.room.controller.level > 2 and spawn.room.storage:
-
+                # print('check2')
                 # if spawn.room.controller.level < 5:
                 expected_reserve = 3000
 
@@ -346,12 +346,14 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                     proper_level = 0
             # 렙4부터는 스토리지 건설이 최우선이기에 업글러 스폰에 총력가하면 망함...
             elif chambro.controller.level < 4:
+                # print('chk3')
                 # 이시점엔 소형애들만 생성됨.
                 # print('이시점엔 소형애들만 생성됨.')
                 proper_level = int(max_num_upgraders / 2)
             else:
+                # print('checkWTF')
                 proper_level = 0
-
+            # print('proper_level', proper_level)
             if len(creep_upgraders) < proper_level:
                 if spawn.room.controller.level != 8:
                     big = spawn.createCreep(
@@ -435,12 +437,16 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                     found_and_deleted = False
                     if Memory.rooms[i].options:
                         if Memory.rooms[i].options.remotes:
+                            # for_num = 0
                             for r in Object.keys(Memory.rooms[i].options.remotes):
                                 if r == Game.flags[flag_name].pos.roomName:
-                                    Memory.rooms[i].options.remotes.pop(r)
-                                    # del r
+                                    # Memory.rooms[i].options.remotes.pop(r)
+                                    # Memory.rooms[i].options.remotes.splice(for_num, 1)
+                                    del Memory.rooms[i].options.remotes[r]
+                                    # print('del')
                                     found_and_deleted = True
                                     break
+                                # for_num += 1
                     if found_and_deleted:
                         break
                 # 방이 추가됐는지에 대한 불리언.
@@ -709,10 +715,12 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
             # 방 안 건설장 다 삭제..
             if flag_name.includes('-clr'):
                 print("includes('-clr')")
-                cons = Game.flags[flag_name].room.find(FIND_CONSTRUCTION_SITES)
-
-                for c in cons:
-                    c.remove()
+                # cons = Game.flags[flag_name].room.find(FIND_CONSTRUCTION_SITES)
+                world_const = Game.constructionSites
+                for c in Object.keys(world_const):
+                    obj = Game.getObjectById(c)
+                    if obj.pos.roomName == flag_room_name:
+                        obj.remove()
                 # 원하는거 찾았으면 더 할 이유가 없으니.
                 if found:
                     break
@@ -734,20 +742,30 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                             # 옵션안에 리모트가 없을수도 있음.. 특히 확장 안했을때.
                             if len(Memory.rooms[i].options.remotes) > 0:
                                 # 리모트 안에 배정된 방이 있는지 확인한다.
+                                # 아래 포문에 씀.
+                                del_number = 0
                                 for r in Object.keys(Memory.rooms[i].options.remotes):
                                     # print('r', r)
                                     # 배정된 방을 찾으면 이제 방정보 싹 다 날린다.
                                     if r == flag_room_name:
                                         # del_number = r  # Memory.rooms[i].options.remotes[r]
                                         print('deleting roomInfo Memory.rooms[{}].options.remotes[{}]'
-                                              .format(i, r))
-                                        Memory.rooms[i].options.remotes.pop(r)  # .splice(del_number, 1)
+                                              .format(i, r), 'del_number', del_number)
+                                        # Memory.rooms[i].options.remotes.splice(del_number, 1)
+                                        del Memory.rooms[i].options.remotes[r]
                                         found = True
                                         # 방에 짓고있는것도 다 취소
-                                        if Game.flags[flag_name].room:
-                                            cons = Game.flags[flag_name].room.find(FIND_CONSTRUCTION_SITES)
-                                            for c in cons:
-                                                c.remove()
+                                        world_const = Game.constructionSites
+                                        for c in Object.keys(world_const):
+                                            obj = Game.getObjectById(c)
+                                            if obj.pos.roomName == flag_room_name:
+                                                obj.remove()
+                                        # if Game.flags[flag_name].room:
+                                        #     cons = Game.flags[flag_name].room.find(FIND_CONSTRUCTION_SITES)
+                                        #     for c in cons:
+                                        #         c.remove()
+                                        break
+                                    del_number += 1
                         # 원하는거 찾았으면 더 할 이유가 없으니.
                         if found:
                             break
