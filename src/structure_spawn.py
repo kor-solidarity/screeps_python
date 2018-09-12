@@ -1011,7 +1011,10 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                                 constr_pos = __new__(RoomPosition(const_loc.x, const_loc.y
                                                                   , Game.rooms[room_name].name))
                                 print('constr_pos:', constr_pos)
-                                constr_pos.createConstructionSite(STRUCTURE_CONTAINER)
+                                const_res = constr_pos.createConstructionSite(STRUCTURE_CONTAINER)
+                                # todo 건설이 안되는 경우도 있음... 감안해봅시다.
+                                print('building container at {}({}, {}): {}'
+                                      .format(room_name, const_loc.x, const_loc.y, const_res))
 
                                 # ignore placing roads around sources and controllers alike as much as possible.
                                 # 무조건 막을수는 없고, 정 다른길이 없으면 가게끔.

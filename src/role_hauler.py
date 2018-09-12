@@ -244,14 +244,13 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
             # print('storage or creep.memory.pickup', storage, creep.memory.pickup)
             if creep.memory.pickup:
                 # did hauler got order to grab only energy? or lab/storage where there can be multiple sources?
-                if creep.memory.only_energy or Game.getObjectById(creep.memory.pickup).structureType == STRUCTURE_LAB \
+                if Game.getObjectById(creep.memory.pickup).structureType == STRUCTURE_LAB \
                         or Game.getObjectById(creep.memory.pickup).structureType == STRUCTURE_STORAGE:
                     only_energy = True
-                    del creep.memory.only_energy
                 else:
                     only_energy = False
                 # grabs any resources left in the storage if there are any.
-                print('only_ene', only_energy)
+                # print('only_ene', only_energy)
                 result = harvest_stuff.grab_energy(creep, creep.memory.pickup, only_energy)
                 print(creep.name, creep.memory.pickup, result)
                 if result == ERR_NOT_IN_RANGE:
