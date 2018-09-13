@@ -252,7 +252,7 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                 # grabs any resources left in the storage if there are any.
                 # print('only_ene', only_energy)
                 result = harvest_stuff.grab_energy(creep, creep.memory.pickup, only_energy)
-                print(creep.name, creep.memory.pickup, result)
+                # print(creep.name, creep.memory.pickup, result)
                 if result == ERR_NOT_IN_RANGE:
                     # 현재 위치한 곳이 이전 틱에도 있던곳인지 확인하고 옮기는 등의 절차.
                     swap_check = check_loc_and_swap_if_needed(creep, creeps, True)

@@ -440,8 +440,6 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                             # for_num = 0
                             for r in Object.keys(Memory.rooms[i].options.remotes):
                                 if r == Game.flags[flag_name].pos.roomName:
-                                    # Memory.rooms[i].options.remotes.pop(r)
-                                    # Memory.rooms[i].options.remotes.splice(for_num, 1)
                                     del Memory.rooms[i].options.remotes[r]
                                     # print('del')
                                     found_and_deleted = True
@@ -773,6 +771,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
 
             if delete_flag:
                 aa = flags[flag_name].remove()
+                print('delete {}: {}'.format(flags[flag_name], aa))
 
         # 이하 진짜 리모트-------------------------------------------------
 
@@ -913,6 +912,8 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                     flag_containers = _.filter(flag_structures,
                                                lambda s: s.structureType == STRUCTURE_CONTAINER)
 
+                    flag_built_containers = flag_containers
+
                     flag_lairs = _.filter(flag_structures,
                                           lambda s: s.structureType == STRUCTURE_KEEPER_LAIR)
                     flag_mineral = Game.rooms[room_name].find(FIND_MINERALS)
@@ -974,6 +975,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                         # loop all structures. I'm not gonna use filter. just loop it at once.
                         if len(flag_containers) > 0:
                             closest_cont = target_source.pos.findClosestByPath(flag_containers)
+                            print('closest_cont', closest_cont)
                             if target_source.pos.inRangeTo(closest_cont, 4):
                                 containter_exist = True
                                 carrier_pickup_id = closest_cont.id
@@ -1001,8 +1003,9 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                             # 건설중인 컨테이너가 없다? 자동으로 하나 건설한다.
                             if not container_sites:
                                 # 찍을 위치정보. 소스에서 본진방향으로 두번째칸임.
-                                const_loc = target_source.pos.findPathTo(spawn.room.controller
-                                                                         , {'ignoreCreeps': True})[1]
+                                target_to_spawn = target_source.pos.findPathTo(spawn.room.controller,
+                                                                               {'ignoreCreeps': True})
+                                const_loc = target_to_spawn[1]
 
                                 print('const_loc:', const_loc)
                                 print('const_loc.x {}, const_loc.y {}'.format(const_loc.x, const_loc.y))
@@ -1012,9 +1015,24 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                                                                   , Game.rooms[room_name].name))
                                 print('constr_pos:', constr_pos)
                                 const_res = constr_pos.createConstructionSite(STRUCTURE_CONTAINER)
-                                # todo 건설이 안되는 경우도 있음... 감안해봅시다.
+
                                 print('building container at {}({}, {}): {}'
                                       .format(room_name, const_loc.x, const_loc.y, const_res))
+
+                                # todo 임시방편일뿐....
+                                # 건설위치가 건설을 못하는 곳임 - 거기에 뭐가 있다던가 너무 다른방 입구근처라던가.
+                                if const_res == ERR_INVALID_TARGET:
+                                    # 한칸 더 앞으로 간다.
+                                    const_loc = target_to_spawn[0]
+
+                                    print('const_loc:', const_loc)
+                                    print('const_loc.x {}, const_loc.y {}'.format(const_loc.x, const_loc.y))
+                                    print('Game.rooms[{}].name: {}'.format(room_name, Game.rooms[room_name].name))
+                                    # 찍을 좌표: 이게 제대로된 pos 함수
+                                    constr_pos = __new__(RoomPosition(const_loc.x, const_loc.y
+                                                                      , Game.rooms[room_name].name))
+                                    print('constr_pos:', constr_pos)
+                                    const_res = constr_pos.createConstructionSite(STRUCTURE_CONTAINER)
 
                                 # ignore placing roads around sources and controllers alike as much as possible.
                                 # 무조건 막을수는 없고, 정 다른길이 없으면 가게끔.
@@ -1176,7 +1194,8 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
 
                     # 하베스터도 소스 수 만큼!
                     # todo 소스 수가 아니라 컨테이너 건설여부에 따라 만들어줘야 함.
-                    elif len(flag_energy_sources) > len(remote_harvesters):
+                    # elif len(flag_energy_sources) > len(remote_harvesters):
+                    elif len(flag_built_containers) > len(remote_harvesters):
                         # 4000 for keeper lairs
                         # todo 너무 쉽게죽음. 보강필요. and need medic for keeper remotes
                         regular_spawn = -6
