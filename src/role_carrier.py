@@ -62,29 +62,23 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
             # 본진에 물건 다 올렸을때만 가동.
             # 컨테이너와 링크 둘 다 존재하면 캐리어가 컨테이너에 있는 에너지를 링크에 옮겨넣을지 확인한다.
             if creep.memory.container and creep.memory.link_target:
-                # print('refill setting', creep.name, creep.memory.refill)
                 # 크립에 리필작업이 설정이 안되있는가?
                 if not creep.memory.refill:
                     creep.memory.refill = 1
-                    # print('null')
                 # 크립이 리필작업을 수행중이었나? 그럼 다 한걸로 친다.
                 elif creep.memory.refill == 1:
                     creep.memory.refill = 2
-                    # print('1')
                 # 엘스가 걸린다면 refill == 2.
                 # 리필 다 하고 리모트에서 새로 가져오는중이었단거. 리필확인해야함.
                 else:
-                    # print('els')
                     creep.memory.refill = 1
             # 해당사항 없으면 리필작업 할필요없음.
             else:
-                # print('refill wtf', creep.name)
                 creep.memory.refill = 0
 
         del creep.memory.build_target
 
     elif _.sum(creep.carry) >= creep.carryCapacity * .6 and creep.memory.laboro != 1:
-        creep.say('?!?')
         creep.memory.laboro = 1
 
     if creep.memory.haul_target and not Game.getObjectById(creep.memory.haul_target):

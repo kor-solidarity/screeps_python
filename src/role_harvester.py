@@ -232,17 +232,13 @@ def run_harvester(creep, all_structures, constructions, creeps, dropped_all):
                 creep.moveTo(Game.getObjectById(creep.memory.pickup), {'visualizePathStyle':
                                                                        {'stroke': '#0000FF', 'opacity': .25}})
                 return
-            elif grab_result == ERR_INVALID_TARGET :
+            elif grab_result == ERR_INVALID_TARGET:
                 del creep.memory.pickup
 
         if _.sum(creep.carry) > creep.carryCapacity - 10:
             creep.memory.laboro = 1
         else:
             harvest = harvest_stuff.harvest_energy(creep, creep.memory.source_num)
-            # print(creep.name, harvest)
-            # if harvest == ERR_NOT_IN_RANGE:
-            #     mov = movi(creep, creep.memory.source_num)
-            #     print(mov)
 
     # if carryCapacity is full - then go to nearest container or storage to store the energy.
     elif creep.memory.laboro == 1:
@@ -258,11 +254,14 @@ def run_harvester(creep, all_structures, constructions, creeps, dropped_all):
                     proper_link.append(Game.getObjectById(i.id))
             if len(proper_link) > 0:
                 containers.extend(proper_link)
+            # print(creep.name, containers)
+            storage = Game.getObjectById(creep.memory.source_num).pos.findClosestByPath(containers,
+                                                                                        {ignoreCreeps: True})
 
-            storage = Game.getObjectById(creep.memory.source_num).pos.findClosestByPath(containers)
-            
+            # print('storage', storage)
+
             if len(storage) == 0:
-                del creep.memory.container
+                pass
             # 근처에 스토리지가 있는게 아니면 낭비임. 그냥 주변에 건설이나 실시한다.
             elif not Game.getObjectById(creep.memory.source_num).pos.inRangeTo(storage, max_range_to_container):
                 del creep.memory.container

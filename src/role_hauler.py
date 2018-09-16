@@ -237,15 +237,11 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                 else:
                     creep.memory.pickup = pickup_id
 
-            # # if creep already have pickup memory, no need to search for storage.
-            # else:
-            #     storage = 0
-
-            # print('storage or creep.memory.pickup', storage, creep.memory.pickup)
             if creep.memory.pickup:
                 # did hauler got order to grab only energy? or lab/storage where there can be multiple sources?
                 if Game.getObjectById(creep.memory.pickup).structureType == STRUCTURE_LAB \
-                        or Game.getObjectById(creep.memory.pickup).structureType == STRUCTURE_STORAGE:
+                        or Game.getObjectById(creep.memory.pickup).structureType == STRUCTURE_STORAGE\
+                        or Game.getObjectById(creep.memory.pickup).structureType == STRUCTURE_TERMINAL:
                     only_energy = True
                 else:
                     only_energy = False
@@ -485,6 +481,7 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                                 structures.splice(s_index, 1)
                                 break
                         del creep.memory.haul_target
+                        del creep.memory.last_swap
                         if len(structures):
                             # 목표타겟 확보.
                             haul_target = filter_haul_targets(creep, structures, creeps)
@@ -531,7 +528,6 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                 if not creep.pos.inRangeTo(Game.getObjectById(creep.memory.build_target), 6):
                     # 현재 위치한 곳이 이전 틱에도 있던곳인지 확인하고 옮기는 등의 절차.
                     swap_check = check_loc_and_swap_if_needed(creep, creeps, True)
-                    # creep.say('swap {}'.format(swap_check))
                     # 아무 문제 없으면 평소마냥 움직이는거.
                     if swap_check == OK:
                         movi(creep, creep.memory.build_target, 3, 40, True)

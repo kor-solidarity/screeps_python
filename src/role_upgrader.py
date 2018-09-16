@@ -14,11 +14,13 @@ __pragma__('noalias', 'type')
 __pragma__('noalias', 'update')
 
 
-def run_upgrader(creep, creeps, all_structures):
+def run_upgrader(creep, creeps, all_structures, repairs, constructions):
     """
     :param creep:
     :param creeps:
     :param all_structures: creep.room.find(FIND_STRUCTURES)
+    :param repairs: 수리대상들
+    :param constructions: creep.room.find(FIND_CONSTRUCTION_SITES)
     :return:
     """
     # memory.pickup = 자원 가져올 대상.
@@ -142,25 +144,44 @@ def run_upgrader(creep, creeps, all_structures):
 
     # laboro: 1 == UPGRADE
     if creep.memory.laboro == 1:
-        up_tar = Game.getObjectById(creep.memory.upgrade_target)
-        result = creep.upgradeController(up_tar)
-        # if there's no controller around, go there.
-        if result == ERR_NOT_IN_RANGE:
-            if not creep.pos.inRangeTo(Game.getObjectById(creep.memory.upgrade_target), 6):
-                # 현재 위치한 곳이 이전 틱에도 있던곳인지 확인하고 옮기는 등의 절차.
-                swap_check = check_loc_and_swap_if_needed(creep, creeps, True)
-                # 아무 문제 없으면 평소마냥 움직이는거.
-                if swap_check == OK:
-                    movi(creep, creep.memory.upgrade_target, 3, 40, True)
-                # 확인용. 아직 어찌할지 못정함....
-                elif swap_check == ERR_NO_PATH:
-                    creep.say('ERR_NO_PATH')
-                # 위 둘 외에 다른게 넘어왔다는 소리는 실질적으로 어느 위치를 갔다는게 아니라
-                # 다른 크립와 위치 바꿔치기를 시전했다는 소리. 메모리 옮긴다.
-                else:
-                    creep.memory.last_swap = swap_check
+
+        if not creep.pos.inRangeTo(Game.getObjectById(creep.memory.upgrade_target), 6):
+            # 현재 위치한 곳이 이전 틱에도 있던곳인지 확인하고 옮기는 등의 절차.
+            swap_check = check_loc_and_swap_if_needed(creep, creeps, True)
+            # 아무 문제 없으면 평소마냥 움직이는거.
+            if swap_check == OK:
+                movi(creep, creep.memory.upgrade_target, 3, 40, True)
+            # 확인용. 아직 어찌할지 못정함....
+            elif swap_check == ERR_NO_PATH:
+                creep.say('ERR_NO_PATH')
+            # 위 둘 외에 다른게 넘어왔다는 소리는 실질적으로 어느 위치를 갔다는게 아니라
+            # 다른 크립와 위치 바꿔치기를 시전했다는 소리. 메모리 옮긴다.
             else:
-                movi(creep, creep.memory.upgrade_target, 3, 10)
+                creep.memory.last_swap = swap_check
+        else:
+            movi(creep, creep.memory.upgrade_target, 3, 5)
+
+        repair_on_the_way(creep, repairs, constructions, True)
+
+        # up_tar = Game.getObjectById(creep.memory.upgrade_target)
+        # result = creep.upgradeController(up_tar)
+        # # if there's no controller around, go there.
+        # if result == ERR_NOT_IN_RANGE:
+        #     if not creep.pos.inRangeTo(Game.getObjectById(creep.memory.upgrade_target), 6):
+        #         # 현재 위치한 곳이 이전 틱에도 있던곳인지 확인하고 옮기는 등의 절차.
+        #         swap_check = check_loc_and_swap_if_needed(creep, creeps, True)
+        #         # 아무 문제 없으면 평소마냥 움직이는거.
+        #         if swap_check == OK:
+        #             movi(creep, creep.memory.upgrade_target, 3, 40, True)
+        #         # 확인용. 아직 어찌할지 못정함....
+        #         elif swap_check == ERR_NO_PATH:
+        #             creep.say('ERR_NO_PATH')
+        #         # 위 둘 외에 다른게 넘어왔다는 소리는 실질적으로 어느 위치를 갔다는게 아니라
+        #         # 다른 크립와 위치 바꿔치기를 시전했다는 소리. 메모리 옮긴다.
+        #         else:
+        #             creep.memory.last_swap = swap_check
+        #     else:
+        #         movi(creep, creep.memory.upgrade_target, 3, 10)
 
     return
 

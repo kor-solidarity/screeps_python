@@ -458,12 +458,17 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                 print('room added?', room_added)
                 # 추가가 안된 상태면 초기화를 진행
                 if not room_added:
+                    print('what??')
                     # init = {'roomName': Game.flags[flag_name].pos.roomName, 'defenders': 1, 'initRoad': 0,
                     #         'display': {'x': Game.flags[flag_name].pos.x, 'y': Game.flags[flag_name].pos.y}}
                     init = {'defenders': 1, 'initRoad': 0,
                             'display': {'x': Game.flags[flag_name].pos.x,
                                         'y': Game.flags[flag_name].pos.y}}
                     Memory.rooms[spawn.room.name][options][remotes][Game.flags[flag_name].pos.roomName] = init
+                    # Memory.rooms[spawn.room.name][options][remotes].update({Game.flags[flag_name].pos.roomName: init})
+                    print('Memory.rooms[{}][options][remotes][{}]'.format(spawn.room.name,
+                                                                          Game.flags[flag_name].pos.roomName),
+                          Memory.rooms[spawn.room.name][options][remotes][Game.flags[flag_name].pos.roomName])
 
                 delete_flag = True
 
@@ -831,11 +836,10 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                                     != spawn.owner.username:
                                 flag_room_reserved_by_other = True
 
-                    #  렙 8부터 항시 상주한다. 단, 설정에 따라 투입자체를 안할수도 있게끔 해야함.
+                    #  렙 7부터 항시 상주한다. 단, 설정에 따라 투입자체를 안할수도 있게끔 해야함.
                     # to filter out the allies.
-                    if len(hostiles) > 0 or chambro.controller.level == 8:
-                        plus = r.defenders
-
+                    if len(hostiles) > 0 or chambro.controller.level >= 7:
+                        plus = Memory.rooms[spawn.room.name].options.remotes[r].defenders
                         # 플러스가 있는 경우 병사가 상주중이므로 NPC 셀 필요가 없다.
                         if plus:
                             hostiles = miscellaneous.filter_enemies(hostiles, False)
@@ -974,21 +978,14 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                         print('carrier_source 위치:', target_source.pos)
                         # loop all structures. I'm not gonna use filter. just loop it at once.
                         if len(flag_containers) > 0:
-                            closest_cont = target_source.pos.findClosestByPath(flag_containers)
+                            print('flag_containers', flag_containers)
+                            closest_cont = target_source.pos.findClosestByPath(flag_containers,
+                                                                               {ignoreCreeps: True})
                             print('closest_cont', closest_cont)
                             if target_source.pos.inRangeTo(closest_cont, 4):
                                 containter_exist = True
                                 carrier_pickup_id = closest_cont.id
-                        # 위로 대체
-                        # for st in flag_containers:
-                        #     # 컨테이너만 따진다.
-                        #     if st.structureType == STRUCTURE_CONTAINER:
-                        #         # 가까이 있으면 하나의 컨테이너로 퉁치기.
-                        #         # 소스 세칸 이내에 컨테이너가 있는가? 있으면 carrier_pickup으로 배정
-                        #         if target_source.pos.inRangeTo(st, 4) and :
-                        #             containter_exist = True
-                        #             carrier_pickup_id = st.id
-                        #             break
+
                         # 컨테이너가 존재하지 않는 경우.
                         if not containter_exist:
                             # 건설장 존재여부. 있으면 참.

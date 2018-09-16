@@ -180,16 +180,11 @@ def main():
     except:
         pass
 
-    if Memory.dropped_sources:
-        del Memory.dropped_sources
-
     # to count the number of creeps passed.
     passing_creep_counter = 0
 
     # 스트럭쳐 목록 초기화 위한 숫자
     structure_renew_count = 100
-    # JSON string to be put into memory
-    for_json = ''
 
     if Memory.debug:
         # 0.05정도
@@ -578,7 +573,7 @@ def main():
                     continue
 
             if creep.memory.role == 'upgrader':
-                role_upgrader.run_upgrader(creep, room_creeps, all_structures)
+                role_upgrader.run_upgrader(creep, room_creeps, all_structures, repairs, constructions)
 
             elif creep.memory.role == 'miner':
                 role_harvester.run_miner(creep, all_structures)
@@ -719,11 +714,12 @@ def main():
             # 적이 있을 시 수리 자체를 안하니 있으면 아예 무시.
             if len(hostile_creeps) == 0 and Game.cpu.bucket > cpu_bucket_emergency:
                 for repair_obj in repairs:
-                    if (repair_obj.structureType == STRUCTURE_WALL
+                    if ((repair_obj.structureType == STRUCTURE_WALL
                         or repair_obj.structureType == STRUCTURE_RAMPART
-                        or repair_obj.structureType == STRUCTURE_CONTAINER
-                        or repair_obj.structureType == STRUCTURE_ROAD) \
-                            and repair_obj.hits < 1000:
+                        or repair_obj.structureType == STRUCTURE_ROAD)
+                            and repair_obj.hits < 1000)\
+                        or (repair_obj.structureType == STRUCTURE_CONTAINER
+                            and repair_obj.hits < 5500):
                         tow_repairs.append(repair_obj)
                         break
             # 한놈만 팬다.

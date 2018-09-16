@@ -13,3 +13,6 @@ defenders = 'defenders'
 init_road = 'init_road'
 display = 'display'
 repair = 'repair'
+
+# 작은따옴표 귀찮음...
+ignoreCreeps = 'ignoreCreeps'

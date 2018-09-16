@@ -60,6 +60,7 @@ def check_for_carrier_setting(creep, target_obj):
         return
 
 
+# todo 이건 조만간 아래껄로 바꿔야함.
 def filter_enemies(foreign_creeps, count_ai=True):
     """
     filter out allies(ones must not be killed) from FIND_HOSTILE_CREEPS
@@ -98,6 +99,53 @@ def filter_enemies(foreign_creeps, count_ai=True):
                 enemy_list.append(hostile)
     # return foreign_creeps
     return enemy_list
+
+
+def filter_enemies_new(foreign_creeps):
+    """
+    크립목록에서 적과 아군 필터링한다.
+
+    :param foreign_creeps: 적 크립 전부
+    :return: [[적 전부], [적 NPC], [적 플레이어], [동맹]]
+    """
+
+    ally_list = Memory.allianceArray
+    if Memory.friendly and len(Memory.friendly) > 0:
+        ally_list.extend(Memory.friendly)
+    # 모든 적
+    all_enemies = []
+    # 엔피시
+    npcs = []
+    # 적 플레이어
+    enemy_list = []
+    # 동맹군
+    friendly = []
+    for hostile in foreign_creeps:
+        enemy = True
+        # this is an NPC
+        # 소스키퍼도 존재하는데 이건 생각좀...
+        if hostile.owner.username == 'Invader':
+            # 엔피씨면 모든적과 엔피시로
+            all_enemies.append(hostile)
+            npcs.append(hostile)
+            continue
+        # 동맹군 필터링
+        for ally in ally_list:
+            # if hostile's name is equal to ally's name it's excluded
+            if hostile.owner.username == ally:
+                friendly.append(hostile)
+                enemy = False
+                break
+
+        if enemy:
+            for body in hostile.body:
+                # 움직일수만 있는놈 빼고 다 잡는다.
+                if body['type'] != MOVE:
+                    all_enemies.append(hostile)
+                    enemy_list.append(hostile)
+                    break
+
+    return [all_enemies, npcs, enemy_list, friendly]
 
 
 def filter_friends(foreign_creeps):
@@ -409,16 +457,18 @@ def swapping(creep, creeps, avoid_id=0, avoid_role=''):
     return ERR_NO_PATH
 
 
-def repair_on_the_way(creep, repairs, constructions):
+def repair_on_the_way(creep, repairs, constructions, upgrader=False):
     """
     운송크립 운송작업중 주변에 컨트롤러나 수리해야하는거 등 있으면 무조건 하고 지나간다.
 
     :param creep:
     :param repairs:
     :param constructions:
+    :param upgrader: 크립이 업글러일때만 설정. 기본값 참
     :return:
     """
-    if creep.room.controller and creep.room.controller.my and creep.room.controller.level < 8:
+    if (creep.room.controller and creep.room.controller.my and creep.room.controller.level < 8)\
+            or upgrader:
         creep.upgradeController(Game.getObjectById(creep.memory.upgrade_target))
     bld = err_undone_constant
     if len(constructions) > 0:
