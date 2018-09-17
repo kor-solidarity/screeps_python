@@ -455,7 +455,8 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                     if target.structureType == STRUCTURE_EXTENSION \
                             or target.structureType == STRUCTURE_TOWER \
                             or target.structureType == STRUCTURE_NUKER \
-                            or target.structureType == STRUCTURE_SPAWN:
+                            or target.structureType == STRUCTURE_SPAWN \
+                            or target.structureType == STRUCTURE_LAB:
                         only_energy = True
                     else:
                         only_energy = False
@@ -472,7 +473,8 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                                 creep.memory.pickup = creep.room.terminal.id
                     # 에너지만 넣은 상태면 바로 다음으로 넘어간다.
                     if only_energy and (transfer_minerals_result == OK or transfer_minerals_result == ERR_FULL):
-                        # print(creep, 'transfer_minerals_result', transfer_minerals_result)
+                        # print(creep.name, 'transfer_minerals_result {} only_energy {}'
+                        #       .format(transfer_minerals_result, only_energy))
                         # 크립 허울대상 확인
                         structures = grab_haul_list(creep.room.name, all_structures)
                         for s in structures:
@@ -800,17 +802,17 @@ def grab_haul_list(roomName, totalStructures, add_storage=False):
     if add_storage:
         structures.extend(totalStructures.filter
                           (lambda s: s.structureType == STRUCTURE_STORAGE
-                                     and s.store[RESOURCE_ENERGY] < Game.rooms[roomName].memory.options[max_energy]))
+                           and s.store[RESOURCE_ENERGY] < Game.rooms[roomName].memory.options[max_energy]))
         # print('if add_storage', structures)
     # 핵에 에너지 넣는걸로 함?
     if Memory.rooms[roomName].options.fill_nuke:
         nuke_structure_add = totalStructures.filter(lambda s: s.structureType == STRUCTURE_NUKER
-                                                              and s.energy < s.energyCapacity)
+                                                    and s.energy < s.energyCapacity)
         structures.extend(nuke_structure_add)
     # 연구소에 에너지 넣는걸로 함?
     if Memory.rooms[roomName].options.fill_labs:
         structure_add = totalStructures.filter(lambda s: s.structureType == STRUCTURE_LAB
-                                                         and s.energy < s.energyCapacity)
+                                               and s.energy < s.energyCapacity)
         structures.extend(structure_add)
 
     container = []

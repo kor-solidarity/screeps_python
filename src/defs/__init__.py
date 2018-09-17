@@ -29,8 +29,6 @@ from .constants import *
 from .classes import *
 from .transcrypt import *
 
-# todo TOMESTONES
-
 # Generated manually using regexes on the sub files
 __all__ = [
     # constants
