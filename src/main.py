@@ -211,6 +211,10 @@ def main():
         avg_cpu = round(all_cpu / len(Memory.cpu_usage), 2)
         last_cpu = Memory.cpu_usage[Memory.cpu_usage.length - 1]
 
+    # # 사전에 자원·건물현황·적 구분 등을 싹 다 돌린다.
+    # for chambra_nomo in Object.keys(Game.rooms):
+    #
+
     # run everything according to each rooms.
     for chambra_nomo in Object.keys(Game.rooms):
         chambro_cpu = Game.cpu.getUsed()
@@ -272,49 +276,7 @@ def main():
                         and len(Memory.rooms[chambra_nomo].options.display) > 0:
                     remotes_txt = ''
                     if Memory.rooms[chambra_nomo].options.remotes:
-                        # check_num = 0
-
-                        # gyoche = False
-                        # NULLIFIED
-                        # for r in Object.keys(Memory.rooms[chambra_nomo].options.remotes):
-                        #     print('r', r + 1)
-                        #     # print("bool(re.compile(r'^\w\d{1,2}\w\d{1,2}$').match({})) {}"
-                        #     #       .format(r, bool(re.compile(r'^\w\d{1,2}\w\d{1,2}$').match(r))))
-                        #     # if bool(re.compile(r'^\w\d{1,2}\w\d{1,2}$').match(r)):
-                        #     # print('Object.keys({}) Object.keys({})'.format(r, Object.keys(r)))
-                        #     if Object.keys(r) == 0:
-                        #         gyoche = True
-                        #         break
-                        #     else:
-                        #         break
-                        #     NULLIFIED
-                        #     # 지정된 리모트 추가
-                        #     remotes_txt += r.roomName
-                        #     # 배정된 병사 수 추가
-                        #     defenders = Memory.rooms[chambra_nomo].options.remotes[check_num].defenders
-                        #     remotes_txt += '({}) '.format(defenders)
-                        #
-                        #     # 각 리모트에도 설정한다. 당연하지만 안에 시야를 확보했을 경우만...
-                        #     if Memory.rooms[chambra_nomo].options.remotes[check_num].display \
-                        #             and Game.rooms[r.roomName]:
-                        #         rx = Memory.rooms[chambra_nomo].options.remotes[check_num].display.x
-                        #         ry = Memory.rooms[chambra_nomo].options.remotes[check_num].display.y
-                        #         Game.rooms[r.roomName].visual.text('-def {}'.format(defenders), rx, ry)
-                        #     check_num += 1
-                        # 교체 참뜨면 구버전이라 교체해야된단 소리.
-                        # print('gyoche', gyoche)
-                        # if gyoche:
-                        #     changed_data = []
-                        #     for r in Memory.rooms[chambra_nomo].options.remotes:
-                        #         r = {r.roomName: {defenders: r[defenders], init_road: r[init_road],
-                        #                           display: {'x': r[display].x, 'y': r[display].y}}}
-                        #         changed_data.append(r)
-                        #     del Memory.rooms[chambra_nomo].options.remotes
-                        #     Memory.rooms[chambra_nomo].options.remotes = []
-                        #     Memory.rooms[chambra_nomo].options.remotes.extend(changed_data)
-
                         # 방이름으로 돌린다.
-
                         for r in Object.keys(Memory.rooms[chambra_nomo][options][remotes]):
                             # 지정된 리모트 추가
                             remotes_txt += r
@@ -386,7 +348,8 @@ def main():
         # to filter out the allies.
         if len(foreign_creeps) > 0:
             hostile_creeps = miscellaneous.filter_enemies(foreign_creeps)
-            allied_creeps = miscellaneous.filter_friends(foreign_creeps)
+            # allied_creeps = miscellaneous.filter_friends(foreign_creeps)
+            allied_creeps = miscellaneous.filter_enemies_new(foreign_creeps)[3]
 
         if chambro.controller:
             # 수리점수는 방별 레벨제를 쓴다. 기본값은 5, 최대 60까지 가능.
@@ -617,6 +580,7 @@ def main():
                 if not chambro.memory[STRUCTURE_LAB] or chambro.memory.options.reset:
                     chambro.memory[STRUCTURE_LAB] = []
                 # todo 수리를 위한 목록. 이건 무조건 한번씩 리셋. 다만 다른거 정상적으로 돌때의 반만.
+
                 if chambro.memory.options.reset or Game.time % structure_renew_count * 2 == 0:
                     chambro.memory[repair_targets] = []
                     # 수리를 위한 건물목록은 단계별 수리로 지정된 것들, 즉 STRUCTURE_WALL / STRUCTURE_RAMPART 두가지만 넣는다.
@@ -709,19 +673,19 @@ def main():
         if chambro.memory[STRUCTURE_TOWER] and len(chambro.memory[STRUCTURE_TOWER]) > 0:
             tow_repairs = repairs
             # 임시조치
-            tow_repairs = []
-            # 타워는 벽·방어막 체력 1000 이하만 고친다.
-            # 적이 있을 시 수리 자체를 안하니 있으면 아예 무시.
-            if len(hostile_creeps) == 0 and Game.cpu.bucket > cpu_bucket_emergency:
-                for repair_obj in repairs:
-                    if ((repair_obj.structureType == STRUCTURE_WALL
-                        or repair_obj.structureType == STRUCTURE_RAMPART
-                        or repair_obj.structureType == STRUCTURE_ROAD)
-                            and repair_obj.hits < 1000)\
-                        or (repair_obj.structureType == STRUCTURE_CONTAINER
-                            and repair_obj.hits < 5500):
-                        tow_repairs.append(repair_obj)
-                        break
+            # tow_repairs = []
+            # # 타워는 벽·방어막 체력 1000 이하만 고친다.
+            # # 적이 있을 시 수리 자체를 안하니 있으면 아예 무시.
+            # if len(hostile_creeps) == 0 and Game.cpu.bucket > cpu_bucket_emergency:
+            #     for repair_obj in repairs:
+            #         if ((repair_obj.structureType == STRUCTURE_WALL
+            #             or repair_obj.structureType == STRUCTURE_RAMPART
+            #             or repair_obj.structureType == STRUCTURE_ROAD)
+            #                 and repair_obj.hits < 1000)\
+            #             or (repair_obj.structureType == STRUCTURE_CONTAINER
+            #                 and repair_obj.hits < 5500):
+            #             tow_repairs.append(repair_obj)
+            #             break
             # 한놈만 팬다.
             if len(hostile_creeps) > 1:
                 enemy = [hostile_creeps[0]]
