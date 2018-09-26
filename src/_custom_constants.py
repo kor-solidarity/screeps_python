@@ -13,6 +13,10 @@ defenders = 'defenders'
 init_road = 'init_road'
 display = 'display'
 repair = 'repair'
+reset = 'reset'
+have_walls = 'have_walls'
+repair_done = 'repair_done'
+stop_fixer = 'stop_fixer'
 
-# 작은따옴표 귀찮음...
+# 따옴표 귀찮음...
 ignoreCreeps = 'ignoreCreeps'

@@ -464,7 +464,7 @@ def repair_on_the_way(creep, repairs, constructions, upgrader=False):
     :param creep:
     :param repairs:
     :param constructions:
-    :param upgrader: 크립이 업글러일때만 설정. 기본값 참
+    :param upgrader: 크립이 업글러일때만 설정. 기본값 거짓
     :return:
     """
     if (creep.room.controller and creep.room.controller.my and creep.room.controller.level < 8)\

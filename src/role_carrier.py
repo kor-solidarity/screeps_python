@@ -125,7 +125,7 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                 creep.memory.refill = 2
 
         # if there's no dropped and there's dropped_all
-        if not creep.memory.dropped and len(dropped_all) > 0:
+        if creep.memory.age > 50 and not creep.memory.dropped and len(dropped_all) > 0:
             for drop in dropped_all:
                 # carrier will only take energy
                 # 크립정보 있으면 비석.

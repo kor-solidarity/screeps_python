@@ -16,7 +16,7 @@ __pragma__('noalias', 'update')
 
 # 스폰을 메인에서 쪼개기 위한 용도. 현재 어떻게 빼내야 하는지 감이 안잡혀서 공백임.
 def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, counter, cpu_bucket_emergency
-              , cpu_bucket_emergency_spawn_start, extractor, terminal_capacity, chambro, interval):
+              , cpu_bucket_emergency_spawn_start, extractor, terminal_capacity, chambro, interval, wall_repairs, min_hits):
     # print('yolo')
     spawn_cpu = Game.cpu.getUsed()
     # if spawn is not spawning, try and make one i guess.
@@ -383,17 +383,37 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                         spawn.createCreep([WORK, WORK, CARRY, CARRY, MOVE, MOVE], undefined,
                                           {'role': 'upgrader', 'assigned_room': spawn.pos.roomName})
 
-        # # todo 임시조치상태
-        # # 렙 7 이상일때부터 수리병을 부름.
-        # if chambro.controller.level >= 7 and chambro.storage and chambro.storage.store[RESOURCE_ENERGY] >= 10000:
-        #     if len(creep_fixers) < 3:
-        #         fixer_spawn = spawn.createCreep(
-        #             [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK,
-        #              WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, CARRY, CARRY,
-        #              CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY,
-        #              CARRY, CARRY, CARRY, CARRY]
-        #             , undefined,
-        #             {'role': 'fixer', 'assigned_room': spawn.pos.roomName, 'level': 5})
+        if not chambro.memory[options][stop_fixer]:
+            chambro.memory[options][stop_fixer] = 1
+
+        # 렙 7 이상일때부터 수리병을 부름. 7때는 단지 하나. 8때는 5천에 하나.
+        # 그리고 할당량 다 찼는데도 뽑는 경우도 있을 수 있으니 타이머 쟨다.
+        # todo 수리할게 더 없으면??
+        # 현재 임시로 없으면 1500틱동안 추가 생산을 안한다.
+        if Game.time - chambro.memory[options][stop_fixer] > 1500 \
+                and len(wall_repairs) and chambro.controller.level >= 7 \
+                and chambro.storage and chambro.storage.store[RESOURCE_ENERGY] >= 5000:
+            # print('check fixer')
+            if chambro.controller.level == 7 and chambro.storage.store[RESOURCE_ENERGY] >= 10000:
+                max_num_fixers = 1
+            # 벽수리가 중심인데 수리할 벽이 없으면 의미가 없음.
+            elif chambro.controller.level == 8 and min_hits < chambro.memory[options][repair]:
+                max_num_fixers = int(chambro.storage.store[RESOURCE_ENERGY] / 20000)
+                # print('max_num_fixers', max_num_fixers)
+                # todo 최대값. 임시조치임.
+                if max_num_fixers > 6:
+                    max_num_fixers = 6
+            else:
+                max_num_fixers = 0
+            if len(creep_fixers) < max_num_fixers:
+                fixer_spawn = spawn.createCreep(
+                    [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE,
+                     WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK,
+                     WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY,
+                     CARRY]
+                    , undefined,
+                    {'role': 'fixer', 'assigned_room': spawn.pos.roomName, 'level': 8})
+
 
         if Memory.debug or Game.time % interval == 0 or Memory.tick_check:
             print("이 시점까지 스폰 {} 소모량: {}, 이하 remote"
@@ -772,6 +792,20 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                         # 원하는거 찾았으면 더 할 이유가 없으니.
                         if found:
                             break
+                delete_flag = True
+
+            # 방 안에 건물확인 스크립트 초기화 조치
+            if flag_name.includes('-rset'):
+                print("resetting")
+                # 내 방 맞음? 내방 아니면 이거 돌 이유가 전혀없음.
+                controlled = False
+                if flags[flag_name].room and flags[flag_name].room.controller \
+                    and flags[flag_name].room.controller.my:
+                        controlled = True
+                if controlled:
+                    chambro.memory[options][reset] = 1
+                else:
+                    print(flags[flag_name].room.name, '은 내 방이 아님.')
                 delete_flag = True
 
             if delete_flag:

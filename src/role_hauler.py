@@ -252,11 +252,9 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                 if result == ERR_NOT_IN_RANGE:
                     # 현재 위치한 곳이 이전 틱에도 있던곳인지 확인하고 옮기는 등의 절차.
                     swap_check = check_loc_and_swap_if_needed(creep, creeps, True)
-
                     # 아무 문제 없으면 평소마냥 움직이는거.
                     if swap_check == OK:
                         res = movi(creep, creep.memory.pickup, ignoreCreeps=True, reusePath=40)
-                        # creep.say(res)
                     # 확인용. 아직 어찌할지 못정함....
                     elif swap_check == ERR_NO_PATH:
                         creep.say('ERR_NO_PATH')
@@ -628,30 +626,7 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
             else:
                 movi(creep, creep.memory.upgrade_target, 3, 5)
 
-            repair_on_the_way(creep, repairs, constructions)
-
-            # upgrade_result = creep.upgradeController(Game.getObjectById(creep.memory.upgrade_target))
-            # if upgrade_result == ERR_NOT_IN_RANGE:
-            #     if not creep.pos.inRangeTo(Game.getObjectById(creep.memory.upgrade_target), 6):
-            #         # 현재 위치한 곳이 이전 틱에도 있던곳인지 확인하고 옮기는 등의 절차.
-            #         swap_check = check_loc_and_swap_if_needed(creep, creeps, True)
-            #         # 아무 문제 없으면 평소마냥 움직이는거.
-            #         if swap_check == OK:
-            #             movi(creep, creep.memory.upgrade_target, 3, 40, True)
-            #         # 확인용. 아직 어찌할지 못정함....
-            #         elif swap_check == ERR_NO_PATH:
-            #             creep.say('ERR_NO_PATH')
-            #         # 위 둘 외에 다른게 넘어왔다는 소리는 실질적으로 어느 위치를 갔다는게 아니라
-            #         # 다른 크립와 위치 바꿔치기를 시전했다는 소리. 메모리 옮긴다.
-            #         else:
-            #             creep.memory.last_swap = swap_check
-            #     else:
-            #         movi(creep, creep.memory.upgrade_target, 3, 10)
-            #
-            # elif upgrade_result == ERR_NO_BODYPART:
-            #     creep.say('운송이 본분!', True)
-            #     creep.memory.priority = 1
-            #     return
+            repair_on_the_way(creep, repairs, constructions, True)
 
             # if having anything other than energy when not on priority 1 switch to 1
             # 운송크립은 발전에 심혈을 기울이면 안됨.

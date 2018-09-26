@@ -15,7 +15,6 @@ import role_soldier_h_defender
 from _custom_constants import *
 import re
 
-
 # defs is a package which claims to export all constants and some JavaScript objects, but in reality does
 #  nothing. This is useful mainly when using an editor like PyCharm, so that it 'knows' that things like Object, Creep,
 #  Game, etc. do exist.
@@ -32,7 +31,6 @@ __pragma__('noalias', 'get')
 __pragma__('noalias', 'set')
 __pragma__('noalias', 'type')
 __pragma__('noalias', 'update')
-
 
 """
 UNIVERSAL CODE:
@@ -57,6 +55,8 @@ creep.memory.flag:
 """
 
 js_global._costs = {'base': {}, 'rooms': {}, 'creeps': {}}
+
+
 # todo 깃발꽂는거보다 이걸로. console cmd
 # js_global._cmd = lambda a, b: ([a, b])
 
@@ -223,105 +223,115 @@ def main():
         if not Memory.rooms:
             Memory.rooms = {}
         # 게임 내 수동조작을 위한 초기화 설정. 단, 방이 우리꺼일 경우에만 적용.
-        if chambro.controller:
-            if chambro.controller.my:
-                if not Memory.rooms[chambra_nomo]:
-                    Memory.rooms[chambra_nomo] = {}
-                if not Memory.rooms[chambra_nomo].options:
-                    Memory.rooms[chambra_nomo] = {'options': {}}
-                # repair level - 벽, 방어막에만 적용
-                if not Memory.rooms[chambra_nomo].options.repair\
-                        and not Memory.rooms[chambra_nomo].options.repair == 0:
-                    Memory.rooms[chambra_nomo]['options'].repair = 5
-                # 운송크립의 수. 기본수가 숫자만큼 많아진다. 물론 최대치는 무조건 4
-                if not Memory.rooms[chambra_nomo].options.haulers \
-                        and not Memory.rooms[chambra_nomo].options.haulers == 0:
-                    Memory.rooms[chambra_nomo].options.haulers = 1
-                # 업글크립 최대수. 기본값 12
-                if not Memory.rooms[chambra_nomo].options[max_upgraders]:
-                    Memory.rooms[chambra_nomo].options[max_upgraders] = 12
-                # 스토리지 안 채울 최대 에너지량. 기본값 육십만
-                if not Memory.rooms[chambra_nomo].options[max_energy]:
-                    Memory.rooms[chambra_nomo].options[max_energy] = 600000
-                # 타워 공격시킬건가? 1이면 공격. 또한 매 1만턴마다 리셋한다.
-                if (not Memory.rooms[chambra_nomo].options.tow_atk
-                        and not Memory.rooms[chambra_nomo].options.tow_atk == 0) \
-                        or Game.time % 10000 == 0:
-                    Memory.rooms[chambra_nomo].options.tow_atk = 1
-                # 핵사일로 채울거임? 채우면 1 아님 0. 안채울 경우 핵미사일 안에 에너지 빼감.
-                if not Memory.rooms[chambra_nomo].options.fill_nuke \
-                        and not Memory.rooms[chambra_nomo].options.fill_nuke == 0:
-                    Memory.rooms[chambra_nomo].options.fill_nuke = 1
-                # 연구소 에너지 채울거임?
-                if not Memory.rooms[chambra_nomo].options.fill_labs \
-                        and not Memory.rooms[chambra_nomo].options.fill_labs == 0:
-                    Memory.rooms[chambra_nomo].options.fill_labs = 1
+        if chambro.controller and chambro.controller.my:
+            if not Memory.rooms[chambra_nomo]:
+                Memory.rooms[chambra_nomo] = {}
+            if not Memory.rooms[chambra_nomo].options:
+                Memory.rooms[chambra_nomo] = {'options': {}}
+            # repair level - 벽, 방어막에만 적용
+            if not Memory.rooms[chambra_nomo].options.repair \
+                and not Memory.rooms[chambra_nomo].options.repair == 0:
+                Memory.rooms[chambra_nomo]['options'].repair = 5
+            # 운송크립의 수. 기본수가 숫자만큼 많아진다. 물론 최대치는 무조건 4
+            if not Memory.rooms[chambra_nomo].options.haulers \
+                and not Memory.rooms[chambra_nomo].options.haulers == 0:
+                Memory.rooms[chambra_nomo].options.haulers = 1
+            # 업글크립 최대수. 기본값 12
+            if not Memory.rooms[chambra_nomo].options[max_upgraders]:
+                Memory.rooms[chambra_nomo].options[max_upgraders] = 12
+            # 스토리지 안 채울 최대 에너지량. 기본값 육십만
+            if not Memory.rooms[chambra_nomo].options[max_energy]:
+                Memory.rooms[chambra_nomo].options[max_energy] = 600000
+            # 타워 공격시킬건가? 1이면 공격. 또한 매 1만턴마다 리셋한다.
+            if (not Memory.rooms[chambra_nomo].options.tow_atk
+                and not Memory.rooms[chambra_nomo].options.tow_atk == 0) \
+                or Game.time % 10000 == 0:
+                Memory.rooms[chambra_nomo].options.tow_atk = 1
+            # 핵사일로 채울거임? 채우면 1 아님 0. 안채울 경우 핵미사일 안에 에너지 빼감.
+            if not Memory.rooms[chambra_nomo].options.fill_nuke \
+                and not Memory.rooms[chambra_nomo].options.fill_nuke == 0:
+                Memory.rooms[chambra_nomo].options.fill_nuke = 1
+            # 연구소 에너지 채울거임?
+            if not Memory.rooms[chambra_nomo].options.fill_labs \
+                and not Memory.rooms[chambra_nomo].options.fill_labs == 0:
+                Memory.rooms[chambra_nomo].options.fill_labs = 1
 
-                # 방어막 열건가? 0 = 통과, 1 = 연다, 2 = 닫는다.
-                if not Memory.rooms[chambra_nomo].options.ramparts \
-                        and not Memory.rooms[chambra_nomo].options.ramparts == 0:
-                    Memory.rooms[chambra_nomo].options.ramparts = 0
-                # 방어막이 열려있는지 확인. 0이면 닫힌거. 위에꺼랑 같이 연동함.
-                if not Memory.rooms[chambra_nomo].options.ramparts_open \
-                        and not Memory.rooms[chambra_nomo].options.ramparts_open == 0:
-                    Memory.rooms[chambra_nomo].options.ramparts_open = 0
+            # 방어막 열건가? 0 = 통과, 1 = 연다, 2 = 닫는다.
+            if not Memory.rooms[chambra_nomo].options.ramparts \
+                and not Memory.rooms[chambra_nomo].options.ramparts == 0:
+                Memory.rooms[chambra_nomo].options.ramparts = 0
+            # 방어막이 열려있는지 확인. 0이면 닫힌거. 위에꺼랑 같이 연동함.
+            if not Memory.rooms[chambra_nomo].options.ramparts_open \
+                and not Memory.rooms[chambra_nomo].options.ramparts_open == 0:
+                Memory.rooms[chambra_nomo].options.ramparts_open = 0
 
-                # 각종현황(현재는 링크·타워만) 초기화 할것인가?
-                if not Memory.rooms[chambra_nomo].options.reset \
-                        and not Memory.rooms[chambra_nomo].options.reset == 0:
-                    Memory.rooms[chambra_nomo].options.reset = 1
+            # 각종현황(현재는 링크·타워만) 초기화 할것인가?
+            if not Memory.rooms[chambra_nomo].options.reset \
+                and not Memory.rooms[chambra_nomo].options.reset == 0:
+                Memory.rooms[chambra_nomo].options.reset = 1
 
-                # 화면안에 위에 설정값들 표기.
-                if Memory.rooms[chambra_nomo].options.display \
-                        and len(Memory.rooms[chambra_nomo].options.display) > 0:
-                    remotes_txt = ''
-                    if Memory.rooms[chambra_nomo].options.remotes:
-                        # 방이름으로 돌린다.
-                        for r in Object.keys(Memory.rooms[chambra_nomo][options][remotes]):
-                            # 지정된 리모트 추가
-                            remotes_txt += r
+            # 방 안에 벽이 있는가? 우선 주석화
+            # if not Memory.rooms[chambra_nomo][options][have_walls] \
+            #         and not Memory.rooms[chambra_nomo][options][have_walls] == 0:
+            #     Memory.rooms[chambra_nomo][options][have_walls] = 0
 
-                            # 배정된 병사 수 추가
-                            defendistoj = Memory.rooms[chambra_nomo][options][remotes][r][defenders]
-                            remotes_txt += '({}) '.format(defendistoj)
+            # 위에 벽과 연동: 벽의 체력이 어디까지 찼는가?
+            # 필요하긴 함?? 우선 삭제
+            # if not Memory.rooms[chambra_nomo][options][repair_done] \
+            #         and not Memory.rooms[chambra_nomo][options][repair_done] == 0:
+            #     Memory.rooms[chambra_nomo][options][repair_done] = 0
 
-                            # 각 리모트에도 설정한다. 당연하지만 안에 시야를 확보했을 경우만...
-                            if Memory.rooms[chambra_nomo].options.remotes[r].display \
-                                    and Game.rooms[r]:
-                                rx = Memory.rooms[chambra_nomo].options.remotes[r].display.x
-                                ry = Memory.rooms[chambra_nomo].options.remotes[r].display.y
-                                Game.rooms[r].visual.text('-def {}'.format(defendistoj), rx, ry)
+            # 화면안에 위에 설정값들 표기.
+            if Memory.rooms[chambra_nomo].options.display \
+                and len(Memory.rooms[chambra_nomo].options.display) > 0:
+                remotes_txt = ''
+                if Memory.rooms[chambra_nomo].options.remotes:
+                    # 방이름으로 돌린다.
+                    for r in Object.keys(Memory.rooms[chambra_nomo][options][remotes]):
+                        # 지정된 리모트 추가
+                        remotes_txt += r
 
-                    # 각 메모리 옵션별 값.
-                    hauler_txt = Memory.rooms[chambra_nomo].options.haulers
-                    repair_txt = Memory.rooms[chambra_nomo][options][repair]
-                    ramparts_txt = Memory.rooms[chambra_nomo].options.ramparts
-                    ramp_open_txt = Memory.rooms[chambra_nomo].options.ramparts_open
-                    nuke_txt = Memory.rooms[chambra_nomo].options.fill_nuke
-                    lab_txt = Memory.rooms[chambra_nomo].options.fill_labs
-                    tow_txt = Memory.rooms[chambra_nomo].options.tow_atk
-                    upg_txt = Memory.rooms[chambra_nomo].options[max_upgraders]
-                    energy_txt = Memory.rooms[chambra_nomo].options[max_energy]
+                        # 배정된 병사 수 추가
+                        defendistoj = Memory.rooms[chambra_nomo][options][remotes][r][defenders]
+                        remotes_txt += '({}) '.format(defendistoj)
 
-                    # 찍힐 좌표
-                    disp_x = Memory.rooms[chambra_nomo].options.display.x
-                    disp_y = Memory.rooms[chambra_nomo].options.display.y
+                        # 각 리모트에도 설정한다. 당연하지만 안에 시야를 확보했을 경우만...
+                        if Memory.rooms[chambra_nomo].options.remotes[r].display \
+                            and Game.rooms[r]:
+                            rx = Memory.rooms[chambra_nomo].options.remotes[r].display.x
+                            ry = Memory.rooms[chambra_nomo].options.remotes[r].display.y
+                            Game.rooms[r].visual.text('-def {}'.format(defendistoj), rx, ry)
 
-                    # \n doesnt work
-                    # print('mmr;', Memory.cpu_usage[-1])
-                    chambro.visual.text('lastCPU {}, {} 틱당평균 {}, 버켓 {}'
-                                        .format(last_cpu, len(Memory.cpu_usage), avg_cpu, Game.cpu.bucket),
-                                        disp_x, disp_y-2)
-                    chambro.visual.text('remotes(def): {}'.format(remotes_txt),
-                                        disp_x, disp_y-1)
-                    chambro.visual.text('허울러: {} | 업글러: {} | 수리: {} | 방벽(open): {}({})'
-                                        .format(hauler_txt, upg_txt, repair_txt, ramparts_txt, ramp_open_txt),
-                                        disp_x, disp_y)
-                    chambro.visual.text('fillNuke/Labs: {}/{}, tow_atk/reset: {}/{}'
-                                        .format(nuke_txt, lab_txt, tow_txt, 10000 - Game.time % 10000),
-                                        disp_x, disp_y+1)
-                    chambro.visual.text('에너지할당량: {}'.format(energy_txt), disp_x, disp_y+2)
-                    # chambro.visual.text(display_txt, disp_x, disp_y+2)
+                # 각 메모리 옵션별 값.
+                hauler_txt = Memory.rooms[chambra_nomo].options.haulers
+                repair_txt = Memory.rooms[chambra_nomo][options][repair]
+                ramparts_txt = Memory.rooms[chambra_nomo].options.ramparts
+                ramp_open_txt = Memory.rooms[chambra_nomo].options.ramparts_open
+                nuke_txt = Memory.rooms[chambra_nomo].options.fill_nuke
+                lab_txt = Memory.rooms[chambra_nomo].options.fill_labs
+                tow_txt = Memory.rooms[chambra_nomo].options.tow_atk
+                upg_txt = Memory.rooms[chambra_nomo].options[max_upgraders]
+                energy_txt = Memory.rooms[chambra_nomo].options[max_energy]
+
+                # 찍힐 좌표
+                disp_x = Memory.rooms[chambra_nomo].options.display.x
+                disp_y = Memory.rooms[chambra_nomo].options.display.y
+
+                # \n doesnt work
+                # print('mmr;', Memory.cpu_usage[-1])
+                chambro.visual.text('lastCPU {}, {} 틱당평균 {}, 버켓 {}'
+                                    .format(last_cpu, len(Memory.cpu_usage), avg_cpu, Game.cpu.bucket),
+                                    disp_x, disp_y - 2)
+                chambro.visual.text('remotes(def): {}'.format(remotes_txt),
+                                    disp_x, disp_y - 1)
+                chambro.visual.text('허울러: {} | 업글러: {} | 수리: {} | 방벽(open): {}({})'
+                                    .format(hauler_txt, upg_txt, repair_txt, ramparts_txt, ramp_open_txt),
+                                    disp_x, disp_y)
+                chambro.visual.text('fillNuke/Labs: {}/{}, tow_atk/reset: {}/{}'
+                                    .format(nuke_txt, lab_txt, tow_txt, 10000 - Game.time % 10000),
+                                    disp_x, disp_y + 1)
+                chambro.visual.text('에너지할당량: {}'.format(energy_txt), disp_x, disp_y + 2)
+                # chambro.visual.text(display_txt, disp_x, disp_y+2)
 
         # ALL .find() functions are done in here. THERE SHOULD BE NONE INSIDE CREEP FUNCTIONS!
         # filters are added in between to lower cpu costs.
@@ -371,91 +381,135 @@ def main():
             else:
                 terminal_capacity = 10000
 
-        # todo 현재 이거 일일히 넣는게 매우 비효율적이니 메모리에 넣는걸 생각해보자.
-        if bool(nukes):
-            # list of ALL repairs in the room.
-            repairs = all_structures.filter(lambda s: (((s.structureType == STRUCTURE_ROAD
-                                                         or s.structureType == STRUCTURE_TOWER
-                                                         or s.structureType == STRUCTURE_EXTENSION
-                                                         or s.structureType == STRUCTURE_LINK
-                                                         or s.structureType == STRUCTURE_LAB
-                                                         or s.structureType == STRUCTURE_CONTAINER
-                                                         or s.structureType == STRUCTURE_STORAGE
-                                                         or s.structureType == STRUCTURE_SPAWN
-                                                         or s.structureType == STRUCTURE_POWER_SPAWN)
-                                                        and s.hits < s.hitsMax)
-                                                       or ((s.structureType == STRUCTURE_WALL
-                                                            and s.hits < int(repair_pts))
-                                                           or (s.structureType == STRUCTURE_RAMPART
-                                                               and ((s.hits < int(repair_pts))
-                                                                    or (s.pos == nukes[0].pos
-                                                                        and (s.hits < int(repair_pts * 2))))
-                                                               and chambro.controller.level > 1))))
+        # 핵이 있으면 비상!! 수리수치를 올린다.
+        if bool(nukes) and chambro.memory[options][repair] < 3:
+            if chambro.memory[options][repair] < 2:
+                chambro.memory[options][repair] = 2
+            nuke_extra = 150000
         else:
-            ram_cpu = Game.cpu.getUsed()
-            # list of ALL repairs in the room.
-            repairs = all_structures.filter(lambda s: (((s.structureType == STRUCTURE_ROAD
-                                                         or s.structureType == STRUCTURE_TOWER
-                                                         or s.structureType == STRUCTURE_EXTENSION
-                                                         or s.structureType == STRUCTURE_LINK
-                                                         or s.structureType == STRUCTURE_LAB
-                                                         or s.structureType == STRUCTURE_CONTAINER
-                                                         or s.structureType == STRUCTURE_STORAGE
-                                                         or s.structureType == STRUCTURE_SPAWN
-                                                         or s.structureType == STRUCTURE_POWER_SPAWN)
-                                                        and s.hits < s.hitsMax)))
+            nuke_extra = 0
+            # 모든 수리대상 찾는다. 분류는 위에 크립·타워 등에 따라 거른다.
+        repairs = all_structures.filter(lambda s: (s.structureType == STRUCTURE_ROAD
+                                                   or s.structureType == STRUCTURE_TOWER
+                                                   or s.structureType == STRUCTURE_EXTENSION
+                                                   or s.structureType == STRUCTURE_LINK
+                                                   or s.structureType == STRUCTURE_LAB
+                                                   or s.structureType == STRUCTURE_CONTAINER
+                                                   or s.structureType == STRUCTURE_STORAGE
+                                                   or s.structureType == STRUCTURE_SPAWN
+                                                   or s.structureType == STRUCTURE_POWER_SPAWN)
+                                                  and s.hits < s.hitsMax)
+        # print('WTFR', JSON.stringify(repairs))
+        wall_repairs = all_structures.filter(lambda s: (s.structureType == STRUCTURE_RAMPART
+                                                        or s.structureType == STRUCTURE_WALL)
+                                                       and s.hits < chambro.memory[options][
+                                                           repair] * 5000000 + nuke_extra)
 
-            # 확인작업: 루프문을 돌려서 5M 단위로 끊는다. 최저는 300.
-            wall_repairs = all_structures.filter(lambda s: ((s.structureType == STRUCTURE_WALL
-                                                             and s.hits < 300)
-                                                            or (s.structureType == STRUCTURE_RAMPART
-                                                                and (s.hits < 300 and chambro.controller.level > 1))))
-            # 이게 참이 아니라면 내 방이 아니기 때문에 아래 옵션필터가 없음. 그거 걸러내기.
-            my_room = True
-            # 방에 컨트롤러가 있는가?
-            if chambro.controller:
-                # 그게 내껀가?
-                if not chambro.controller.my:
-                    my_room = False
-            else:
-                my_room = False
+        # if chambro.controller and chambro.controller.my:
+        #     wall_repairs = all_structures.filter(lambda s: (s.structureType == STRUCTURE_RAMPART
+        #                                                     or s.structureType == STRUCTURE_WALL)
+        #                                                     and s.hits < s.hitsMax)
+        #     # 핵이 있으면 다르게 필터해야함.
+        #     if bool(nukes):
+        #         pass
+        #     else:
+        #         _.min(wall_repairs, lambda s: s.hits)
 
-            # 최저에 해당하는 벽이 있으면 그걸 최우선으로 잡는다.
-            if len(wall_repairs) or not my_room:
-                repairs.extend(wall_repairs)
-            else:
-                if Memory.rooms[chambra_nomo]['options'].repair > 0 and chambro.controller.level == 8:
-                    # 루프문을 돌려서 5M 단위로 끊는다.
-                    for i in range(1, Memory.rooms[chambra_nomo]['options'].repair + 1):
-                        repair_pts = i * 5000000
-                        wall_repairs = all_structures.filter(lambda s: ((s.structureType == STRUCTURE_WALL
-                                                                         and s.hits < int(repair_pts))
-                                                                        or (s.structureType == STRUCTURE_RAMPART
-                                                                            and (s.hits < int(repair_pts)
-                                                                                 and chambro.controller.level > 1))))
+        # ----------------------------------------------------
+        # NULLIFIED
+        # if bool(nukes):
+        #     # list of ALL repairs in the room.
+        #     repairs = all_structures.filter(lambda s: (((s.structureType == STRUCTURE_ROAD
+        #                                                  or s.structureType == STRUCTURE_TOWER
+        #                                                  or s.structureType == STRUCTURE_EXTENSION
+        #                                                  or s.structureType == STRUCTURE_LINK
+        #                                                  or s.structureType == STRUCTURE_LAB
+        #                                                  or s.structureType == STRUCTURE_CONTAINER
+        #                                                  or s.structureType == STRUCTURE_STORAGE
+        #                                                  or s.structureType == STRUCTURE_SPAWN
+        #                                                  or s.structureType == STRUCTURE_POWER_SPAWN)
+        #                                                 and s.hits < s.hitsMax)
+        #                                                or ((s.structureType == STRUCTURE_WALL
+        #                                                     and s.hits < int(repair_pts))
+        #                                                    or (s.structureType == STRUCTURE_RAMPART
+        #                                                        and ((s.hits < int(repair_pts))
+        #                                                             or (s.pos == nukes[0].pos
+        #                                                                 and (s.hits < int(repair_pts * 2))))
+        #                                                        and chambro.controller.level > 1))))
+        # else:
+        #     ram_cpu = Game.cpu.getUsed()
+        #     # list of ALL repairs in the room.
+        #     repairs = all_structures.filter(lambda s: (((s.structureType == STRUCTURE_ROAD
+        #                                                  or s.structureType == STRUCTURE_TOWER
+        #                                                  or s.structureType == STRUCTURE_EXTENSION
+        #                                                  or s.structureType == STRUCTURE_LINK
+        #                                                  or s.structureType == STRUCTURE_LAB
+        #                                                  or s.structureType == STRUCTURE_CONTAINER
+        #                                                  or s.structureType == STRUCTURE_STORAGE
+        #                                                  or s.structureType == STRUCTURE_SPAWN
+        #                                                  or s.structureType == STRUCTURE_POWER_SPAWN)
+        #                                                 and s.hits < s.hitsMax)))
+        #
+        #     # 확인작업: 루프문을 돌려서 5M 단위로 끊는다. 최저는 300.
+        #     wall_repairs = all_structures.filter(lambda s: ((s.structureType == STRUCTURE_WALL
+        #                                                      and s.hits < 300)
+        #                                                     or (s.structureType == STRUCTURE_RAMPART
+        #                                                         and (s.hits < 300 and chambro.controller.level > 1))))
+        #     # 이게 참이 아니라면 내 방이 아니기 때문에 아래 옵션필터가 없음. 그거 걸러내기.
+        #     my_room = True
+        #     # 방에 컨트롤러가 있는가?
+        #     if chambro.controller:
+        #         # 그게 내껀가?
+        #         if not chambro.controller.my:
+        #             my_room = False
+        #     else:
+        #         my_room = False
+        #
+        #     # 최저에 해당하는 벽이 있으면 그걸 최우선으로 잡는다.
+        #     if len(wall_repairs) or not my_room:
+        #         repairs.extend(wall_repairs)
+        #     else:
+        #         if Memory.rooms[chambra_nomo]['options'].repair > 0 and chambro.controller.level == 8:
+        #             # 루프문을 돌려서 5M 단위로 끊는다.
+        #             for i in range(1, Memory.rooms[chambra_nomo]['options'].repair + 1):
+        #                 repair_pts = i * 5000000
+        #                 wall_repairs = all_structures.filter(lambda s: ((s.structureType == STRUCTURE_WALL
+        #                                                                  and s.hits < int(repair_pts))
+        #                                                                 or (s.structureType == STRUCTURE_RAMPART
+        #                                                                     and (s.hits < int(repair_pts)
+        #                                                                          and chambro.controller.level > 1))))
+        #
+        #                 # 뭔가 있으면 그대로 넣고 끝.
+        #                 if len(wall_repairs) > 0:
+        #                     repairs.extend(wall_repairs)
+        #                     break
+        #         else:
+        #             # 리페어 레벨이 1 아래면 당장 돈이 없단 소리므로 최소한의 값만 채운다.
+        #             repair_pts = 50000
+        #             wall_repairs = all_structures.filter(lambda s: ((s.structureType == STRUCTURE_WALL
+        #                                                              and s.hits < int(repair_pts))
+        #                                                             or (s.structureType == STRUCTURE_RAMPART
+        #                                                                 and (s.hits < int(repair_pts)
+        #                                                                      and chambro.controller.level > 1))))
+        #
+        #             # 뭔가 있으면 그대로 넣고 끝.
+        #             if len(wall_repairs) > 0:
+        #                 repairs.extend(wall_repairs)
 
-                        # 뭔가 있으면 그대로 넣고 끝.
-                        if len(wall_repairs) > 0:
-                            repairs.extend(wall_repairs)
-                            break
-                else:
-                    # 리페어 레벨이 1 아래면 당장 돈이 없단 소리므로 최소한의 값만 채운다.
-                    repair_pts = 50000
-                    wall_repairs = all_structures.filter(lambda s: ((s.structureType == STRUCTURE_WALL
-                                                                     and s.hits < int(repair_pts))
-                                                                    or (s.structureType == STRUCTURE_RAMPART
-                                                                        and (s.hits < int(repair_pts)
-                                                                             and chambro.controller.level > 1))))
-
-                    # 뭔가 있으면 그대로 넣고 끝.
-                    if len(wall_repairs) > 0:
-                        repairs.extend(wall_repairs)
-
-            # print("{} CPU used for searching repairs in room {}"
-            #       .format(round(Game.cpu.getUsed() - ram_cpu, 2), chambra_nomo))
-
-        if not repairs or len(repairs) == 0:
-            repairs = []
+        # 벽을 본다.
+        all_repairs = []
+        if not len(wall_repairs) == 0:
+            # 지도에서 가장 낮은 체력의 방벽
+            min_wall = _.min(wall_repairs, lambda s: s.hits)
+            # 가장 낮은 체력의 방벽이 몇? 여기서 필요한건 아님.
+            min_hits = int(min_wall.hits / 5000000)
+            # repairs.extend(wall_repairs)
+            all_repairs.extend(repairs)
+            all_repairs.extend(wall_repairs)
+        else:
+            min_wall = []
+            min_hits = 0
+            all_repairs.extend(repairs)
 
         my_structures = chambro.find(FIND_MY_STRUCTURES)
 
@@ -494,7 +548,7 @@ def main():
 
             elif creep.memory.role == 'hauler':
                 role_hauler.run_hauler(creep, all_structures, constructions,
-                                       room_creeps, dropped_all, repairs, terminal_capacity)
+                                       room_creeps, dropped_all, all_repairs, terminal_capacity)
                 """
                 :param creep:
                 :param all_structures: creep.room.find(FIND_STRUCTURES)
@@ -505,17 +559,16 @@ def main():
                 """
             elif creep.memory.role == 'fixer':
                 role_fixer.run_fixer(creep, all_structures, constructions,
-                                     room_creeps, dropped_all, repairs, terminal_capacity)
+                                     room_creeps, all_repairs, min_wall, terminal_capacity)
                 """
                 :param creep:
                 :param all_structures: creep.room.find(FIND_STRUCTURES)
                 :param constructions: creep.room.find(FIND_CONSTRUCTION_SITES)
-                :param creeps: creep.room.find(FIND_MY_CREEPS)
-                :param dropped_all: creep.room.find(FIND_DROPPED_RESOURCES)
+                :param creeps: creep.room.find(FIND_MY_CREEPS))
                 :return:
                 """
             elif creep.memory.role == 'carrier':
-                role_carrier.run_carrier(creep, room_creeps, all_structures, constructions, dropped_all, repairs)
+                role_carrier.run_carrier(creep, room_creeps, all_structures, constructions, dropped_all, all_repairs)
                 """
                 technically same with hauler, but more concentrated in carrying itself.
                     and it's for remote mining ONLY.
@@ -528,7 +581,7 @@ def main():
 
             # run at (rate * 10)% rate at a time if bucket is less than 2k and ur on 10 cpu limit.
             if Game.cpu.bucket < cpu_bucket_emergency and not (
-                    creep.memory.role == 'soldier' or creep.memory.role == 'harvester'):
+                creep.memory.role == 'soldier' or creep.memory.role == 'harvester'):
                 rate = 2
                 if random.randint(0, rate) == 0:
                     # print('passed creep:', creep.name)
@@ -536,7 +589,7 @@ def main():
                     continue
 
             if creep.memory.role == 'upgrader':
-                role_upgrader.run_upgrader(creep, room_creeps, all_structures, repairs, constructions)
+                role_upgrader.run_upgrader(creep, room_creeps, all_structures, all_repairs, constructions)
 
             elif creep.memory.role == 'miner':
                 role_harvester.run_miner(creep, all_structures)
@@ -579,18 +632,16 @@ def main():
                     chambro.memory[STRUCTURE_CONTAINER] = []
                 if not chambro.memory[STRUCTURE_LAB] or chambro.memory.options.reset:
                     chambro.memory[STRUCTURE_LAB] = []
-                # todo 수리를 위한 목록. 이건 무조건 한번씩 리셋. 다만 다른거 정상적으로 돌때의 반만.
+                # 벽이 있는지 확인. 없으면 굳이 돌릴 필요가 없음.
+                # 이거도 필요하긴 함...?? 주석화
+                # if len(wall_repairs) > 0 and not chambro.memory[options][have_walls]:
+                #     chambro.memory[options][have_walls] = 1
+                # elif len(wall_repairs) == 0:
+                #     chambro.memory[options][have_walls] = 0
 
-                if chambro.memory.options.reset or Game.time % structure_renew_count * 2 == 0:
-                    chambro.memory[repair_targets] = []
-                    # 수리를 위한 건물목록은 단계별 수리로 지정된 것들, 즉 STRUCTURE_WALL / STRUCTURE_RAMPART 두가지만 넣는다.
-                    walls_n_ramparts = all_structures.filter(lambda s: s.structureType == STRUCTURE_RAMPART
-                                                             and s.structureType == STRUCTURE_WALL)
-                    # repair_targets 안에 넣는다.
-                    # 안에 들어갈건 크게 세가지: id, pos, hits, structureType
-                    for w in walls_n_ramparts:
-                        chambro.memory[repair_targets].append({'id': w.id, 'pos': w.pos, 'hits': w.hits,
-                                                               'structureType': w.structureType})
+                # # 여기서 렙몇까지 수리가 됬는지 확인.
+                # if chambro.memory[options][have_walls]:
+                #     if min_hits != chambro.memory[options][repair_done]
 
                 # 매번 완전초기화 하면 너무 자원낭비. 수량 틀릴때만 돌린다.
                 # 타워세기.
@@ -606,8 +657,8 @@ def main():
                     chambro.memory[STRUCTURE_LINK] = []
                     # 안보내는 조건은 주변 5칸거리내에 컨트롤러·스폰·스토리지가 있을 시.
                     str_points = _.filter(all_structures, lambda s: s.structureType == STRUCTURE_STORAGE
-                                          or s.structureType == STRUCTURE_SPAWN or s.structureType == STRUCTURE_TERMINAL
-                                          or s.structureType == STRUCTURE_EXTENSION)
+                                                                    or s.structureType == STRUCTURE_SPAWN or s.structureType == STRUCTURE_TERMINAL
+                                                                    or s.structureType == STRUCTURE_EXTENSION)
                     # 링크는 크게 두 종류가 존재한다. 하나는 보내는거, 또하난 안보내는거.
                     for stl in str_links:
                         for_store = 0
@@ -648,9 +699,9 @@ def main():
                                 break
                         # 확인 끝났으면 이제 방 업글용인지 확인한다. 방렙 8 미만 + 컨트롤러부터의 실제 거리가 5 이하인가?
                         if chambro.controller.level < 8 \
-                                and len(stc.pos.findPathTo(chambro.controller, {'ignoreCreeps': True})) <= 5:
+                            and len(stc.pos.findPathTo(chambro.controller, {'ignoreCreeps': True})) <= 5:
                             for_upgrade = 1
-                        chambro.memory[STRUCTURE_CONTAINER]\
+                        chambro.memory[STRUCTURE_CONTAINER] \
                             .push({'id': stc.id, 'for_upgrade': for_upgrade, 'for_harvest': for_harvest})
                 chambro.memory.options.reset = 0
             # 여기로 왔으면 내 방이 아닌거.
@@ -671,7 +722,6 @@ def main():
 
         # running tower, links
         if chambro.memory[STRUCTURE_TOWER] and len(chambro.memory[STRUCTURE_TOWER]) > 0:
-            tow_repairs = repairs
             # 임시조치
             # tow_repairs = []
             # # 타워는 벽·방어막 체력 1000 이하만 고친다.
@@ -686,6 +736,19 @@ def main():
             #                 and repair_obj.hits < 5500):
             #             tow_repairs.append(repair_obj)
             #             break
+            # print('repairs', JSON.stringify(repairs))
+            # 수리는 크게 두종류만 한다. 도로와 컨테이너 빼면 전부 즉각수리. 나머지는 시급할때만.
+            tow_repairs = repairs.filter(lambda s: (s.structureType != STRUCTURE_ROAD
+                                                    and s.structureType != STRUCTURE_CONTAINER)
+                                                   or (s.structureType == STRUCTURE_CONTAINER
+                                                       and s.hits < 6000)
+                                                   or (s.structureType == STRUCTURE_ROAD
+                                                        and s.hits < 2000))
+            # 벽수리는 5만까지만. 다만 핵이 있으면 통과.
+            if min_wall.hits < 50000 or bool(nukes):
+                # print('min_wall', min_wall)
+                tow_repairs.append(min_wall)
+            # print('tow', JSON.stringify(tow_repairs))
             # 한놈만 팬다.
             if len(hostile_creeps) > 1:
                 enemy = [hostile_creeps[0]]
@@ -716,7 +779,7 @@ def main():
                 for_str += 1
         # check every 20 ticks.
         if Game.time % 20 == 0 and chambro.memory[STRUCTURE_CONTAINER] \
-                and len(chambro.memory[STRUCTURE_CONTAINER]) > 0:
+            and len(chambro.memory[STRUCTURE_CONTAINER]) > 0:
             for_str = 0
             for cc in chambro.memory[STRUCTURE_CONTAINER]:
                 if not Game.getObjectById(cc.id):
@@ -797,7 +860,7 @@ def main():
 
             structure_spawn.run_spawn(nesto, all_structures, room_creeps, hostile_creeps, divider, counter
                                       , cpu_bucket_emergency, cpu_bucket_emergency_spawn_start, extractor
-                                      , terminal_capacity, chambro, interval)
+                                      , terminal_capacity, chambro, interval, wall_repairs, min_hits)
 
             spawn_cpu_end = Game.cpu.getUsed() - spawn_cpu
             if Memory.debug or Game.time % interval == 0 or Memory.tick_check:
@@ -823,5 +886,6 @@ def main():
         Memory.tick_check = False
 
     pathfinding.run_maintenance()
+
 
 module.exports.loop = main
