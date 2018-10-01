@@ -180,38 +180,87 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                                                       and _.sum(s.store) >= creep.carryCapacity * .5)
                                                      or (s.structureType == STRUCTURE_LINK
                                                          and s.energy >= creep.carryCapacity * .5))
-
-                    # 컨테이너 중에 업글용인거 아닌거 걸러낸다.
-                    # 이 작업은 업그레이더가 필요한 시기 업그레이더용 전용 컨테이너를 걸러내기 위해 필요하다.
-                    # 조건: 렙 8 미만 및 방에 스토리지가 있을 때.
-                    if creep.room.controller.level < 8 and creep.room.storage:
-                        # 다끝나고 이걸로 새로 덮을거임
-                        new_storage = []
-                        for s in storages:
-                            # 컨테이너만 필요.
-                            if s.structureType == STRUCTURE_CONTAINER:
-                                # 메모리상 컨테이너 다 돌림
-                                for u_cont in creep.room.memory[STRUCTURE_CONTAINER]:
-                                    # 업글용이면 포함 안되야함.
-                                    if u_cont.id == s.id:
-                                        if not u_cont.for_upgrade:
-                                            new_storage.append(s)
-                                        break
-                            # 해당사항 없으면 그냥 다 넣기
-                            else:
-                                new_storage.append(s)
-                        # 덮어씌우고 끝.
-                        storages = new_storage
                 else:
-                    if creep.room.storage and \
-                            creep.room.storage.store[RESOURCE_ENERGY] >= creep.carryCapacity * .5:
-                        storages = [creep.room.storage]
-                    else:
-                        storages = []
+                    storages = all_structures.filter(lambda s:
+                                                     (s.structureType == STRUCTURE_CONTAINER
+                                                      and _.sum(s.store) >= creep.carryCapacity * .5)
+                                                     or (s.structureType == STRUCTURE_LINK
+                                                         and s.energy >= creep.carryCapacity * .5)
+                                                     or (s.structureType == STRUCTURE_STORAGE
+                                                         and s.store[RESOURCE_ENERGY]>= creep.carryCapacity * .5))
+
+                # 컨테이너 중에 업글용인거 아닌거 걸러낸다.
+                # 이 작업은 업그레이더가 필요한 시기 업그레이더용 전용 컨테이너를 걸러내기 위해 필요하다.
+                # 조건: 렙 8 미만 및 방에 스토리지가 있을 때.
+                if creep.room.controller.level < 8 and creep.room.storage:
+                    # 다끝나고 이걸로 새로 덮을거임
+                    new_storage = []
+                    for s in storages:
+                        # 컨테이너만 필요.
+                        if s.structureType == STRUCTURE_CONTAINER:
+                            # 메모리상 컨테이너 다 돌림
+                            for u_cont in creep.room.memory[STRUCTURE_CONTAINER]:
+                                # 업글용이면 포함 안되야함.
+                                if u_cont.id == s.id:
+                                    if not u_cont.for_upgrade:
+                                        new_storage.append(s)
+                                    break
+                        # 해당사항 없으면 그냥 다 넣기
+                        else:
+                            new_storage.append(s)
+                    # 덮어씌우고 끝.
+                    storages = new_storage
+
+                # NULLIFIED
+                # if not to_storage_chance:
+                #     # find any containers/links with any resources inside
+                #     if not to_storage_chance:
+                #         storages = all_structures.filter(lambda s:
+                #                                          (s.structureType == STRUCTURE_CONTAINER
+                #                                           and _.sum(s.store) >= creep.carryCapacity * .5)
+                #                                          or (s.structureType == STRUCTURE_LINK
+                #                                              and s.energy >= creep.carryCapacity * .5))
+                #     else:
+                #         storages = all_structures.filter(lambda s:
+                #                                          (s.structureType == STRUCTURE_CONTAINER
+                #                                           and _.sum(s.store) >= creep.carryCapacity * .5)
+                #                                          or (s.structureType == STRUCTURE_LINK
+                #                                              and s.energy >= creep.carryCapacity * .5)
+                #                                          or (s.structureType == STRUCTURE_STORAGE
+                #                                              and s.store[RESOURCE_ENERGY]>= creep.carryCapacity * .5))
+                #
+                #     # 컨테이너 중에 업글용인거 아닌거 걸러낸다.
+                #     # 이 작업은 업그레이더가 필요한 시기 업그레이더용 전용 컨테이너를 걸러내기 위해 필요하다.
+                #     # 조건: 렙 8 미만 및 방에 스토리지가 있을 때.
+                #     if creep.room.controller.level < 8 and creep.room.storage:
+                #         # 다끝나고 이걸로 새로 덮을거임
+                #         new_storage = []
+                #         for s in storages:
+                #             # 컨테이너만 필요.
+                #             if s.structureType == STRUCTURE_CONTAINER:
+                #                 # 메모리상 컨테이너 다 돌림
+                #                 for u_cont in creep.room.memory[STRUCTURE_CONTAINER]:
+                #                     # 업글용이면 포함 안되야함.
+                #                     if u_cont.id == s.id:
+                #                         if not u_cont.for_upgrade:
+                #                             new_storage.append(s)
+                #                         break
+                #             # 해당사항 없으면 그냥 다 넣기
+                #             else:
+                #                 new_storage.append(s)
+                #         # 덮어씌우고 끝.
+                #         storages = new_storage
+                # else:
+                #     if creep.room.storage and \
+                #             creep.room.storage.store[RESOURCE_ENERGY] >= creep.carryCapacity * .5:
+                #         storages = [creep.room.storage]
+                #     else:
+                #         storages = []
 
                 # 위 목록 중에서 가장 가까이 있는 컨테이너를 뽑아간다.
                 # 만약 뽑아갈 대상이 없을 시 터미널, 스토리지를 각각 찾는다.
                 # 만일 연구소를 안채우기로 했으면 거기서도 뽑는다.
+
                 if Memory.rooms[creep.room.name].options.fill_labs == 0:
                     # print('no nuke')
                     labs = all_structures \

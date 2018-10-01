@@ -18,5 +18,10 @@ have_walls = 'have_walls'
 repair_done = 'repair_done'
 stop_fixer = 'stop_fixer'
 
+# 리모트 내 자원들
+resources = 'resources'
+energy = 'energy'
+minerals = 'minerals'
+
 # 따옴표 귀찮음...
 ignoreCreeps = 'ignoreCreeps'
