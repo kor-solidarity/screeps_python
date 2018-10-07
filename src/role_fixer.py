@@ -67,10 +67,18 @@ def run_fixer(creep, all_structures, constructions, creeps, repairs, min_wall, t
     # laboro: 0 == pickup something.
     if creep.memory.laboro == 0:
 
-        if creep.memory.pickup and not Game.getObjectById(creep.memory.pickup):
+        if creep.memory.pickup and \
+            (not Game.getObjectById(creep.memory.pickup)
+             or not Game.getObjectById(creep.memory.pickup).room.name == creep.memory.assigned_room):
             del creep.memory.pickup
 
+        if not creep.room.name == creep.memory.assigned_room and not creep.memory.pickup:
+            get_to_da_room(creep, creep.memory.assigned_roomm, False)
+            return
+
         if not creep.memory.pickup:
+            # if not creep.room.name == creep.memory.assigned_room:
+            #     all_structures = Game.rooms[creep.memory.assigned_room].find(FIND_STRUCTURES)
             # 근처에 보이는거 아무거나 집는다. 허울러와 동일.
             # find anything with any resources inside
             storages = all_structures.filter(lambda s:
@@ -115,6 +123,7 @@ def run_fixer(creep, all_structures, constructions, creeps, repairs, min_wall, t
         elif result == 0:
             creep.say('최전선으로!⛟', True)
             creep.memory.laboro = 1
+            del creep.memory.last_swap
             del creep.memory.pickup
         # 내용물이 없으면 삭제하고 다른거 찾아야함.
         elif result == ERR_NOT_ENOUGH_ENERGY:
@@ -128,7 +137,7 @@ def run_fixer(creep, all_structures, constructions, creeps, repairs, min_wall, t
     # 1 == 본격적인 수리작업 시작.
     if creep.memory.laboro == 1:
         if creep.memory.repair_target and Game.getObjectById(creep.memory.repair_target).hits \
-                == Game.getObjectById(creep.memory.repair_target).hitsMax:
+            == Game.getObjectById(creep.memory.repair_target).hitsMax:
             del creep.memory.repair_target
         # 우선 생략
         if not creep.memory.repair_target:
@@ -145,7 +154,7 @@ def run_fixer(creep, all_structures, constructions, creeps, repairs, min_wall, t
 
         if creep.pos.inRangeTo(Game.getObjectById(creep.memory.repair_target), 3):
             repairs = [Game.getObjectById(creep.memory.repair_target)]
-        repair_on_the_way(creep, repairs, constructions, True)
+        repair_on_the_way(creep, repairs, constructions, True, True)
 
         if not creep.pos.inRangeTo(Game.getObjectById(creep.memory.repair_target), 6):
             # 현재 위치한 곳이 이전 틱에도 있던곳인지 확인하고 옮기는 등의 절차.

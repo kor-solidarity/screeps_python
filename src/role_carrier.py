@@ -368,9 +368,11 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                 # at first it was to move to controller.
                 # but somehow keep getting an error, so let's try
                 if len(repairs) > 0 and creep.memory.work:
-                    repair = creep.pos.findClosestByRange(repairs)
-                    creep.repair(repair)
-                get_to_da_room(creep, creep.memory.home_room, False)
+                    # repair = creep.pos.findClosestByRange(repairs)
+                    # creep.repair(repair)
+                    repair_on_the_way(creep, repairs, constructions, False, True)
+                go = get_to_da_room(creep, creep.memory.home_room, False)
+                creep.say(go)
                 return
 
             # fixed container/link target to move to.

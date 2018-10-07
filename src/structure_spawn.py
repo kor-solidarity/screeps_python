@@ -15,8 +15,9 @@ __pragma__('noalias', 'update')
 
 
 # 스폰을 메인에서 쪼개기 위한 용도. 현재 어떻게 빼내야 하는지 감이 안잡혀서 공백임.
-def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, counter, cpu_bucket_emergency
-              , cpu_bucket_emergency_spawn_start, extractor, terminal_capacity, chambro, interval, wall_repairs, min_hits):
+def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, counter,
+              cpu_bucket_emergency, cpu_bucket_emergency_spawn_start, extractor,
+              terminal_capacity, chambro, interval, wall_repairs, min_wall, min_hits):
     # print('yolo')
     spawn_cpu = Game.cpu.getUsed()
     # if spawn is not spawning, try and make one i guess.
@@ -394,6 +395,8 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                 and len(wall_repairs) and chambro.controller.level >= 7 \
                 and chambro.storage and chambro.storage.store[RESOURCE_ENERGY] >= 5000:
             # print('check fixer')
+            # print('chambro_lvl {} minHits {} repairLvl {}'
+            #       .format(chambro.controller.level, min_hits, chambro.memory[options][repair]))
             if chambro.controller.level == 7 and chambro.storage.store[RESOURCE_ENERGY] >= 10000:
                 max_num_fixers = 1
             # 벽수리가 중심인데 수리할 벽이 없으면 의미가 없음.
@@ -404,6 +407,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                 if max_num_fixers > 6:
                     max_num_fixers = 6
             else:
+                print('wtf')
                 max_num_fixers = 0
             if len(creep_fixers) < max_num_fixers:
                 fixer_spawn = spawn.createCreep(
@@ -488,7 +492,8 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                     # Memory.rooms[spawn.room.name][options][remotes].update({Game.flags[flag_name].pos.roomName: init})
                     print('Memory.rooms[{}][options][remotes][{}]'.format(spawn.room.name,
                                                                           Game.flags[flag_name].pos.roomName),
-                          Memory.rooms[spawn.room.name][options][remotes][Game.flags[flag_name].pos.roomName])
+                          JSON.stringify(Memory.rooms[spawn.room.name][options][remotes][Game.flags[flag_name]
+                                         .pos.roomName]))
 
                 delete_flag = True
 
@@ -518,7 +523,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                         if Memory.rooms[i].options and Memory.rooms[i].options.remotes:
                             for r in Object.keys(Memory.rooms[i].options.remotes):
                                 if r == flag_room_name:
-                                    r.defenders = number
+                                    Memory.rooms[i].options.remotes[r][defenders] = number
                                     found = True
                         if found:
                             break

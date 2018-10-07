@@ -102,7 +102,9 @@ def swapping(creep, creeps, avoid_id='', avoid_role=''):
             creep.moveTo(c)
             return c.id
     creep.memory.move_ticks = 1
+    if avoid_id:
+        del avoid_id
     return ERR_NO_PATH
 
 
-# def move_using
+# def move_using_swap(creep, creeps, avoid_id=False, avoid_role=False):

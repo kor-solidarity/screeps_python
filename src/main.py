@@ -219,7 +219,7 @@ def main():
     for chambra_nomo in Object.keys(Game.rooms):
         chambro_cpu = Game.cpu.getUsed()
         chambro = Game.rooms[chambra_nomo]
-        # 방 메모리가 아예 없을경우.
+        # 방 메모리가 아예 없을경우. 현재는 컨트롤러가 점령된 방만 쓴다.
         if not Memory.rooms:
             Memory.rooms = {}
         # 게임 내 수동조작을 위한 초기화 설정. 단, 방이 우리꺼일 경우에만 적용.
@@ -753,6 +753,12 @@ def main():
         print("total of {} creeps run with avg. {} cpu, tot. {} cpu"
               .format(total_creep_cpu_num, round(total_creep_cpu / total_creep_cpu_num, 2), round(total_creep_cpu, 2)))
 
+    # 텅빈메모리 제거작업
+    if Game.time % structure_renew_count == 0:
+        for n in Object.keys(Memory.rooms):
+            if not Object.keys(Memory.rooms[n])[0]:
+                del Memory.rooms[n]
+                print('{}방 메모리 텅비어서 삭제'.format(n))
     # adding total cpu
     # while len(Memory.cpu_usage.total) >= Memory.ticks:
     while len(Memory.cpu_usage) >= Memory.ticks:

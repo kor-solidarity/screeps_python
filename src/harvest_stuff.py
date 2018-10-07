@@ -35,8 +35,13 @@ def harvest_energy(creep, source_num):
             creep.say('일꾼생산해라좀', True)
         return 0
 
+    if not creep.pos.isNearTo(Game.getObjectById(source_num)):
+        harvested = ERR_NOT_IN_RANGE
+    elif Game.getObjectById(source_num).energy == 0:
+        harvested = ERR_NOT_ENOUGH_RESOURCES
     # activate the harvest cmd.
-    harvested = creep.harvest(Game.getObjectById(source_num))
+    else:
+        harvested = creep.harvest(Game.getObjectById(source_num))
 
     # is sources too far out?
     # creep.say(harvested)
@@ -62,12 +67,17 @@ def grab_energy(creep, pickup, only_energy, min_capacity=.5):
     grabbing energy from local storages(container, storage, etc.)
 
     :param creep:
-    :param pickup: creep.memory. 가장 가까운 또는 목표 storage의 ID
+    :param pickup: creep.memory.pickup 가장 가까운 또는 목표 storage의 ID
     :param only_energy: bool
     :param min_capacity:
     :return: any creep.withdraw return codes
     """
     # we will make new script for some stuff.
+
+    if not Game.getObjectById(pickup):
+        # print(creep.name, 'invalid wtf')
+        del pickup
+        return ERR_INVALID_TARGET
 
     # if there's no energy in the pickup target, delete it
     try:
@@ -90,26 +100,24 @@ def grab_energy(creep, pickup, only_energy, min_capacity=.5):
         creep.say('ERROR!')
         return ERR_INVALID_TARGET
 
+    # 근처에 없으면 아래 확인하는 의미가 없다.
+    if not Game.getObjectById(pickup).pos.isNearTo(creep):
+        # print(creep.name, 'not in range wtf', Game.getObjectById(pickup).pos.isNearTo(creep))
+        return ERR_NOT_IN_RANGE
+
     # check if memory.pickup has store API or not
     if Game.getObjectById(pickup).store:
         carry_objects = Game.getObjectById(pickup).store
     else:
         carry_objects = Game.getObjectById(pickup).energy
 
-    # print('len(carry_objects)', len(carry_objects))
     # 에너지만 있는 대상이거나 에너지만 뽑으라고 설정된 경우.
     if len(carry_objects) == 0 or only_energy:
-        # print('pick it up.')
         result = creep.withdraw(Game.getObjectById(pickup), RESOURCE_ENERGY)
-        # print(result)
-        # pick it up.
         return result
 
     # STRUCTURE_CONTAINER || STRUCTURE_STORAGE
     else:
-
-        # result = ERR_NOT_ENOUGH_ENERGY
-
         # 에너지 외 다른 자원을 먼져 뽑는걸 원칙으로 한다.
         # 에너지 외 다른게 있을 경우
         if len(carry_objects) > 1:
@@ -119,8 +127,6 @@ def grab_energy(creep, pickup, only_energy, min_capacity=.5):
                     continue
                 # if there's no such resource, pass it to next loop.
                 if Game.getObjectById(pickup).store[resource] == 0:
-                    # if creep.name == check_name:
-                    #     print('WTF')
                     continue
 
                 # pick it up.
@@ -146,13 +152,18 @@ def pick_drops(creep, pickup, only_energy):
     :return:
     """
 
-    creeps_pickup = Game.getObjectById(pickup)
-    if not creeps_pickup:
+    pickup_obj = Game.getObjectById(pickup)
+    if not pickup_obj:
         return ERR_INVALID_TARGET
+
+    # 근처에 없으면 이걸 돌릴 이유가 없다.
+    if not pickup_obj.pos.isNearTo(creep):
+        return ERR_NOT_IN_RANGE
+
     # 두 경우만 존재한다. 떨궈졌냐? 무덤이냐
     # 무덤?
-    if creeps_pickup.store:
-        for resource in Object.keys(creeps_pickup.store):
+    if pickup_obj.store:
+        for resource in Object.keys(pickup_obj.store):
             # if the creep only need to pick up energy.
             if only_energy and resource != RESOURCE_ENERGY:
                 continue
@@ -175,9 +186,9 @@ def pick_drops(creep, pickup, only_energy):
     # 떨군거
     else:
 
-        if only_energy and creeps_pickup.resourceType != RESOURCE_ENERGY:
+        if only_energy and pickup_obj.resourceType != RESOURCE_ENERGY:
             return ERR_INVALID_TARGET
         else:
-            grab_action = creep.pickup(creeps_pickup)
+            grab_action = creep.pickup(pickup_obj)
 
             return grab_action

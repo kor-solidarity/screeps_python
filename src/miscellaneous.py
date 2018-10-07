@@ -421,19 +421,32 @@ def clear_orders():
 # noinspection PyPep8Naming
 def get_to_da_room(creep, roomName, ignoreRoads=True):
     """
+    특정 방으로 무작정 보내기.
 
     :param creep:
-    :param roomName:
-    :param ignoreRoads:
+    :param roomName: 가려고 하는 방이름.
+    :param ignoreRoads: 기본값 참.
     :return:
     """
     # 이 명령은 단순히 시야확보 등의 발령목적으로 보내버리는거기 때문에
     # 방 안에 있으면 무조건 ignoreRoads가 참이여야함
     if creep.room.name == roomName:
         ignoreRoads = True
-    result = creep.moveTo(__new__(RoomPosition(25, 25, roomName))
-                          , {'visualizePathStyle': {'stroke': '#ffffff'}, 'reusePath': 15, 'range': 21
-                              , 'maxOps': 1000, 'ignoreRoads': ignoreRoads})
+    # 방안에 있으면 추가로 돌릴 필요가 없으니.
+    # todo 엉킴...
+    # if creep.room.name == roomName and creep.pos.inRangeTo(creep.room.controller, 5)\
+    #         or (creep.room.name == roomName and
+    #             (creep.pos.x < 3 or 47 < creep.pos.x
+    #              and creep.pos.y < 3 or 47 < creep.pos.y)):
+    #     return ERR_NO_PATH
+    if creep.room.name == roomName and creep.pos.inRangeTo(creep.room.controller, 5):
+        # return ERR_NO_PATH
+        return 'yolo'
+
+    result = creep.moveTo(__new__(RoomPosition(25, 25, roomName)),
+    # result = creep.moveTo(Game.rooms[roomName].controller,
+                          {'visualizePathStyle': {'stroke': '#ffffff'}, 'reusePath': 15,
+                           'range': 21, 'maxOps': 1000, 'ignoreRoads': ignoreRoads})
     return result
 
 
@@ -457,7 +470,7 @@ def swapping(creep, creeps, avoid_id=0, avoid_role=''):
     return ERR_NO_PATH
 
 
-def repair_on_the_way(creep, repairs, constructions, upgrader=False):
+def repair_on_the_way(creep, repairs, constructions, upgrader=False, irregular=False):
     """
     운송크립 운송작업중 주변에 컨트롤러나 수리해야하는거 등 있으면 무조건 하고 지나간다.
 
@@ -465,15 +478,30 @@ def repair_on_the_way(creep, repairs, constructions, upgrader=False):
     :param repairs:
     :param constructions:
     :param upgrader: 크립이 업글러일때만 설정. 기본값 거짓
+    :param irregular: 크립에게 항시 업글 안시키려는 의도. 엥간해선 안씀.
     :return:
     """
+
+    # 내 컨트롤러고 그게 렙8이 아니거나 현 크립이 업글러인지? 둘중하나면 시행.
+    # 이 작업은 렙8될때까지 모두가 방발전에 총력을 다해야 하는 상황이기에 만들어졌음.
     if (creep.room.controller and creep.room.controller.my and creep.room.controller.level < 8)\
             or upgrader:
-        creep.upgradeController(Game.getObjectById(creep.memory.upgrade_target))
+        if irregular:
+            if Game.time % 5 == 0:
+                run_upg = True
+            else:
+                run_upg = False
+        else:
+            run_upg = True
+        if creep.pos.inRangeTo(creep.room.controller, 3) and run_upg:
+            creep.upgradeController(creep.room.controller)
+    # 건설과 수리 둘중 하나만.
     bld = err_undone_constant
     if len(constructions) > 0:
         building = creep.pos.findClosestByRange(constructions)
-        bld = creep.build(building)
+        if creep.pos.inRangeTo(building, 3):
+            bld = creep.build(building)
     if len(repairs) > 0 and not bld == 0:
         repair = creep.pos.findClosestByRange(repairs)
-        creep.repair(repair)
+        if creep.pos.inRangeTo(repair, 3):
+            creep.repair(repair)
