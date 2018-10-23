@@ -3,6 +3,7 @@ import random
 import miscellaneous
 import pathfinding
 from _custom_constants import *
+from structure_display import *
 
 __pragma__('noalias', 'name')
 __pragma__('noalias', 'undefined')
@@ -17,7 +18,27 @@ __pragma__('noalias', 'update')
 # 스폰을 메인에서 쪼개기 위한 용도. 현재 어떻게 빼내야 하는지 감이 안잡혀서 공백임.
 def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, counter,
               cpu_bucket_emergency, cpu_bucket_emergency_spawn_start, extractor,
-              terminal_capacity, chambro, interval, wall_repairs, min_wall, min_hits):
+              terminal_capacity, chambro, interval, wall_repairs, spawns_and_links, min_hits):
+    """
+
+
+    :param spawn:
+    :param all_structures:
+    :param room_creeps:
+    :param hostile_creeps:
+    :param divider:
+    :param counter:
+    :param cpu_bucket_emergency:
+    :param cpu_bucket_emergency_spawn_start:
+    :param extractor:
+    :param terminal_capacity:
+    :param chambro:
+    :param interval:
+    :param wall_repairs:
+    :param spawns_and_links:
+    :param min_hits:
+    :return:
+    """
     # print('yolo')
     spawn_cpu = Game.cpu.getUsed()
     # if spawn is not spawning, try and make one i guess.
@@ -1350,19 +1371,27 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                                 # elif
 
     elif spawn.spawning:
-        if spawn.pos.x > 44:
-            align = 'right'
-        else:
-            align = 'left'
+        # 디스플레이 부분 위치조정
+        display_loc = display_location(spawn, spawns_and_links)
+        # print(display_loc['x'])
+        # print(display_loc['y'])
+        # print(display_loc['align'])
+        # print(spawn.pos.x + display_loc['x'], spawn.pos.y + display_loc['y'], display_loc['align'])
+        # if spawn.pos.x > 44:
+        #     align = 'right'
+        # else:
+        #     align = 'left'
 
+        # todo 디스플레이 부분 위치조정 필요. 다섯칸 간격이면 적당할듯.
+        # 벽은 7칸으로.
         # showing process of the spawning creep by %
         spawning_creep = Game.creeps[spawn.spawning.name]
         spawn.room.visual.text(
             '🛠 ' + spawning_creep.memory.role + ' '
             + "{}/{}".format(spawn.spawning.remainingTime - 1, spawn.spawning.needTime),
-            spawn.pos.x + 1,
-            spawn.pos.y,
-            {'align': align, 'opacity': 0.8}
+            spawn.pos.x + display_loc['x'],
+            spawn.pos.y + display_loc['y'],
+            {'align': display_loc['align'], 'opacity': 0.8}
         )
     else:
         # 1/3 chance healing

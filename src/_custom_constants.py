@@ -18,6 +18,11 @@ have_walls = 'have_walls'
 repair_done = 'repair_done'
 stop_fixer = 'stop_fixer'
 
+# 스폰·링크에 현황판 위치
+right = 'right'
+left = 'left'
+center = 'center'
+
 # 리모트 내 자원들
 resources = 'resources'
 energy = 'energy'

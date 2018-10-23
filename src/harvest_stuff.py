@@ -33,7 +33,7 @@ def harvest_energy(creep, source_num):
             creep.say('民衆民主主義萬世!', True)
         else:
             creep.say('일꾼생산해라좀', True)
-        return 0
+        return OK
 
     if not creep.pos.isNearTo(Game.getObjectById(source_num)):
         harvested = ERR_NOT_IN_RANGE
@@ -44,7 +44,6 @@ def harvest_energy(creep, source_num):
         harvested = creep.harvest(Game.getObjectById(source_num))
 
     # is sources too far out?
-    # creep.say(harvested)
     if harvested == ERR_NOT_IN_RANGE:
         # then go.
         creep.moveTo(Game.getObjectById(source_num), {vis_key: {stroke_key: '#ffffff'},

@@ -70,14 +70,18 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
         elif creep.memory.pickup:
             del creep.memory.pickup
         for minerals in Object.keys(creep.carry):
-            # print('minerals:', minerals)
-            transfer_minerals_result = creep.transfer(creep.room.storage, minerals)
-            # print(transfer_minerals_result)
+            if not creep.pos.isNearTo(creep.room.storage):
+                transfer_minerals_result = ERR_NOT_IN_RANGE
+            else:
+                transfer_minerals_result = creep.transfer(creep.room.storage, minerals)
             if transfer_minerals_result == ERR_NOT_IN_RANGE:
                 creep.moveTo(creep.room.storage, {'visualizePathStyle': {'stroke': '#ffffff'}})
                 break
             elif transfer_minerals_result == 0:
                 break
+            else:
+                print('endNearSomething', creep.name)
+                creep.say('END?? {}'.format(transfer_minerals_result))
         return
     elif creep.ticksToLive < end_is_near and creep.room.storage:
         creep.suicide()
@@ -252,19 +256,22 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                 result = harvest_stuff.grab_energy(creep, creep.memory.pickup, only_energy)
                 # print(creep.name, creep.memory.pickup, result)
                 if result == ERR_NOT_IN_RANGE:
-                    # 현재 위치한 곳이 이전 틱에도 있던곳인지 확인하고 옮기는 등의 절차.
-                    swap_check = check_loc_and_swap_if_needed(creep, creeps, True)
-                    # 아무 문제 없으면 평소마냥 움직이는거.
-                    if swap_check == OK:
-                        res = movi(creep, creep.memory.pickup, ignoreCreeps=True, reusePath=40)
-                    # 확인용. 아직 어찌할지 못정함....
-                    elif swap_check == ERR_NO_PATH:
-                        # del creep.memory._move
-                        creep.say('ERR_NO_PATH')
-                    # 위 둘 외에 다른게 넘어왔다는 소리는 실질적으로 어느 위치를 갔다는게 아니라
-                    # 다른 크립와 위치 바꿔치기를 시전했다는 소리. 메모리 옮긴다.
-                    else:
-                        creep.memory.last_swap = swap_check
+                    # 아래있는거 이걸로 완전교체
+                    move_using_swap(creep, creeps, creep.memory.pickup)
+
+                    # NULLIFIED, 위에껄로 대체
+                    # # 현재 위치한 곳이 이전 틱에도 있던곳인지 확인하고 옮기는 등의 절차.
+                    # swap_check = check_loc_and_swap_if_needed(creep, creeps, True)
+                    # # 아무 문제 없으면 평소마냥 움직이는거.
+                    # if swap_check == OK:
+                    #     res = movi(creep, creep.memory.pickup, ignoreCreeps=True, reusePath=40)
+                    # # 확인용. 아직 어찌할지 못정함....
+                    # elif swap_check == ERR_NO_PATH:
+                    #     creep.say('ERR_NO_PATH')
+                    # # 위 둘 외에 다른게 넘어왔다는 소리는 실질적으로 어느 위치를 갔다는게 아니라
+                    # # 다른 크립와 위치 바꿔치기를 시전했다는 소리. 메모리 옮긴다.
+                    # else:
+                    #     creep.memory.last_swap = swap_check
                 # 근데 이거 절대 뜰일없음...
                 elif result == ERR_NO_PATH:
                     # 모듈화한걸로 대체시도
@@ -471,7 +478,8 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                             if transfer_minerals_result == 0:
                                 break
                             elif transfer_minerals_result == ERR_FULL:
-                                creep.memory.pickup = creep.room.terminal.id
+                                if creep.room.terminal:
+                                    creep.memory.pickup = creep.room.terminal.id
                     # 에너지만 넣은 상태면 바로 다음으로 넘어간다.
                     if only_energy and (transfer_minerals_result == OK or transfer_minerals_result == ERR_FULL):
                         # print(creep.name, 'transfer_minerals_result {} only_energy {}'

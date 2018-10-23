@@ -479,12 +479,30 @@ def repair_on_the_way(creep, repairs, constructions, upgrader=False, irregular=F
     :param constructions:
     :param upgrader: 크립이 업글러일때만 설정. 기본값 거짓
     :param irregular: 크립에게 항시 업글 안시키려는 의도. 엥간해선 안씀.
-    :return:
+    :return: result constants maybe?
     """
+    laboro = False
+
+    # 일할수있는애긴 함?
+    if creep.memory.work == 1:
+        laboro = True
+
+    elif not creep.memory.work == 0:
+        for body in creep.body:
+            if body['type'] == WORK:
+                laboro = True
+                creep.memory.work = 1
+                break
+        if not laboro:
+            creep.memory.work = 0
+
+    # 혹시 WORK가 없으면 이걸 돌리는 의미가 없어짐.
+    if not laboro:
+        return ERR_NO_BODYPART
 
     # 내 컨트롤러고 그게 렙8이 아니거나 현 크립이 업글러인지? 둘중하나면 시행.
     # 이 작업은 렙8될때까지 모두가 방발전에 총력을 다해야 하는 상황이기에 만들어졌음.
-    if (creep.room.controller and creep.room.controller.my and creep.room.controller.level < 8)\
+    if (creep.room.controller and creep.room.controller.my and creep.room.controller.level < 8) \
             or upgrader:
         if irregular:
             if Game.time % 5 == 0:

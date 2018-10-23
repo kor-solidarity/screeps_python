@@ -602,18 +602,15 @@ def main():
             # 여기로 왔으면 내 방이 아닌거.
             else:
                 pass
-                # # 해당 방이 내 멀티용 방인지?
-                # my_remote = False
-                # # 각 방 돌린다.
-                # for bang_irum in Object.keys(Memory.rooms):
-                #     # 옵션이 있고 그 옵션 안에 이 방 이름이 있는가? - 이 방을 쓰는 본진인가?
-                #     if Game.rooms[bang_irum].options and Game.rooms[bang_irum].options.remotes:
-                #         for r in Game.rooms[bang_irum].options.remotes:
-                #             # 방이름 일치하면 맞는거
-                #             if r.roomName == chambra_nomo:
 
             print('{}방 메모리에 건물현황 갱신하는데 {}CPU 소모'
                   .format(chambro.name, round(Game.cpu.getUsed() - structure_cpu, 2)))
+        # 스폰과 링크목록
+        spawns_and_links = []
+        spawns_and_links.extend(spawns)
+        if chambro.memory and chambro.memory[STRUCTURE_LINK] and len(chambro.memory[STRUCTURE_LINK]) > 0:
+            for link in chambro.memory[STRUCTURE_LINK]:
+                spawns_and_links.append(Game.getObjectById(link.id))
 
         # running tower, links
         if chambro.memory[STRUCTURE_TOWER] and len(chambro.memory[STRUCTURE_TOWER]) > 0:
@@ -623,7 +620,9 @@ def main():
                                                    or (s.structureType == STRUCTURE_CONTAINER
                                                        and s.hits < 6000)
                                                    or (s.structureType == STRUCTURE_ROAD
-                                                        and s.hits < 2000))
+                                                        and (s.hits < 2000 and s.hitsMax == 5000)
+                                                        or (s.hits < 6000 and s.hitsMax == 25000)
+                                                        or (s.hits < 15500 and s.hitsMax > 50000)))
             # 벽수리는 5만까지만. 다만 핵이 있으면 통과.
             if min_wall.hits < 50000 or bool(nukes):
                 # print('min_wall', min_wall)
@@ -643,20 +642,23 @@ def main():
                     chambro.memory[STRUCTURE_TOWER].splice(for_str, 1)
                 for_str += 1
 
+        # run links
         if chambro.memory[STRUCTURE_LINK] and len(chambro.memory[STRUCTURE_LINK]) > 0:
             for_str = 0
             for link in chambro.memory[STRUCTURE_LINK]:
                 if not link:
-                    print('link?')
                     chambro.memory.options.reset = 1
                     continue
 
                 if Game.getObjectById(link.id):
                     room_cpu_num += 1
-                    building_action.run_links(link.id)
+                    building_action.run_links(link.id, spawns_and_links)
                 else:
                     chambro.memory[STRUCTURE_LINK].splice(for_str, 1)
                 for_str += 1
+
+            print('------------------------link done')
+
         # check every 20 ticks.
         if Game.time % 20 == 0 and chambro.memory[STRUCTURE_CONTAINER] \
             and len(chambro.memory[STRUCTURE_CONTAINER]) > 0:
@@ -738,9 +740,10 @@ def main():
                 print('방 {} 루프에서 스폰 {} 준비시간 : {} cpu'.format(nesto.room.name, nesto.name
                                                              , round(Game.cpu.getUsed() - spawn_cpu, 2)))
 
-            structure_spawn.run_spawn(nesto, all_structures, room_creeps, hostile_creeps, divider, counter
-                                      , cpu_bucket_emergency, cpu_bucket_emergency_spawn_start, extractor
-                                      , terminal_capacity, chambro, interval, wall_repairs, min_wall, min_hits)
+            structure_spawn.run_spawn(nesto, all_structures, room_creeps, hostile_creeps, divider, counter,
+                                      cpu_bucket_emergency, cpu_bucket_emergency_spawn_start, extractor,
+                                      terminal_capacity, chambro, interval, wall_repairs, spawns_and_links,
+                                      min_hits)
 
             spawn_cpu_end = Game.cpu.getUsed() - spawn_cpu
             if Memory.debug or Game.time % interval == 0 or Memory.tick_check:

@@ -2,6 +2,7 @@ from defs import *
 import harvest_stuff
 import random
 from miscellaneous import *
+from movement import *
 from _custom_constants import *
 import movement
 
@@ -364,6 +365,7 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
         # PRIORITY 2: carry 'em
         elif creep.memory.priority == 2:
             # if you're not in the home_room and no haul_target
+            # 이럼 우선 쳐 간다.
             if creep.room.name != creep.memory.home_room and not creep.memory.haul_target:
                 # at first it was to move to controller.
                 # but somehow keep getting an error, so let's try
@@ -375,8 +377,12 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                 creep.say(go)
                 return
 
+            # todo 완전히 새로 만든다. 쓸데없이 복잡함.
             # fixed container/link target to move to.
             if not creep.memory.haul_target:
+                # haul_target 이 없을 경우 절차는 크게 둘로 나뉜다.
+                # 1. 우선 방으로 쳐 간다
+                # 2. 다음에 가장 가까이 있는 링크, 없으면 컨테이너 배정.
                 # all_structures in the home room
                 # home_structures = Game.rooms[creep.memory.home_room].find(FIND_STRUCTURES)
                 # find links outside the filter and containers
@@ -395,51 +401,61 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                     check_for_carrier_setting(creep, link_or_container)
 
                 creep.memory.haul_target = link_or_container.id
-
-            transfer_result = creep.transfer(Game.getObjectById(creep.memory.haul_target), RESOURCE_ENERGY)
+            if creep.pos.isNearTo(Game.getObjectById(creep.memory.haul_target)):
+                if creep.carry[RESOURCE_ENERGY] == 0:
+                    transfer_result = ERR_NOT_ENOUGH_ENERGY
+                else:
+                    transfer_result = creep.transfer(Game.getObjectById(creep.memory.haul_target), RESOURCE_ENERGY)
+            else:
+                transfer_result = ERR_NOT_IN_RANGE
             if transfer_result == ERR_NOT_IN_RANGE:
                 creep.memory.err_full = 0
                 if len(repairs) > 0 and creep.memory.work:
-                    repair = creep.pos.findClosestByRange(repairs)
-                    creep.repair(repair)
-                # counter for checking the current location
-                if not creep.memory.move_ticks and not creep.memory.move_ticks == 0:
-                    creep.memory.move_ticks = 0
-                # checking current location - only needed when check in par with move_ticks
-                if not creep.memory.cur_Location:
-                    creep.memory.cur_Location = creep.pos
-                else:
-                    # 만약 있으면 현재 크립위치와 대조해본다. 동일하면 move_ticks 에 1 추가 아니면 1로 초기화.
+                    repair_on_the_way(creep, repairs, constructions, False, True)
+                    # repair = creep.pos.findClosestByRange(repairs)
+                    # creep.repair(repair)
+                # 완전 대체!
+                move_using_swap(creep, creeps, creep.memory.haul_target)
 
-                    if JSON.stringify(creep.memory.cur_Location) \
-                            == JSON.stringify(creep.pos):
-                        creep.memory.move_ticks += 1
-                    else:
-                        creep.memory.move_ticks = 0
-                # renew
-                creep.memory.cur_Location = creep.pos
-
-                # 걸린다는건 앞에 뭔가로 걸렸다는 소리.
-                if creep.memory.move_ticks > 1:
-                    for c in creeps:
-                        if creep.pos.inRangeTo(c, 1) and not c.name == creep.name\
-                                and not c.memory.role == 'carrier' and not c.id == creep.memory.last_switch:
-                            creep.say('GTFO', True)
-                            # 바꿔치기.
-                            c.moveTo(creep)
-                            creep.moveTo(c)
-                            # 여럿이 겹쳤을때 마지막 움직였던애랑 계속 바꿔치기 안하게끔.
-                            creep.memory.last_switch = c.id
-                            return
-                    # 여기까지 왔으면 틱이 5 넘겼는데 주변에 크립이 없는거임...
-                    creep.memory.move_ticks = 0
-
-                # 해당사항 없으면 그냥 평소처럼 움직인다.
-                else:
-                    creep.moveTo(Game.getObjectById(creep.memory.haul_target),
-                                 {'visualizePathStyle': {'stroke': '#ffffff'},
-                                  'ignoreCreeps': True, 'reusePath': 40})
-                return
+                # NULLIFIED
+                # # counter for checking the current location
+                # if not creep.memory.move_ticks and not creep.memory.move_ticks == 0:
+                #     creep.memory.move_ticks = 0
+                # # checking current location - only needed when check in par with move_ticks
+                # if not creep.memory.cur_Location:
+                #     creep.memory.cur_Location = creep.pos
+                # else:
+                #     # 만약 있으면 현재 크립위치와 대조해본다. 동일하면 move_ticks 에 1 추가 아니면 1로 초기화.
+                #
+                #     if JSON.stringify(creep.memory.cur_Location) \
+                #             == JSON.stringify(creep.pos):
+                #         creep.memory.move_ticks += 1
+                #     else:
+                #         creep.memory.move_ticks = 0
+                # # renew
+                # creep.memory.cur_Location = creep.pos
+                #
+                # # 걸린다는건 앞에 뭔가로 걸렸다는 소리.
+                # if creep.memory.move_ticks > 1:
+                #     for c in creeps:
+                #         if creep.pos.inRangeTo(c, 1) and not c.name == creep.name\
+                #                 and not c.memory.role == 'carrier' and not c.id == creep.memory.last_switch:
+                #             creep.say('GTFO', True)
+                #             # 바꿔치기.
+                #             c.moveTo(creep)
+                #             creep.moveTo(c)
+                #             # 여럿이 겹쳤을때 마지막 움직였던애랑 계속 바꿔치기 안하게끔.
+                #             creep.memory.last_switch = c.id
+                #             return
+                #     # 여기까지 왔으면 틱이 5 넘겼는데 주변에 크립이 없는거임...
+                #     creep.memory.move_ticks = 0
+                #
+                # # 해당사항 없으면 그냥 평소처럼 움직인다.
+                # else:
+                #     creep.moveTo(Game.getObjectById(creep.memory.haul_target),
+                #                  {'visualizePathStyle': {'stroke': '#ffffff'},
+                #                   'ignoreCreeps': True, 'reusePath': 40})
+                # return
                 # creep.moveTo(link_or_container, {'visualizePathStyle': {'stroke': '#ffffff'}, 'reusePath': 10})
             # if done, check if there's anything left. if there isn't then priority resets.
             elif transfer_result == ERR_INVALID_TARGET:
@@ -478,10 +494,10 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                         if len(links) > 0:
                             # 있으면 가장 가까운거 찾고 그게 6칸이내에 있으면
                             # 추후 옮긴대상이 링크가 아닐 경우를 대비한 아이디로 등록한다.
-                            closest_link = creep.pos.findClosestByPath(links)
-                            if len(creep.room.findPath(creep.pos, closest_link.pos,
+                            closest_obj = creep.pos.findClosestByPath(links)
+                            if len(creep.room.findPath(creep.pos, closest_obj.pos,
                                                        {'ignoreCreeps': True})) <= 6:
-                                creep.memory.link_target = closest_link.id
+                                creep.memory.link_target = closest_obj.id
                                 check_for_carrier_setting(creep, Game.getObjectById(creep.memory.link_target))
                             else:
                                 # 크립 주변에 링크가 없다는 소리. 위에 루프문 매번 반복 안하기 위해 생성.
@@ -517,35 +533,72 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                 creep.memory.err_full += 1
 
                 # 다 꽉찼으면 즉각 교체
+                # 교체는 링크를 우선적으로 택한다.
                 if creep.memory.err_full > 1:
-                    # find links outside the filter and containers
-                    home_links_and_containers = \
-                        _.filter(all_structures,
-                                 lambda s: (s.structureType == STRUCTURE_CONTAINER and _.sum(s.store) < s.storeCapacity)
-                                 or (s.structureType == STRUCTURE_LINK and s.energy < s.energyCapacity)
-                                 or (s.structureType == STRUCTURE_STORAGE))
-                    # 근처에 있는걸로 갈아탄다.
-                    link_or_container = creep.pos.findClosestByPath(home_links_and_containers)
+                    # 교체할 대상이 존재하는가?
+                    switch_exists = False
 
-                    # 5칸이상 떨어졌으면 교체대상이 아님.
-                    if link_or_container and \
-                            len(creep.room.findPath(creep.pos, link_or_container.pos, {'ignoreCreeps': True})) <= 5:
-                        creep.memory.haul_target = link_or_container.id
-                        # 컨테이너나 링크로 갈아탈 경우 캐려용인지 확인한다.
-                        if link_or_container.structureType == STRUCTURE_CONTAINER:
-                            creep.memory.container = link_or_container.id
-                            check_for_carrier_setting(creep, link_or_container)
-                        elif link_or_container.structureType == STRUCTURE_LINK:
-                            check_for_carrier_setting(creep, link_or_container)
-                        creep.say('교체!', True)
-                        creep.memory.err_full = 0
-                        creep.moveTo(Game.getObjectById(creep.memory.haul_target),
-                                     {'visualizePathStyle': {'stroke': '#ffffff'},
-                                      'ignoreCreeps': True, 'reusePath': 40})
-                    # 교체대상이 전혀 없으면 대기타야함...
+                    # 링크를 먼져 찾는다.
+                    home_obj = \
+                        _.filter(all_structures,
+                                 lambda s: s.structureType == STRUCTURE_LINK and s.energy < s.energyCapacity)
+                    # 가장 가까이 있는 링크
+                    closest_obj = creep.pos.findClosestByPath(home_obj, {ignoreCreeps: True})
+                    # 5칸 이내인거만 잡는다.
+                    if closest_obj and len(closest_obj.pos.findPathTo(creep, {ignoreCreeps: True})) <= 5:
+                        switch_exists = True
+                        creep.memory.haul_target = closest_obj.id
+                        check_for_carrier_setting(creep, closest_obj)
+                    # 없으면? 컨테이너 또는 스토리지 찾는다.
                     else:
+                        # 위와 절차 자체는 동일하다.
+                        home_obj = \
+                            _.filter(all_structures,
+                                     lambda s: (s.structureType == STRUCTURE_CONTAINER
+                                                and _.sum(s.store) < s.storeCapacity)
+                                               or s.structureType == STRUCTURE_STORAGE)
+
+                        closest_obj = creep.pos.findClosestByPath(home_obj, {ignoreCreeps: True})
+                        if closest_obj and len(closest_obj.pos.findPathTo(creep, {ignoreCreeps: True})) <= 5:
+                            switch_exists = True
+                            creep.memory.haul_target = closest_obj.id
+                            if closest_obj.structureType == STRUCTURE_CONTAINER:
+                                creep.memory.container = closest_obj.id
+                                check_for_carrier_setting(creep, closest_obj)
+
+                    if not switch_exists:
                         creep.memory.err_full = -10
                         creep.say('꽉참...{}'.format(creep.memory.err_full))
+
+                    # NULLIFIED
+                    # # find links outside the filter and containers
+                    # home_links_and_containers = \
+                    #     _.filter(all_structures,
+                    #              lambda s: (s.structureType == STRUCTURE_CONTAINER and _.sum(s.store) < s.storeCapacity)
+                    #              or (s.structureType == STRUCTURE_LINK and s.energy < s.energyCapacity)
+                    #              or (s.structureType == STRUCTURE_STORAGE))
+                    # # 근처에 있는걸로 갈아탄다.
+                    # link_or_container = creep.pos.findClosestByPath(home_links_and_containers, {ignoreCreeps: True})
+                    #
+                    # # 5칸이상 떨어졌으면 교체대상이 아님.
+                    # if link_or_container and \
+                    #         len(creep.room.findPath(creep.pos, link_or_container.pos, {'ignoreCreeps': True})) <= 5:
+                    #     creep.memory.haul_target = link_or_container.id
+                    #     # 컨테이너나 링크로 갈아탈 경우 캐려용인지 확인한다.
+                    #     if link_or_container.structureType == STRUCTURE_CONTAINER:
+                    #         creep.memory.container = link_or_container.id
+                    #         check_for_carrier_setting(creep, link_or_container)
+                    #     elif link_or_container.structureType == STRUCTURE_LINK:
+                    #         check_for_carrier_setting(creep, link_or_container)
+                    #     creep.say('교체!', True)
+                    #     creep.memory.err_full = 0
+                    #     creep.moveTo(Game.getObjectById(creep.memory.haul_target),
+                    #                  {'visualizePathStyle': {'stroke': '#ffffff'},
+                    #                   'ignoreCreeps': True, 'reusePath': 40})
+                    # # 교체대상이 전혀 없으면 대기타야함...
+                    # else:
+                    #     creep.memory.err_full = -10
+                    #     creep.say('꽉참...{}'.format(creep.memory.err_full))
                 else:
                     creep.say('꽉참...{}'.format(creep.memory.err_full))
             # 에너지 외 다른게 있는 상황. 이 경우 그냥 다 떨군다.
@@ -556,7 +609,6 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                         continue
                     a = creep.drop(s)
                     break
-
 
         # 수리
         elif creep.memory.priority == 3:

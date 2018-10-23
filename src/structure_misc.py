@@ -1,4 +1,5 @@
 from defs import *
+from structure_display import *
 import random
 
 __pragma__('noalias', 'name')
@@ -58,11 +59,12 @@ def run_tower(tower, hostile_creeps, repairs, malsana_amikoj):
             tower.repair(repair)
 
 
-def run_links(link_id):
+def run_links(link_id, spawns_and_links):
     """
     distributing energy to links
 
     :param link_id: room.memory[STRUCTURE_LINK][i].id
+    :param spawns_and_links:
     :return:
     """
 
@@ -79,24 +81,29 @@ def run_links(link_id):
     me = _.filter(Game.getObjectById(link_id).room.memory[STRUCTURE_LINK],
                   lambda l: l.id == link_id)[0]
 
-    if link.pos.x > 44:
-        align = 'right'
-    else:
-        align = 'left'
+    display_loc = display_location(link, spawns_and_links)
+    align = display_loc['align']
+    # if link.pos.x > 44:
+    #     align = 'right'
+    # else:
+    #     align = 'left'
 
+    # todo 디스플레이 부분 위치조정 필요. 세칸 간격이면 적당할듯.
     # 저장용 링크인건가?
     if me.for_store:
         # 만일 링크에 에너지가 있으면 표시한다. 굳이 눌러볼 필요 없게.
         if link.energy > 0:
             link.room.visual.text(' 💎{}'.format(link.energy),
-                                  link.pos.x + 0, link.pos.y, {'align': align, 'opacity': 0.8, 'font': 0.45})
+                                  link.pos.x, link.pos.y + display_loc['y'],
+                                  {'align': align, 'opacity': 0.8, 'font': 0.45})
         return
 
     # 여기 밑으로 내려왔으면 해당 링크는 에너지 전송용이다.
 
     if link.energy:
         link.room.visual.text(' 💎{}|{}'.format(link.energy, link.cooldown),
-                              link.pos.x + 0, link.pos.y, {'align': align, 'opacity': 0.8})
+                              link.pos.x, link.pos.y + display_loc['y'],
+                              {'align': align, 'opacity': 0.8})
     else:
         return
 
