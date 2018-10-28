@@ -171,7 +171,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
             return
 
         plus = 0
-        # print('+++++')
+
         # 위에 컨테이너로 인한 플러스 할때 캐리어용 컨테이너로 추가됬는가?
         carrier_plus = 0
         # 컨테이너와 링크를 하나씩 돌려서 수확용 칸인지 확인하고 이에 plus를 추가한다.
@@ -182,11 +182,14 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                 if spawn.room.controller.level < 8 and mcont.for_upgrade:
                     continue
                 # 60% 이상 차있으면 ++, 꽉차면 두배.
+                # 꽉차면 하나로 수정해본다.
                 cont_obj = Game.getObjectById(mcont.id)
+                #
                 if cont_obj and _.sum(cont_obj.store) == cont_obj.storeCapacity:
-                    plus += 2
-                elif cont_obj and _.sum(cont_obj.store) > cont_obj.storeCapacity * .6:
+                    # plus += 2
                     plus += 1
+                # elif cont_obj and _.sum(cont_obj.store) > cont_obj.storeCapacity * .6:
+                #     plus += 1
 
             # 캐리어용 컨테이너인가?
             if mcont.for_harvest == 2:
@@ -415,9 +418,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
         if Game.time - chambro.memory[options][stop_fixer] > 1500 \
                 and len(wall_repairs) and chambro.controller.level >= 7 \
                 and chambro.storage and chambro.storage.store[RESOURCE_ENERGY] >= 5000:
-            # print('check fixer')
-            # print('chambro_lvl {} minHits {} repairLvl {}'
-            #       .format(chambro.controller.level, min_hits, chambro.memory[options][repair]))
+
             if chambro.controller.level == 7 and chambro.storage.store[RESOURCE_ENERGY] >= 10000:
                 max_num_fixers = 1
             # 벽수리가 중심인데 수리할 벽이 없으면 의미가 없음.
@@ -431,14 +432,21 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                 print('wtf')
                 max_num_fixers = 0
             if len(creep_fixers) < max_num_fixers:
-                fixer_spawn = spawn.createCreep(
+                # todo 모든 스폰을 이렇게 바꿔야함.
+                fixer_spawn = spawn.spawnCreep(
                     [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE,
                      WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK,
                      WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY,
                      CARRY]
-                    , undefined,
-                    {'role': 'fixer', 'assigned_room': spawn.pos.roomName, 'level': 8})
-
+                    , 'fixer_{}_{}'.format(spawn.pos.roomName, random.randint(0, 200)),
+                    {'memory': {'role': 'fixer', 'assigned_room': spawn.pos.roomName, 'level': 8}})
+                # fixer_spawn = spawn.createCreep(
+                #     [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE,
+                #      WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK,
+                #      WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY,
+                #      CARRY]
+                #     , undefined,
+                #     {'role': 'fixer', 'assigned_room': spawn.pos.roomName, 'level': 8})
 
         if Memory.debug or Game.time % interval == 0 or Memory.tick_check:
             print("이 시점까지 스폰 {} 소모량: {}, 이하 remote"
@@ -1391,7 +1399,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
             + "{}/{}".format(spawn.spawning.remainingTime - 1, spawn.spawning.needTime),
             spawn.pos.x + display_loc['x'],
             spawn.pos.y + display_loc['y'],
-            {'align': display_loc['align'], 'opacity': 0.8}
+            {'align': display_loc['align'], 'opacity': 0.8, 'color': '#EE5927'}
         )
     else:
         # 1/3 chance healing

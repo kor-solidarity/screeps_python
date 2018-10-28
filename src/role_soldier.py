@@ -38,7 +38,8 @@ def run_remote_defender(all_structures, creep, creeps, hostile_creeps, lairs=Non
             miscellaneous.get_to_da_room(creep, creep.memory.assigned_room, False)
             return
     except:
-        creep.heal(Game.getObjectById(creep.id))
+        if creep.hits != creep.hitsMax:
+            creep.heal(Game.getObjectById(creep.id))
         miscellaneous.get_to_da_room(creep, creep.memory.assigned_room, False)
         return
 

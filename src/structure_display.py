@@ -44,15 +44,15 @@ def display_location(target_obj: Game.structures, other_objs, distance=5):
 
     stop = False
 
-    print('target_obj.pos', JSON.stringify(target_obj.pos))
+    # print('target_obj.pos', JSON.stringify(target_obj.pos))
 
     # 본체가 x축 오른쪽 끝에 있어서 오른쪽에 표기를 못한다.
     if target_obj.pos.x > 44:
-        print('target_obj.pos.x > 44 smth_at_right')
+        # print('target_obj.pos.x > 44 smth_at_right')
         smth_at_right = True
     # 왼쪽 끝에 있음.
     elif target_obj.pos.x < 5:
-        print('target_obj.pos.x < 5 smth_at_left')
+        # print('target_obj.pos.x < 5 smth_at_left')
         smth_at_left = True
     # print('check1')
     while not stop:
@@ -90,27 +90,27 @@ def display_location(target_obj: Game.structures, other_objs, distance=5):
         # 바로위에 뭐가 있는가?
         # 위나 아래를 확인할때는 양옆 distance의 반값(소수점내림)으로 계산한다.
         elif not smth_at_top:
-            print('not smth_at_top')
+            # print('not smth_at_top')
             for o in other_objs:
                 if target_obj.id == o.id:
                     continue
                 # 바로위에 있는거만 보면됨
                 if o.pos.y == target_obj.pos.y + 1:
-                    print('o.pos', JSON.stringify(o.pos), 'target_obj.pos', JSON.stringify(target_obj.pos))
+                    # print('o.pos', JSON.stringify(o.pos), 'target_obj.pos', JSON.stringify(target_obj.pos))
                     # print('o.pos.y', o.pos.y, 'target_obj.pos.y + 1 =', target_obj.pos.y + 1)
                     half_dist = int(distance/2)
                     if not half_dist:
                         half_dist = 1
                     # 이번엔 절대값만 안넘기면 된다.
-                    print('abs(target_obj.pos.x - o.pos.x)', abs(target_obj.pos.x - o.pos.x))
+                    # print('abs(target_obj.pos.x - o.pos.x)', abs(target_obj.pos.x - o.pos.x))
                     if half_dist >= abs(target_obj.pos.x - o.pos.x):
                         smth_at_top = True
-                        print('smth_at_top')
+                        # print('smth_at_top')
                         stop = False
                         break
         # 여기까지 왔으면 아래있는지 확인.
         elif not smth_at_bottom:
-            print('not smth_at_bottom')
+            # print('not smth_at_bottom')
             for o in other_objs:
                 if target_obj.id == o.id:
                     continue
@@ -122,7 +122,7 @@ def display_location(target_obj: Game.structures, other_objs, distance=5):
 
                     if half_dist >= abs(target_obj.pos.x - o.pos.x):
                         smth_at_bottom = True
-                        print('smth_at_bottom')
+                        # print('smth_at_bottom')
                         stop = False
                         break
         # 여기까지 왔으면 사방에 다 뭔가가 있단 소리니...
@@ -132,7 +132,6 @@ def display_location(target_obj: Game.structures, other_objs, distance=5):
             # print(target_obj.structureType, 'none')
             pass
 
-    print('display_location took {} cpu'.format(Game.cpu.getUsed() - time_st))
     # 오른쪽에 놔도 되는가 - 가로막는게 없는가?
     if not smth_at_right:
         return {'x': 1, 'y': 0, 'align': left}

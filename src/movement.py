@@ -28,6 +28,11 @@ def movi(creep, target, range_to=0, reusePath=20, ignoreCreeps=False, maxOps=200
     """
     # print(creep.name, 'range_to', range_to)
     target_obj = Game.getObjectById(target)
+
+    # 아래 moveTo()를 무조건 실행하면 생CPU 0.2가 나가니 그거 방지용도임.
+    if creep.pos.isEqualTo(target_obj):
+        return OK
+
     return creep.moveTo(target_obj, {'range': range_to, 'ignoreCreeps': ignoreCreeps
                         , 'visualizePathStyle': {'stroke': color},
                                      'reusePath': reusePath, 'maxOps': maxOps})

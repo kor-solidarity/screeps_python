@@ -219,13 +219,14 @@ def main():
     for chambra_nomo in Object.keys(Game.rooms):
         chambro_cpu = Game.cpu.getUsed()
         chambro = Game.rooms[chambra_nomo]
-        # 방 메모리가 아예 없을경우. 현재는 컨트롤러가 점령된 방만 쓴다.
-        if not Memory.rooms:
-            Memory.rooms = {}
         # 게임 내 수동조작을 위한 초기화 설정. 단, 방이 우리꺼일 경우에만 적용.
         if chambro.controller and chambro.controller.my:
-            if not Memory.rooms[chambra_nomo]:
-                Memory.rooms[chambra_nomo] = {}
+            # 방 메모리가 아예 없을경우. 삭제됨. 기본으로 크립이 있는곳은 무조건 자동으로 방 메모리가 생김.
+            # if not Memory.rooms:
+            #     Memory.rooms = {}
+            # if not Memory.rooms[chambra_nomo]:
+            #     print('not Memory.rooms[{}]'.format(chambra_nomo), JSON.stringify(chambro.controller))
+            #     Memory.rooms[chambra_nomo] = {}
             if not Memory.rooms[chambra_nomo].options:
                 Memory.rooms[chambra_nomo] = {'options': {}}
             # repair level - 벽, 방어막에만 적용
@@ -510,6 +511,14 @@ def main():
 
             # print('{} apswning: {}'.format(creep.name, creep.spawning))
             creep_cpu_end = Game.cpu.getUsed() - creep_cpu
+
+            # 크립의 CPU 사용량 명시.
+            if not creep.memory.cpu_usage:
+                creep.memory.cpu_usage = []
+            creep.memory.cpu_usage.append(round(creep_cpu_end, 2))
+            # cpu_usage 는 cpu_count 에 명시된 숫자 만큼만 센다. 그 이상 누적되면 오래된 순으로 자른다.
+            while len(creep.memory.cpu_usage) > cpu_count:
+                creep.memory.cpu_usage.splice(0, 1)
             # 총값확인용도
             total_creep_cpu_num += 1
             total_creep_cpu += creep_cpu_end
@@ -644,20 +653,32 @@ def main():
 
         # run links
         if chambro.memory[STRUCTURE_LINK] and len(chambro.memory[STRUCTURE_LINK]) > 0:
-            for_str = 0
+            # for_str = 0
+            # 링크가 없는게 있는지 먼져 확인.
+            link_missing = True
+            while link_missing:
+                for_str = 0
+                for link_chk in chambro.memory[STRUCTURE_LINK]:
+                    # 존재하지 않으면 삭제하는거.
+                    if not Game.getObjectById(link_chk.id):
+                        chambro.memory[STRUCTURE_LINK].splice(for_str, 1)
+                        break
+                    for_str += 1
+                link_missing = False
+
             for link in chambro.memory[STRUCTURE_LINK]:
                 if not link:
                     chambro.memory.options.reset = 1
                     continue
-
-                if Game.getObjectById(link.id):
-                    room_cpu_num += 1
-                    building_action.run_links(link.id, spawns_and_links)
-                else:
-                    chambro.memory[STRUCTURE_LINK].splice(for_str, 1)
-                for_str += 1
-
-            print('------------------------link done')
+                room_cpu_num += 1
+                building_action.run_links(link.id, spawns_and_links)
+                # NULLIFIED - 위에 두번 돌게 분류해버림
+                # if Game.getObjectById(link.id):
+                #     room_cpu_num += 1
+                #     building_action.run_links(link.id, spawns_and_links)
+                # else:
+                #     chambro.memory[STRUCTURE_LINK].splice(for_str, 1)
+                # for_str += 1
 
         # check every 20 ticks.
         if Game.time % 20 == 0 and chambro.memory[STRUCTURE_CONTAINER] \
@@ -757,11 +778,13 @@ def main():
               .format(total_creep_cpu_num, round(total_creep_cpu / total_creep_cpu_num, 2), round(total_creep_cpu, 2)))
 
     # 텅빈메모리 제거작업
-    if Game.time % structure_renew_count == 0:
-        for n in Object.keys(Memory.rooms):
-            if not Object.keys(Memory.rooms[n])[0]:
-                del Memory.rooms[n]
-                print('{}방 메모리 텅비어서 삭제'.format(n))
+    # 게임 기본값으로 생기는거라 못없앰.
+    # if Game.time % structure_renew_count == 0:
+    #     for n in Object.keys(Memory.rooms):
+    #         if not Object.keys(Memory.rooms[n])[0]:
+    #             del Memory.rooms[n]
+    #             print('{}방 메모리 텅비어서 삭제'.format(n))
+
     # adding total cpu
     # while len(Memory.cpu_usage.total) >= Memory.ticks:
     while len(Memory.cpu_usage) >= Memory.ticks:
