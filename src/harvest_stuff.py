@@ -1,5 +1,6 @@
 from defs import *
 from movement import *
+from _custom_constants import *
 
 __pragma__('noalias', 'name')
 __pragma__('noalias', 'undefined')
@@ -134,6 +135,134 @@ def grab_energy(creep, pickup, only_energy, min_capacity=.5):
         else:
             result = creep.withdraw(Game.getObjectById(pickup), RESOURCE_ENERGY)
             return result
+
+
+def grab_energy_new(creep, min_capacity=.5):
+    """
+    grabbing energy from local storages(container, storage, etc.)
+
+    :param creep:
+    :param min_capacity:
+    :return: any creep.withdraw return codes
+    """
+    # we will make new script for some stuff.
+
+    # 어느 종류의 물건을 뽑을 것인가?
+    resource_type = creep.memory[haul_resource]
+
+    if not resource_type:
+        creep.say('허울타입 안정함!!')
+        return
+
+    pickup_obj = Game.getObjectById(creep.memory.pickup)
+
+    # 존재하지 않는 물건이거나 용량 저장하는게 없으면 이 작업을 못함.
+    if not pickup_obj or not (pickup_obj.store or pickup_obj.energy or pickup_obj.mineralAmount):
+
+        return ERR_INVALID_TARGET
+
+    # if there's no energy in the pickup target, delete it
+    # 스토어가 있는 경우면 에너지 외 다른것도 있을 수 있단거
+    if pickup_obj.store:
+        # storage: 뽑아가고 싶은 자원의 총량
+        if resource_type == haul_all:
+            storage = _.sum(pickup_obj.store)
+        elif resource_type == haul_all_but_energy:
+            storage = _.sum(pickup_obj.store) - pickup_obj.store[RESOURCE_ENERGY]
+        else:
+            storage = pickup_obj.store[resource_type]
+
+    # 대상이 연구소일 경우.
+    elif pickup_obj.structureType == STRUCTURE_LAB:
+        # 뭘 뽑을거냐에 따라 다름
+        if resource_type == RESOURCE_ENERGY:
+            storage = pickup_obj.energy
+        # 근데 이건 이리 두기만 한거지 사실 쓸 이유가 없음.
+        elif resource_type == haul_all:
+            storage = pickup_obj.energy + pickup_obj.mineralAmount
+        else:
+            storage = pickup_obj.mineralAmount
+    # todo NUKES AND POWERSPAWN
+    # 그외는 전부 링크나 등등. 에너지만 보면 됨 이건.
+    else:
+        storage = pickup_obj.energy
+        # if pickup_obj.energy < (creep.carryCapacity - _.sum(creep.carry)) * min_capacity:
+        #     del pickup
+        #     # print('checkpoint222')
+        #     return ERR_NOT_ENOUGH_ENERGY
+
+    if storage < (creep.carryCapacity - _.sum(creep.carry)) * min_capacity:
+        return ERR_NOT_ENOUGH_ENERGY
+
+    # 근처에 없으면 아래 확인하는 의미가 없다.
+    if not pickup_obj.pos.isNearTo(creep):
+        # print(creep.name, 'not in range wtf', pickup_obj.pos.isNearTo(creep))
+        return ERR_NOT_IN_RANGE
+
+    # 스토어만 있는 경우면
+    # todo POWERSPAWN
+    if pickup_obj.store:
+        carry_objects = pickup_obj.store
+    else:
+        carry_objects = pickup_obj.energy
+
+    # 모든 종류의 자원을 뽑아가려는 경우. 여기서 끝낸다.
+    if resource_type == haul_all:
+        # 포문 돌려서 하나하나 빼간다.
+        if len(carry_objects) > 1:
+            for resource in Object.keys(carry_objects):
+                # 우선 에너지면 통과.
+                if resource == RESOURCE_ENERGY:
+                    continue
+                # if there's no such resource, pass it to next loop.
+                if pickup_obj.store[resource] == 0:
+                    continue
+
+                # pick it up.
+                result = creep.withdraw(pickup_obj, resource)
+
+                if result == ERR_NOT_ENOUGH_RESOURCES:
+                    creep.say('NO_resource')
+
+                return result
+        else:
+            result = creep.withdraw(pickup_obj, RESOURCE_ENERGY)
+            return result
+
+    # 에너지 빼고 모든걸 뽑을 경우
+    elif resource_type == haul_all_but_energy:
+        storage = _.sum(pickup_obj.store) - pickup_obj.store[RESOURCE_ENERGY]
+        if len(carry_objects) > 1:
+            for resource in Object.keys(carry_objects):
+                # 우선 에너지면 통과.
+                if resource == RESOURCE_ENERGY:
+                    continue
+                # if there's no such resource, pass it to next loop.
+                if pickup_obj.store[resource] == 0:
+                    continue
+
+                # pick it up.
+                result = creep.withdraw(pickup_obj, resource)
+
+                if result == ERR_NOT_ENOUGH_RESOURCES:
+                    creep.say('NO_resource')
+        else:
+            result = ERR_NOT_ENOUGH_ENERGY
+    # 특정 자원만 뽑을 경우
+    else:
+        result = creep.withdraw(pickup_obj, creep.memory[haul_resource])
+
+    return result
+
+
+def transfer_stuff(creep):
+    """
+    transfer()를
+
+    :param creep:
+    :return:
+    """
+
 
 
 def pick_drops(creep, pickup, only_energy):

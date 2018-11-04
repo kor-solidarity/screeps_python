@@ -65,11 +65,12 @@ def run_upgrader(creep, creeps, all_structures, repairs, constructions):
 
     # when you have to harvest. laboro: 0 == HARVEST
     if creep.memory.laboro == 0:
-
+        # print('-----------------------------------------')
         if not creep.memory.pickup:
             # 전용 컨테이너가 있고 채워짐?
             jeonyong = False
             la_containers = []
+            # 업글용 컨테이너 따로 뽑는다.
             if creep.room.memory[STRUCTURE_CONTAINER]:
                 for s in creep.room.memory[STRUCTURE_CONTAINER]:
                     obj = Game.getObjectById(s.id)
@@ -77,9 +78,9 @@ def run_upgrader(creep, creeps, all_structures, repairs, constructions):
                         la_containers.append(obj)
                 # 가장 먼져 전용 컨테이너를 찾는다.
                 pickup_id = pick_pickup(creep, creeps, la_containers, 10000, True)
+                # print('ch1 pickup_id', pickup_id)
             # 전용 컨테이너를 못찾으면 끝.
             if pickup_id == ERR_INVALID_TARGET:
-                # todo 업글용 컨테이너 뽑는코드 따로 만들어야함.
                 # find any storages with any energy inside
                 containers_or_links = all_structures.filter(lambda s: (s.structureType == STRUCTURE_CONTAINER
                                                             and s.store[RESOURCE_ENERGY] >= creep.carryCapacity * .5))

@@ -12,6 +12,12 @@ max_upgraders = 'max_upgraders'
 max_energy = 'max_energy'
 max_range_to_container = 4
 repair_targets = 'repair_targets'
+lab_type = 'lab_type'
+mineral_type = 'mineral_type'
+
+# STRUCTURE_CONTAINER
+for_upgrade = 'for_upgrade'
+for_harvest = 'for_harvest'
 
 # 게임 내 리모트 명칭들
 options = 'options'
@@ -30,10 +36,13 @@ right = 'right'
 left = 'left'
 center = 'center'
 
-# 리모트 내 자원들
-resources = 'resources'
+# 자원 관련
 energy = 'energy'
+haul_all = 'haul_all'
+haul_all_but_energy = 'haul_all_but_energy'
+haul_resource = 'haul_resource'
 minerals = 'minerals'
+resources = 'resources'
 
 # 따옴표 귀찮음...
 ignoreCreeps = 'ignoreCreeps'

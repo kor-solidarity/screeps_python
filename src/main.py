@@ -643,6 +643,35 @@ def main():
                             for_upgrade = 1
                         chambro.memory[STRUCTURE_CONTAINER] \
                             .push({'id': stc.id, 'for_upgrade': for_upgrade, 'for_harvest': for_harvest})
+                # todo 연구소
+                # 연구소는 렙8 되기 전까지 건들지 않는다. 또한 모든 랩의 수가 10개여야만 찾는다.
+                # if chambro.controller.level == 8 and len(chambro.memory[STRUCTURE_LAB]) == 0\
+                #         or chambro.memory[options][reset]:
+                #     yeongusoj = _.filter(all_structures, lambda s: s.structureType == STRUCTURE_LAB)
+                #     if len(yeongusoj) == 10:
+                #         lab_list = []
+                #         # 연구소는 크게 세종류가 존재한다.
+                #         # 실제 작업용 연구소(1), 그 작업물을 받는 연구소(2), 크립업글을 위해 저장하는 연구소(3).
+                #         # 여기서는 작업용과 작업물 받는 연구소 두 부류만이 중요하다.
+                #         for y in yeongusoj:
+                #             lab_jongryu = 1
+                #             # 작업용 연구소는 주변 모든 연구소들과 2칸이내로 밀접해야 한다.
+                #             for ys in yeongusoj:
+                #                 if not y.pos.inRangeTo(ys, 2):
+                #                     lab_jongryu = 2
+                #                     break
+                #             # 어떤 미네랄이 안에 있는거지?
+                #             if y.mineralType:
+                #                 mineral_jongryu = y.mineralType
+                #             else:
+                #                 mineral_jongryu = None
+                #
+                #             lab_info = {y.id: {lab_type: lab_jongryu, mineral_type: mineral_jongryu}}
+                #             lab_list.append(lab_info)
+                #
+                #         # 3번종류의 연구소인지 확인한다.
+                #         #
+                #         if
 
                 chambro.memory.options.reset = 0
             # 여기로 왔으면 내 방이 아닌거.
