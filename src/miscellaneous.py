@@ -521,5 +521,5 @@ def repair_on_the_way(creep, repairs, constructions, upgrader=False, irregular=F
             bld = creep.build(building)
     if len(repairs) > 0 and not bld == 0:
         repair = creep.pos.findClosestByRange(repairs)
-        if creep.pos.inRangeTo(repair, 3):
+        if repair and creep.pos.inRangeTo(repair, 3):
             creep.repair(repair)

@@ -24,17 +24,6 @@ def harvest_energy(creep, source_num):
     vis_key = "visualizePathStyle"
     stroke_key = "stroke"
 
-    # if capacity is full, get to next work.
-    # DELETE ALL THIS AND MOVE THEM TO CREEPS.
-    # THIS FUNC. MUST WORK ONLY ON HARVESTING
-    if _.sum(creep.carry) == creep.carryCapacity:
-        creep.memory.laboro = 1
-        if creep.memory.role == 'harvester':
-            creep.say('民衆民主主義萬世!', True)
-        else:
-            creep.say('일꾼생산해라좀', True)
-        return OK
-
     if not creep.pos.isNearTo(Game.getObjectById(source_num)):
         harvested = ERR_NOT_IN_RANGE
     elif Game.getObjectById(source_num).energy == 0:
@@ -67,7 +56,7 @@ def grab_energy(creep, pickup, only_energy, min_capacity=.5):
 
     :param creep:
     :param pickup: creep.memory.pickup 가장 가까운 또는 목표 storage의 ID
-    :param only_energy: bool
+    :param only_energy: bool, 에너지만 뽑을 것인가?
     :param min_capacity:
     :return: any creep.withdraw return codes
     """
@@ -80,15 +69,21 @@ def grab_energy(creep, pickup, only_energy, min_capacity=.5):
 
     # if there's no energy in the pickup target, delete it
     try:
+        # 스토어가 있는 경우면 에너지 외 다른것도 있을 수 있단거
         if Game.getObjectById(pickup).store:
-            if _.sum(Game.getObjectById(pickup).store) < (creep.carryCapacity - _.sum(creep.carry)) * min_capacity:
+            # storage: 뽑아가고 싶은 자원의 총량
+            if only_energy:
+                storage = Game.getObjectById(pickup).store[RESOURCE_ENERGY]
+            else:
+                storage = _.sum(Game.getObjectById(pickup).store)
+            if storage < (creep.carryCapacity - _.sum(creep.carry)) * min_capacity:
                 del pickup
                 # print('checkpoint?')
                 return ERR_NOT_ENOUGH_ENERGY
         else:
             if Game.getObjectById(pickup).energy < (creep.carryCapacity - _.sum(creep.carry)) * min_capacity:
                 del pickup
-                # print('checkpoint??')
+                # print('checkpoint222')
                 return ERR_NOT_ENOUGH_ENERGY
 
     # if there's something else popped up, you suck.

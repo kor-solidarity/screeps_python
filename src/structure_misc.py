@@ -88,7 +88,6 @@ def run_links(link_id, spawns_and_links):
     # else:
     #     align = 'left'
 
-    # todo 디스플레이 부분 위치조정 필요. 세칸 간격이면 적당할듯.
     # 저장용 링크인건가?
     if me.for_store:
         # 만일 링크에 에너지가 있으면 표시한다. 굳이 눌러볼 필요 없게.
@@ -99,12 +98,11 @@ def run_links(link_id, spawns_and_links):
         return
 
     # 여기 밑으로 내려왔으면 해당 링크는 에너지 전송용이다.
-
-    if link.energy:
-        link.room.visual.text(' 💎{}|{}'.format(link.energy, link.cooldown),
-                              link.pos.x, link.pos.y + display_loc['y'],
-                              {'align': align, 'opacity': 0.8})
-    else:
+    link.room.visual.text(' 💎{}|{}'.format(link.energy, link.cooldown),
+                          link.pos.x, link.pos.y + display_loc['y'],
+                          {'align': align, 'opacity': 0.8})
+    # 에너지가 없으면 아래를 돌릴 이유가 없음.
+    if not link.energy:
         return
 
     # all links that are for_store and have energy store left
@@ -123,7 +121,7 @@ def run_links(link_id, spawns_and_links):
         random_int = random.randint(0, len(inside_links) - 1)
         # 해당 링크가 에너지를 받은 시간 갱신. 링크의 전송시간을 낭비하지 않게 하기 위해 고안.
         if not inside_links[random_int].received_time or \
-                not inside_links[random_int].received_time == Game.time :
+            not inside_links[random_int].received_time == Game.time :
             transfer_result = link.transferEnergy(Game.getObjectById(inside_links[random_int].id))
 
             if transfer_result == OK:

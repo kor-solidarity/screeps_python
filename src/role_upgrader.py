@@ -98,9 +98,9 @@ def run_upgrader(creep, creeps, all_structures, repairs, constructions):
 
                 # 가장 가까운곳에서 빼오는거임. 원래 스토리지가 최우선이었는데 바뀜.
                 pickup_id = pick_pickup(creep, creeps, containers_or_links, 10000, True)
-
+            # 픽업 가져올게 없는 경우.
             if pickup_id == ERR_INVALID_TARGET:
-                print(creep.name, 'pickup_id == ERR_INVALID_TARGET')
+                # print(creep.name, 'pickup_id == ERR_INVALID_TARGET')
                 # todo 다른방법 강구요망
                 if creep.room.terminal and \
                         creep.room.terminal.store[RESOURCE_ENERGY] >= \
@@ -210,7 +210,7 @@ def run_reserver(creep):
         # res = creep.moveTo(Game.getObjectById(creep.memory.upgrade_target),
         #                    {'visualizePathStyle': {'stroke': '#ffffff'}, 'reusePath': 20})
         res = movi(creep, creep.memory.upgrade_target)
-        creep.say(res)
+        # creep.say(res)
     elif creep_action == OK:
         if Game.time % 2 == 0:
             creep.say('🇰🇵 🇰🇷', True)

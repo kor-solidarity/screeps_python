@@ -139,6 +139,7 @@ def move_using_swap(creep, creeps, target, ignore_creeps=True, reuse_path=40,
 
     # 일정 거리 내로 들어오는 경우. 3이 일반적이고 그 이상 갈일 없을듯.
     if ranged > 0 and creep.pos.inRangeTo(Game.getObjectById(target), ranged * 2):
+        print('ranged > 0 and ')
         res = movi(creep, target, ignoreCreeps=ignore_creeps, reusePath=10, range_to=ranged)
         return res
 
@@ -179,6 +180,7 @@ def move_using_swap(creep, creeps, target, ignore_creeps=True, reuse_path=40,
     # -------------------------------------------------------------
     # 아무 문제 없으면 평소마냥 움직이는거.
     if swap_check == OK:
+        # print('target', target)
         # # 일정 거리 내로 들어오는 경우. 3이 일반적이고 그 이상 갈일 없을듯.
         # if ranged <= 1 and creep.pos.inRangeTo(Game.getObjectById(target), ranged*2):
         #     res = movi(creep, target, ignoreCreeps=ignore_creeps, reusePath=10, range_to=ranged)

@@ -139,18 +139,20 @@ def run_fixer(creep, all_structures, constructions, creeps, repairs, min_wall, t
         if creep.memory.repair_target and Game.getObjectById(creep.memory.repair_target).hits \
             == Game.getObjectById(creep.memory.repair_target).hitsMax:
             del creep.memory.repair_target
-        # 우선 생략
+        # 표적이 없으면 찾는다. 우선 가장 체력낮은걸 찾는다
         if not creep.memory.repair_target:
             if len(min_wall):
                 creep.memory.repair_target = min_wall.id
+            # 없다면 수리할 벽은 목표치만큼 다 채웠단거니 아무거나 찾는다.
             else:
                 closest = creep.pos.findClosestByRange(repairs)
                 if closest:
                     creep.memory.repair_target = closest.id
+                # 그마저도 없으면 더이상 수리크립이 있을 이유가 없음.
                 else:
-                    if not creep.room.memory[options][stop_fixer] == Game.time:
-                        creep.room.memory[options][stop_fixer] = Game.time
+
                     creep.memory.die = 1
+                    return
 
         if creep.pos.inRangeTo(Game.getObjectById(creep.memory.repair_target), 3):
             repairs = [Game.getObjectById(creep.memory.repair_target)]

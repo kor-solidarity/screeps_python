@@ -221,18 +221,17 @@ def main():
         chambro = Game.rooms[chambra_nomo]
         # 게임 내 수동조작을 위한 초기화 설정. 단, 방이 우리꺼일 경우에만 적용.
         if chambro.controller and chambro.controller.my:
-            # 방 메모리가 아예 없을경우. 삭제됨. 기본으로 크립이 있는곳은 무조건 자동으로 방 메모리가 생김.
-            # if not Memory.rooms:
-            #     Memory.rooms = {}
-            # if not Memory.rooms[chambra_nomo]:
-            #     print('not Memory.rooms[{}]'.format(chambra_nomo), JSON.stringify(chambro.controller))
-            #     Memory.rooms[chambra_nomo] = {}
+            # 방 메모리가 아예 없을경우.
+            if not Memory.rooms:
+                Memory.rooms = {}
+            if not Memory.rooms[chambra_nomo]:
+                Memory.rooms[chambra_nomo] = {}
             if not Memory.rooms[chambra_nomo].options:
-                Memory.rooms[chambra_nomo] = {'options': {}}
-            # repair level - 벽, 방어막에만 적용
+                Memory.rooms[chambra_nomo] = {options: {}}
+            # repair level - 벽·방어막에만 적용. 렙하나당 오백만
             if not Memory.rooms[chambra_nomo].options.repair \
                     and not Memory.rooms[chambra_nomo][options][repair] == 0:
-                Memory.rooms[chambra_nomo][options][repair] = 5
+                Memory.rooms[chambra_nomo][options][repair] = 1
             # 운송크립의 수. 기본수가 숫자만큼 많아진다. 물론 최대치는 무조건 4
             if not Memory.rooms[chambra_nomo].options.haulers \
                     and not Memory.rooms[chambra_nomo].options.haulers == 0:
@@ -242,7 +241,7 @@ def main():
                 Memory.rooms[chambra_nomo].options[max_upgraders] = 12
             # 스토리지 안 채울 최대 에너지량. 기본값 육십만
             if not Memory.rooms[chambra_nomo].options[max_energy]:
-                Memory.rooms[chambra_nomo].options[max_energy] = 900000
+                Memory.rooms[chambra_nomo].options[max_energy] = 600000
             # 타워 공격시킬건가? 1이면 공격. 또한 매 1만턴마다 리셋한다.
             if (not Memory.rooms[chambra_nomo].options.tow_atk
                 and not Memory.rooms[chambra_nomo].options.tow_atk == 0) \
@@ -256,6 +255,10 @@ def main():
             if not Memory.rooms[chambra_nomo].options.fill_labs \
                     and not Memory.rooms[chambra_nomo].options.fill_labs == 0:
                 Memory.rooms[chambra_nomo].options.fill_labs = 1
+            # 체력이 지정량보다 떨어진 방어막이 없다는걸 확인한 시간.
+            # 수리해야할 방어막이 없으면 수리크립을 뽑을필요가 없음.
+            if not chambro.memory[options][stop_fixer]:
+                chambro.memory[options][stop_fixer] = Game.time
 
             # 방어막 열건가? 0 = 통과, 1 = 연다, 2 = 닫는다.
             if not Memory.rooms[chambra_nomo].options.ramparts \
@@ -302,6 +305,7 @@ def main():
                 tow_txt = Memory.rooms[chambra_nomo].options.tow_atk
                 upg_txt = Memory.rooms[chambra_nomo].options[max_upgraders]
                 energy_txt = Memory.rooms[chambra_nomo].options[max_energy]
+                stop_fixer_txt = Game.time - chambro.memory[options][stop_fixer]
 
                 # 찍힐 좌표
                 disp_x = Memory.rooms[chambra_nomo].options.display.x
@@ -320,7 +324,7 @@ def main():
                 chambro.visual.text('fillNuke/Labs: {}/{}, tow_atk/reset: {}/{}'
                                     .format(nuke_txt, lab_txt, tow_txt, 10000 - Game.time % 10000),
                                     disp_x, disp_y + 1)
-                chambro.visual.text('E할당량: {}'.format(str(int(energy_txt / 1000)) + 'k'), disp_x, disp_y + 2)
+                chambro.visual.text('E할당량: {} | 수리X: {}'.format(str(int(energy_txt / 1000)) + 'k', stop_fixer_txt), disp_x, disp_y + 2)
                 # chambro.visual.text(display_txt, disp_x, disp_y+2)
 
         # ALL .find() functions are done in here. THERE SHOULD BE NONE INSIDE CREEP FUNCTIONS!
@@ -351,16 +355,17 @@ def main():
             # allied_creeps = miscellaneous.filter_friends(foreign_creeps)
             allied_creeps = miscellaneous.filter_enemies_new(foreign_creeps)[3]
 
-        if chambro.controller:
-            # 수리점수는 방별 레벨제를 쓴다. 기본값은 5, 최대 60까지 가능.
-
-            if bool(nukes):
-                repair_pts = 5200000
-            else:
-                repair_pts = 500
-        else:
-            square = 4
-            repair_pts = 500
+        # NULLIFIED
+        # if chambro.controller:
+        #     # 수리점수는 방별 레벨제를 쓴다. 기본값은 5, 최대 60까지 가능.
+        #
+        #     if bool(nukes):
+        #         repair_pts = 5200000
+        #     else:
+        #         repair_pts = 500
+        # else:
+        #     square = 4
+        #     repair_pts = 500
 
         # 초기화.
         terminal_capacity = 0
@@ -372,7 +377,7 @@ def main():
                 terminal_capacity = 10000
 
         # 핵이 있으면 비상!! 수리수치를 올린다.
-        if bool(nukes) and chambro.memory[options][repair] < 3:
+        if bool(nukes):
             if chambro.memory[options][repair] < 2:
                 chambro.memory[options][repair] = 2
             nuke_extra = 150000
@@ -529,14 +534,30 @@ def main():
         room_cpu = Game.cpu.getUsed()
         room_cpu_num = 0
 
-        # renew structures
+        # 방 안 건물/소스현황 갱신.
         # todo ADD LABS
         # 1차 발동조건: structure_renew_count 만큼의 턴이 지났는가? 또는 스폰있는 방에 리셋명령을 내렸는가?
         if Game.time % structure_renew_count == 0 or (chambro.memory.options and chambro.memory.options.reset):
+            structure_cpu = Game.cpu.getUsed()
+
+            # 내 방이 아닌데 내 방마냥 현황이 적혀있으면 초기화한다.
+            if chambro.controller and not chambro.controller.my and chambro.memory[options]:
+                chambro.memory = {}
+
+            # 방 안에 소스랑 미네랄 현황 확인
+            if not chambro.memory[resources] or chambro.memory.options and chambro.memory.options.reset:
+                room_sources = chambro.find(FIND_SOURCES)
+                room_minerals = chambro.find(FIND_MINERALS)
+                chambro.memory[resources] = {energy: [], minerals: []}
+                for rs in room_sources:
+                    chambro.memory[resources][energy].append(rs.id)
+                for rm in room_minerals:
+                    chambro.memory[resources][minerals].append(rm.id)
+                del room_sources
+
             # 본진인가?
             if chambro.controller and chambro.controller.my:
                 # 이거 돌리는데 얼마나 걸리는지 확인하기 위한 작업.
-                structure_cpu = Game.cpu.getUsed()
                 # 목록 초기화.
                 if not chambro.memory[STRUCTURE_TOWER] or chambro.memory.options.reset:
                     chambro.memory[STRUCTURE_TOWER] = []
@@ -546,6 +567,17 @@ def main():
                     chambro.memory[STRUCTURE_CONTAINER] = []
                 if not chambro.memory[STRUCTURE_LAB] or chambro.memory.options.reset:
                     chambro.memory[STRUCTURE_LAB] = []
+
+                # 방 안 스토리지 자원이 꽉 찼는데 수리레벨이 남아있을 경우 한단계 올린다.
+                if chambro.storage \
+                        and chambro.storage.store[RESOURCE_ENERGY] > chambro.memory[options][max_energy] \
+                        and not len(min_wall) and chambro.memory[options][repair] < 60 \
+                        and chambro.controller.level == 8:
+                    chambro.memory[options][repair] += 1
+
+                # 방에 수리할 벽이 없을 경우 확인한 시간 갱신한다.
+                if not len(min_wall):
+                    chambro.memory[options][stop_fixer] = Game.time
 
                 # 매번 완전초기화 하면 너무 자원낭비. 수량 틀릴때만 돌린다.
                 # 타워세기.
@@ -585,28 +617,33 @@ def main():
                     # 하베스터용은 그냥 소스 근처(4이내)에 컨테이너가 존재하는지 확인한다. 캐리어는 당연 정반대.
                     # 업그레이더용은 컨트롤러 근처에 있는지 확인한다.
 
-                    # 방 안에 소스랑 미네랄
-                    room_sources = chambro.find(FIND_SOURCES)
-                    room_sources.extend(chambro.find(FIND_MINERALS))
-
                     for stc in str_cont:
                         # 하베스터 저장용인가? 맞으면 1, 만일 캐리어 운송용이면 2. 2는 캐리어 쪽에서 건든다.
                         # 0 이면 방업글 끝나면 계속 갖고있을 이유가 없는 잉여인 셈.
                         for_harvest = 0
                         # 방 업글용인가?
                         for_upgrade = 0
+
+                        room_sources = []
+                        for e in chambro.memory[resources][energy]:
+                            room_sources.append(Game.getObjectById(e))
+                        for e in chambro.memory[resources][minerals]:
+                            room_sources.append(Game.getObjectById(e))
+                        # print(room_sources)
                         for rs in room_sources:
                             # 컨테이너 주변 4칸이내에 소스가 있는지 확인한다.
+                            print('컨테이너 주변 4칸이내에 소스가 있는지 확인한다.', rs)
                             if len(stc.pos.findPathTo(rs, {'ignoreCreeps': True})) <= 4:
                                 # 있으면 이 컨테이너는 하베스터 저장용.
                                 for_harvest = 1
                                 break
-                        # 확인 끝났으면 이제 방 업글용인지 확인한다. 방렙 8 미만 + 컨트롤러부터의 실제 거리가 5 이하인가?
+                        # 확인 끝났으면 이제 방 업글용인지 확인한다. 방렙 8 미만 + 컨트롤러부터의 실제 거리가 6 이하인가?
                         if chambro.controller.level < 8 \
-                            and len(stc.pos.findPathTo(chambro.controller, {'ignoreCreeps': True})) <= 5:
+                            and len(stc.pos.findPathTo(chambro.controller, {'ignoreCreeps': True})) <= 6:
                             for_upgrade = 1
                         chambro.memory[STRUCTURE_CONTAINER] \
                             .push({'id': stc.id, 'for_upgrade': for_upgrade, 'for_harvest': for_harvest})
+
                 chambro.memory.options.reset = 0
             # 여기로 왔으면 내 방이 아닌거.
             else:
@@ -672,13 +709,6 @@ def main():
                     continue
                 room_cpu_num += 1
                 building_action.run_links(link.id, spawns_and_links)
-                # NULLIFIED - 위에 두번 돌게 분류해버림
-                # if Game.getObjectById(link.id):
-                #     room_cpu_num += 1
-                #     building_action.run_links(link.id, spawns_and_links)
-                # else:
-                #     chambro.memory[STRUCTURE_LINK].splice(for_str, 1)
-                # for_str += 1
 
         # check every 20 ticks.
         if Game.time % 20 == 0 and chambro.memory[STRUCTURE_CONTAINER] \

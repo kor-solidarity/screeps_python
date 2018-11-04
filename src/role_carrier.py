@@ -58,6 +58,7 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
     if _.sum(creep.carry) == 0 and creep.memory.laboro != 0:
         creep.memory.laboro = 0
         creep.memory.priority = 0
+        del creep.memory.last_swap
 
         if not creep.memory.build_target:
             # 본진에 물건 다 올렸을때만 가동.
@@ -81,6 +82,7 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
 
     elif _.sum(creep.carry) >= creep.carryCapacity * .6 and creep.memory.laboro != 1:
         creep.memory.laboro = 1
+        del creep.memory.last_swap
 
     if creep.memory.haul_target and not Game.getObjectById(creep.memory.haul_target):
         del creep.memory.haul_target
@@ -121,6 +123,7 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                 elif grab == OK:
                     creep.memory.laboro = 1
                     creep.memory.priority = 2
+                    del creep.memory.last_swap
                 return
             else:
                 creep.memory.refill = 2
@@ -193,6 +196,8 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                         and Game.getObjectById(creep.memory.pickup).store[RESOURCE_ENERGY] == 0) \
                         or len(Game.getObjectById(creep.memory.pickup).store) == 1:
                     creep.memory.laboro = 1
+                    del creep.memory.last_swap
+
                     if creep.memory.container_full:
                         creep.memory.container_full = 0
                         creep.memory.priority = 2
@@ -202,6 +207,8 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                 if _.sum(creep.carry) > creep.carryCapacity * .4:
                     creep.memory.laboro = 1
                     creep.memory.priority = 0
+                    del creep.memory.last_swap
+
                 else:
                     harvest = creep.harvest(Game.getObjectById(creep.memory.source_num))
                     # creep.say('harv {}'.format(harvest))
@@ -330,6 +337,7 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                 if not construction:
                     creep.memory.priority = 0
                     creep.memory.laboro = 0
+                    del creep.memory.last_swap
                     return
                 creep.memory.build_target = construction.id
 
@@ -351,6 +359,7 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                     # print(creep.name, 'con', 22)
                     creep.memory.priority = 0
                     creep.memory.laboro = 0
+                    del creep.memory.last_swap
                     del creep.memory.build_target
                 # if there are more, return to priority 0 to decide what to do.
                 else:
@@ -417,46 +426,6 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                 # 완전 대체!
                 move_using_swap(creep, creeps, creep.memory.haul_target)
 
-                # NULLIFIED
-                # # counter for checking the current location
-                # if not creep.memory.move_ticks and not creep.memory.move_ticks == 0:
-                #     creep.memory.move_ticks = 0
-                # # checking current location - only needed when check in par with move_ticks
-                # if not creep.memory.cur_Location:
-                #     creep.memory.cur_Location = creep.pos
-                # else:
-                #     # 만약 있으면 현재 크립위치와 대조해본다. 동일하면 move_ticks 에 1 추가 아니면 1로 초기화.
-                #
-                #     if JSON.stringify(creep.memory.cur_Location) \
-                #             == JSON.stringify(creep.pos):
-                #         creep.memory.move_ticks += 1
-                #     else:
-                #         creep.memory.move_ticks = 0
-                # # renew
-                # creep.memory.cur_Location = creep.pos
-                #
-                # # 걸린다는건 앞에 뭔가로 걸렸다는 소리.
-                # if creep.memory.move_ticks > 1:
-                #     for c in creeps:
-                #         if creep.pos.inRangeTo(c, 1) and not c.name == creep.name\
-                #                 and not c.memory.role == 'carrier' and not c.id == creep.memory.last_switch:
-                #             creep.say('GTFO', True)
-                #             # 바꿔치기.
-                #             c.moveTo(creep)
-                #             creep.moveTo(c)
-                #             # 여럿이 겹쳤을때 마지막 움직였던애랑 계속 바꿔치기 안하게끔.
-                #             creep.memory.last_switch = c.id
-                #             return
-                #     # 여기까지 왔으면 틱이 5 넘겼는데 주변에 크립이 없는거임...
-                #     creep.memory.move_ticks = 0
-                #
-                # # 해당사항 없으면 그냥 평소처럼 움직인다.
-                # else:
-                #     creep.moveTo(Game.getObjectById(creep.memory.haul_target),
-                #                  {'visualizePathStyle': {'stroke': '#ffffff'},
-                #                   'ignoreCreeps': True, 'reusePath': 40})
-                # return
-                # creep.moveTo(link_or_container, {'visualizePathStyle': {'stroke': '#ffffff'}, 'reusePath': 10})
             # if done, check if there's anything left. if there isn't then priority resets.
             elif transfer_result == ERR_INVALID_TARGET:
                 creep.memory.err_full = 0
@@ -465,8 +434,8 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
             elif transfer_result == OK:
                 creep.memory.err_full = 0
                 # 교차이동한 크립이 있었으면 초기화
-                if creep.memory.last_switch:
-                    del creep.memory.last_switch
+                if creep.memory.last_swap:
+                    del creep.memory.last_swap
 
                 if not creep.memory.refill and creep.memory.link_target and creep.memory.container:
                     creep.memory.refill = 1
@@ -625,6 +594,7 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                     creep.memory.laboro = 0
                     creep.memory.priority = 0
                     creep.say('🐜는 뚠뚠', True)
+                    del creep.memory.last_swap
 
                     return
             except:
@@ -648,4 +618,5 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                     creep.memory.priority = 0
                     # 컨테이너 꽉차서 라보로 0인걸 표기.
                     creep.memory.container_full = 1
+                    del creep.memory.last_swap
         return

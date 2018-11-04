@@ -3,6 +3,8 @@
 # 게임상 기본값 설정
 cpu_count = 50
 
+
+
 # 잡다한거
 err_undone_constant = -100
 
