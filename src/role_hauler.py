@@ -90,25 +90,15 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
     # if there's nothing to carry then get to harvesting.
     # being not zero also includes being None lol
     if _.sum(creep.carry) == 0 and not creep.memory.laboro == 0:
-        creep.memory.laboro = 0
         creep.say('🚛운송투쟁!', True)
-        del creep.memory.haul_target
-        del creep.memory.build_target
-        del creep.memory.repair_target
-        del creep.memory.last_swap
-        del creep.memory[haul_resource]
+        init_memory(creep, 0)
 
     elif creep.memory.laboro == 0 and \
         ((_.sum(creep.carry) >= creep.carryCapacity * .5
           and creep.memory.laboro == 0 and not creep.memory.dropped)
          or _.sum(creep.carry) == creep.carryCapacity):
 
-        # Memory.initialize_count += 2
-        if creep.memory.pickup:
-            del creep.memory.pickup
-        creep.memory.laboro = 1
-        creep.memory.priority = 0
-        del creep.memory.last_swap
+        init_memory(creep, 1)
 
     # laboro: 0 == pickup something.
     if creep.memory.laboro == 0:
@@ -171,51 +161,84 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
             if not creep.memory.pickup:
                 # 방 안에 에너지수용량이 총량의 30% 이하면 반반 확률로 스토리지로 직접 빼러 간다.
                 # 물론 안에 에너지가 있어야겠지.
+                # todo 미네랄 옮기는것도 해야함.
                 if creep.room.energyAvailable <= creep.room.energyCapacityAvailable * .30 \
                         and creep.room.storage and creep.room.storage.store[RESOURCE_ENERGY] > 600:
                     to_storage_chance = random.randint(0, 1)
                 else:
                     to_storage_chance = 0
 
-                if not to_storage_chance:
-                    # find any containers/links with any resources inside
-                    storages = all_structures.filter(lambda s:
-                                                     (s.structureType == STRUCTURE_CONTAINER
-                                                      and _.sum(s.store) >= creep.carryCapacity * .5)
-                                                     or (s.structureType == STRUCTURE_LINK
-                                                         and s.energy >= creep.carryCapacity * .5))
-                else:
-                    storages = all_structures.filter(lambda s:
-                                                     (s.structureType == STRUCTURE_CONTAINER
-                                                      and _.sum(s.store) >= creep.carryCapacity * .5)
-                                                     or (s.structureType == STRUCTURE_LINK
-                                                         and s.energy >= creep.carryCapacity * .5)
-                                                     or (s.structureType == STRUCTURE_STORAGE
-                                                         and s.store[RESOURCE_ENERGY] >= creep.carryCapacity * .5))
+                storages = []
+                # find any containers/links with any resources inside
+                for c in creep.room.memory[STRUCTURE_CONTAINER]:
+                    # 업글용이 아닌거 걸러낸다. 만렙일때만.
+                    if not Game.getObjectById(creep.memory.upgrade_target).level == 8:
+                        if c[for_upgrade]:
+                            continue
+                    container = Game.getObjectById(c.id)
+                    if container and _.sum(container.store) >= creep.carryCapacity * .5:
+                        storages.append(container)
 
-                # 컨테이너 중에 업글용인거 아닌거 걸러낸다.
-                # 이 작업은 업그레이더가 필요한 시기 업그레이더용 전용 컨테이너를 걸러내기 위해 필요하다.
-                # 조건: 렙 8 미만 및 방에 스토리지가 있을 때.
-                if creep.room.controller.level < 8 and creep.room.storage:
-                    # 다끝나고 이걸로 새로 덮을거임
-                    new_storage = []
-                    for s in storages:
-                        # 컨테이너만 필요.
-                        if s.structureType == STRUCTURE_CONTAINER:
-                            # 메모리상 컨테이너 다 돌림
-                            for u_cont in creep.room.memory[STRUCTURE_CONTAINER]:
-                                # 업글용이면 포함 안되야함. 다만 안에 에너지 외 뭔가가 있으면 거기서 빼내야함.
-                                if u_cont.id == s.id:
-                                    if not u_cont.for_upgrade \
-                                            and Game.getObjectById(u_cont.id).store[RESOURCE_ENERGY]\
-                                            == _.sum(Game.getObjectById(u_cont.id).store):
-                                        new_storage.append(s)
-                                    break
-                        # 해당사항 없으면 그냥 다 넣기
-                        else:
-                            new_storage.append(s)
-                    # 덮어씌우고 끝.
-                    storages = new_storage
+                for l in creep.room.memory[STRUCTURE_LINK]:
+                    if not Game.getObjectById(creep.memory.upgrade_target).level == 8:
+                        if l[for_upgrade]:
+                            continue
+
+                    link = Game.getObjectById(l.id)
+                    if link and link.energy >= creep.carryCapacity * .5:
+                        storages.append(link)
+
+                if to_storage_chance:
+                    storages.append(creep.room.storage)
+                # NULLIFIED - 위에껄로 대체
+                # if not to_storage_chance:
+                #     storages = []
+                #     # find any containers/links with any resources inside
+                #     for c in creep.room.memory[STRUCTURE_CONTAINER]:
+                #         container = Game.getObjectById(c.id)
+                #         if container and _.sum(container.store) >= creep.carryCapacity * .5:
+                #             storages.append(container)
+                #     for l in creep.room.memory[STRUCTURE_LINK]:
+                #         link = Game.getObjectById(l.id)
+                #         if link and link.energy >= creep.carryCapacity * .5:
+                #             storages.append(link)
+                #     # storages = all_structures.filter(lambda s:
+                #     #                                  (s.structureType == STRUCTURE_CONTAINER
+                #     #                                   and _.sum(s.store) >= creep.carryCapacity * .5)
+                #     #                                  or (s.structureType == STRUCTURE_LINK
+                #     #                                      and s.energy >= creep.carryCapacity * .5))
+                # else:
+                #     storages = all_structures.filter(lambda s:
+                #                                      (s.structureType == STRUCTURE_CONTAINER
+                #                                       and _.sum(s.store) >= creep.carryCapacity * .5)
+                #                                      or (s.structureType == STRUCTURE_LINK
+                #                                          and s.energy >= creep.carryCapacity * .5)
+                #                                      or (s.structureType == STRUCTURE_STORAGE
+                #                                          and s.store[RESOURCE_ENERGY] >= creep.carryCapacity * .5))
+                #
+                # # 컨테이너 중에 업글용인거 아닌거 걸러낸다.
+                # # 이 작업은 업그레이더가 필요한 시기 업그레이더용 전용 컨테이너를 걸러내기 위해 필요하다.
+                # # 조건: 렙 8 미만 및 방에 스토리지가 있을 때.
+                # if creep.room.controller.level < 8 and creep.room.storage:
+                #     # 다끝나고 이걸로 새로 덮을거임
+                #     new_storage = []
+                #     for s in storages:
+                #         # 컨테이너만 필요.
+                #         if s.structureType == STRUCTURE_CONTAINER:
+                #             # 메모리상 컨테이너 다 돌림
+                #             for u_cont in creep.room.memory[STRUCTURE_CONTAINER]:
+                #                 # 업글용이면 포함 안되야함. 다만 안에 에너지 외 뭔가가 있으면 거기서 빼내야함.
+                #                 if u_cont.id == s.id:
+                #                     if not u_cont.for_upgrade \
+                #                             and Game.getObjectById(u_cont.id).store[RESOURCE_ENERGY]\
+                #                             == _.sum(Game.getObjectById(u_cont.id).store):
+                #                         new_storage.append(s)
+                #                     break
+                #         # 해당사항 없으면 그냥 다 넣기
+                #         else:
+                #             new_storage.append(s)
+                #     # 덮어씌우고 끝.
+                #     storages = new_storage
 
                 # 위 목록 중에서 가장 가까이 있는 컨테이너를 뽑아간다.
                 # 만약 뽑아갈 대상이 없을 시 터미널, 스토리지를 각각 찾는다.
@@ -310,10 +333,7 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                 harvest_stuff.harvest_energy(creep, creep.memory.source_num)
         # 꽉차면 초기화작업과 작업변환.
         if _.sum(creep.carry) >= creep.carryCapacity:
-            del creep.memory.source_num
-            creep.memory.laboro = 1
-            creep.memory.priority = 0
-
+            init_memory(creep, 1)
 
     # get to work.
     elif creep.memory.laboro == 1:
@@ -831,6 +851,8 @@ def grab_haul_list(creep, roomName, totalStructures, add_storage=False):
         # print("3 <= Game.rooms[{}].controller.level : {}"
         #       .format(roomName, bool(3 <= Game.rooms[roomName].controller.level)))
         for rcont in Game.rooms[roomName].memory[STRUCTURE_CONTAINER]:
+            if not Game.getObjectById(rcont.id):
+                continue
             # 업글용 컨테이너고 수확저장용도가 아닌가? 그러면 허울러가 넣는다. 80% 이하로 차있을때만.
             if rcont.for_upgrade and not rcont.for_harvest \
                     and _.sum(Game.getObjectById(rcont.id).store) < Game.getObjectById(rcont.id).storeCapacity * .8:
@@ -841,10 +863,29 @@ def grab_haul_list(creep, roomName, totalStructures, add_storage=False):
     return structures
 
 
-def init_memory(creep):
+def init_memory(creep, init_to):
     """
-    전환할때 메모리 초기화.
+    전환할때 각종 메모리 초기화.
 
     :param creep:
-    :return:
+    :param init_to: 몇으로 바꾸는 것인가?? 그거에 맞게 메모리 삭제.
+    :return: None
     """
+
+    # 마지막으로 위치교대 했던 크립 아이디 제거
+    del creep.memory.last_swap
+
+    # 0으로 바꿀 경우.
+    if init_to == 0:
+        creep.memory.laboro = 0
+        del creep.memory.haul_target
+        del creep.memory.build_target
+        del creep.memory.repair_target
+        del creep.memory[haul_resource]
+
+    # 1로 바꾸는 경우.
+    elif init_to == 1:
+        creep.memory.laboro = 1
+        creep.memory.priority = 0
+        del creep.memory.pickup
+        del creep.memory.source_num

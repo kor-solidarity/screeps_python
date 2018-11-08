@@ -11,8 +11,8 @@ __pragma__('noalias', 'set')
 __pragma__('noalias', 'type')
 __pragma__('noalias', 'update')
 
-# SPECIAL THANKS TO THE PATHFINDING COST PYTHON CODE CREATOR
-# Kenji - responsible for creating Costs class to def reset_cached_matrices():
+# SPECIAL THANKS TO THE PATHFINDING COST PYTHON CODE CREATOR: Kenji
+# responsible for creating most of the Costs class to def reset_cached_matrices():
 
 """
 1. js_global._costs = {'base': {}, 'rooms': {}, 'creeps': {}}
@@ -44,80 +44,6 @@ class Costs:
 
         self.costs = js_global._costs
         self.room = Game.rooms[room_name]
-
-    def load_matrix(self):
-        """Loads and returns deserialized form of cost matrix stored in
-        js_global._costs.
-
-        js_global._costs properties:
-            base: Serialized form of matrix reflecting all structures positions
-                in a room.
-            rooms:
-                Deserialized form of matrices found in `base`.
-            creeps: Clones of matrices found found in `rooms` that
-                reflect creep positions in a room.
-
-        `rooms` and `creeps` are emptied at the end of each tick
-        """
-
-        if (self.id not in self.costs.base) or self.opts.refreshMatrix:
-            self.generate_new_matrix()
-
-        if self.id not in self.costs.rooms:
-            self.costs.rooms[self.id] = self.unpack(self.costs.base[self.id])
-
-        if self.opts.trackCreeps:
-            return self.add_creeps()
-
-        return self.costs.rooms[self.id]
-
-    def generate_new_matrix(self):
-        """Creates a new instance of `CostMatrix` that reflects the positions of
-        structures in a room.
-
-        If the room is not visible, the result is not stored for future use.
-        Regardless of whether or not the room is visible, the result is stored
-        for use in the current tick.
-        """
-
-        new_matrix = __new__(PathFinder.CostMatrix)
-        if self.opts.costByArea:
-            self.add_area(new_matrix)
-
-        if self.add_structures(new_matrix) == OK:
-            self.costs.base[self.id] = self.pack(new_matrix)
-
-        self.costs.rooms[self.id] = new_matrix
-
-    def add_structures(self, matrix):
-        """Modifies matrix object to reflect structures in room; if the room
-        doesn't exist in Game.rooms, ERR_INVALID_TARGET is returned"""
-
-        if not self.room:
-            return ERR_INVALID_TARGET
-
-        objects = self.room.find(FIND_STRUCTURES)
-        if _.size(Game.constructionSites):
-            sites = self.room.find(FIND_CONSTRUCTION_SITES, {'filter':
-                lambda s: OBSTACLE_OBJECT_TYPES.includes(s.structureType)
-            })
-            objects = objects.concat(sites)
-
-        for obj in objects:
-
-            if obj.structureType == STRUCTURE_ROAD:
-                cost = 1
-            elif obj.structureType == STRUCTURE_RAMPART:
-                cost = 0 if (obj.my or obj.isPublic) else 255
-            elif obj.structureType == STRUCTURE_CONTAINER:
-                cost = 10
-            else:
-                cost = 255
-
-            if cost > matrix.get(obj.pos.x, obj.pos.y):
-                matrix.set(obj.pos.x, obj.pos.y, cost)
-
-        return OK
 
     def add_area(self, matrix):
         """Sets all tiles in an area around all objects in cache.objects to the
@@ -167,16 +93,137 @@ class Costs:
 
         return self.costs.creeps[self.id]
 
-    def unpack(self, matrix):
-        """Returns a deserialized form of matrix that can be used by
-        PathFinder.search()"""
+    def add_structures(self, matrix):
+        """Modifies matrix object to reflect structures in room; if the room
+        doesn't exist in Game.rooms, ERR_INVALID_TARGET is returned"""
 
-        return PathFinder.CostMatrix.deserialize(JSON.parse(matrix))
+        if not self.room:
+            return ERR_INVALID_TARGET
+
+        objects = self.room.find(FIND_STRUCTURES)
+        if _.size(Game.constructionSites):
+            sites = self.room.find(FIND_CONSTRUCTION_SITES, {'filter':
+                lambda s: OBSTACLE_OBJECT_TYPES.includes(s.structureType)
+            })
+            objects = objects.concat(sites)
+
+        for obj in objects:
+
+            if obj.structureType == STRUCTURE_ROAD:
+                cost = 1
+            elif obj.structureType == STRUCTURE_RAMPART:
+                cost = 0 if (obj.my or obj.isPublic) else 255
+            elif obj.structureType == STRUCTURE_CONTAINER:
+                cost = 10
+            else:
+                cost = 255
+
+            if cost > matrix.get(obj.pos.x, obj.pos.y):
+                matrix.set(obj.pos.x, obj.pos.y, cost)
+
+        return OK
+
+    def add_walls(self, matrix):
+        """
+        위에 add_area 모방함. 모든 벽을 통과할 수 있게 만듦
+        Sets all tiles in an area around all objects in cache.objects to the
+        value stored in cache.cost.
+
+        Costs set in this method override previously set cost values for a tile
+        if that cost is < 255"""
+
+        """
+        opts = {'trackCreeps': True, 'refreshMatrix': True, 'pass_walls': True,
+                'costByArea': {'objects': [controller], 'size': 1, 'cost': 255}}
+        costs = Costs(room_name, opts).load_matrix()
+        """
+
+        if not self.room:
+            return matrix
+
+        # cache, grids = self.opts.costByArea, []
+        # cache, grids = self.opts.costByArea, []
+
+        # for obj in cache.objects:
+        #     grids.push.apply(grids, generate_grid(obj, 1))
+
+        # 모든 지역에 포문을 돌려서 벽을 구한다.
+        for x in range(1, 49):
+            for y in range(1, 49):
+                # 벽이 있으면 값을 넣는다.
+                if Game.map.getTerrainAt(x, y, self.room.name) == 'wall':
+                    matrix.set(x, y, int(self.opts.cost * 1.5))
+
+        # for grid in grids:
+        #     x, y = grid[0], grid[1]
+        #
+        #     if Game.map.getTerrainAt(x, y, self.room.name) == 'wall':
+        #         continue
+        #
+        #     if matrix.get(x, y) < 255:
+        #         matrix.set(x, y, cache.cost)
+
+        return matrix
+
+
+    def generate_new_matrix(self):
+        """Creates a new instance of `CostMatrix` that reflects the positions of
+        structures in a room.
+
+        If the room is not visible, the result is not stored for future use.
+        Regardless of whether or not the room is visible, the result is stored
+        for use in the current tick.
+        """
+
+        new_matrix = __new__(PathFinder.CostMatrix)
+
+        if self.opts.pass_walls:
+            self.add_walls(new_matrix)
+
+        if self.opts.costByArea:
+            self.add_area(new_matrix)
+
+        if self.add_structures(new_matrix) == OK:
+            self.costs.base[self.id] = self.pack(new_matrix)
+
+        self.costs.rooms[self.id] = new_matrix
+
+    def load_matrix(self):
+        """Loads and returns deserialized form of cost matrix stored in
+        js_global._costs.
+
+        js_global._costs properties:
+            base: Serialized form of matrix reflecting all structures positions
+                in a room.
+            rooms:
+                Deserialized form of matrices found in `base`.
+            creeps: Clones of matrices found found in `rooms` that
+                reflect creep positions in a room.
+
+        `rooms` and `creeps` are emptied at the end of each tick
+        """
+
+        if (self.id not in self.costs.base) or self.opts.refreshMatrix:
+            self.generate_new_matrix()
+
+        if self.id not in self.costs.rooms:
+            self.costs.rooms[self.id] = self.unpack(self.costs.base[self.id])
+
+        if self.opts.trackCreeps:
+            return self.add_creeps()
+
+        return self.costs.rooms[self.id]
 
     def pack(self, matrix):
         """Returns serialized form of matrix that can be cached"""
 
         return JSON.stringify(matrix.serialize())
+
+    def unpack(self, matrix):
+        """Returns a deserialized form of matrix that can be used by
+        PathFinder.search()"""
+
+        return PathFinder.CostMatrix.deserialize(JSON.parse(matrix))
 
     # 신버전 transcrypt에서만 작동함.
     # @staticmethod

@@ -14,10 +14,12 @@ max_range_to_container = 4
 repair_targets = 'repair_targets'
 lab_type = 'lab_type'
 mineral_type = 'mineral_type'
+room_lvl = 'room_lvl'
 
-# STRUCTURE_CONTAINER
+# STRUCTURE_CONTAINER/LINKS
 for_upgrade = 'for_upgrade'
 for_harvest = 'for_harvest'
+for_store = 'for_store'
 
 # 게임 내 리모트 명칭들
 options = 'options'

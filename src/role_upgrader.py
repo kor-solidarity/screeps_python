@@ -70,9 +70,16 @@ def run_upgrader(creep, creeps, all_structures, repairs, constructions):
             # 전용 컨테이너가 있고 채워짐?
             jeonyong = False
             la_containers = []
+
+            pickup_id = ERR_INVALID_TARGET
             # 업글용 컨테이너 따로 뽑는다.
-            if creep.room.memory[STRUCTURE_CONTAINER]:
+            if not Game.getObjectById(creep.memory.upgrade_target).level == 8\
+                    and creep.room.memory[STRUCTURE_CONTAINER]:
                 for s in creep.room.memory[STRUCTURE_CONTAINER]:
+                    obj = Game.getObjectById(s.id)
+                    if obj and s.for_upgrade:
+                        la_containers.append(obj)
+                for s in creep.room.memory[STRUCTURE_LINK]:
                     obj = Game.getObjectById(s.id)
                     if obj and s.for_upgrade:
                         la_containers.append(obj)
@@ -81,24 +88,35 @@ def run_upgrader(creep, creeps, all_structures, repairs, constructions):
                 # print('ch1 pickup_id', pickup_id)
             # 전용 컨테이너를 못찾으면 끝.
             if pickup_id == ERR_INVALID_TARGET:
+                la_containers = []
                 # find any storages with any energy inside
-                containers_or_links = all_structures.filter(lambda s: (s.structureType == STRUCTURE_CONTAINER
-                                                            and s.store[RESOURCE_ENERGY] >= creep.carryCapacity * .5))
+                # containers_or_links = all_structures.filter(lambda s: (s.structureType == STRUCTURE_CONTAINER
+                #                                             and s.store[RESOURCE_ENERGY] >= creep.carryCapacity * .5))
+
+                for s in creep.room.memory[STRUCTURE_CONTAINER]:
+                    obj = Game.getObjectById(s.id)
+                    if obj and s.for_upgrade:
+                        la_containers.append(obj)
+                for s in creep.room.memory[STRUCTURE_LINK]:
+                    obj = Game.getObjectById(s.id)
+                    if obj and s.for_upgrade:
+                        la_containers.append(obj)
+
                 # 링크를 찾는다.
-                links = []
-                for link in creep.room.memory[STRUCTURE_LINK]:
-                    if not link:
-                        continue
-                    # 저장용인 링크만 중요함.
-                    if link.for_store:
-                        if Game.getObjectById(link.id):
-                            links.extend([Game.getObjectById(link.id)])
-                containers_or_links.extend(links)
+                # links = []
+                # for link in creep.room.memory[STRUCTURE_LINK]:
+                #     if not link:
+                #         continue
+                #     # 저장용인 링크만 중요함.
+                #     if link.for_store:
+                #         if Game.getObjectById(link.id):
+                #             links.extend([Game.getObjectById(link.id)])
+                # containers_or_links.extend(links)
                 if creep.room.storage:
-                    containers_or_links.extend([creep.room.storage])
+                    la_containers.append(creep.room.storage)
 
                 # 가장 가까운곳에서 빼오는거임. 원래 스토리지가 최우선이었는데 바뀜.
-                pickup_id = pick_pickup(creep, creeps, containers_or_links, 10000, True)
+                pickup_id = pick_pickup(creep, creeps, la_containers, 10000, True)
             # 픽업 가져올게 없는 경우.
             if pickup_id == ERR_INVALID_TARGET:
                 # print(creep.name, 'pickup_id == ERR_INVALID_TARGET')

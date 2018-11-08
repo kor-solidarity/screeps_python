@@ -52,6 +52,8 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
         # print('inside spawning check')
         spawn_chk_cpu = Game.cpu.getUsed()
 
+        spawn_room_low = spawn.pos.roomName.lower()
+
         hostile_around = False
         # 적이 스폰 주변에 있으면 생산 안한다. 추후 수정해야함.
 
@@ -153,31 +155,31 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                 regular_spawn = spawn.spawnCreep(
                     [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK,
                      WORK, WORK, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY],
-                    'hrvst_{}_{}'.format(spawn.pos.roomName, rand_int),
+                    'hrv-{}-{}'.format(spawn_room_low, rand_int),
                     {memory: {'role': 'harvester', 'assigned_room': spawn.pos.roomName, 'size': 2}})
             else:
                 # perfect for 3000 cap
                 regular_spawn = spawn.spawnCreep(
                     [WORK, WORK, WORK, WORK, WORK, WORK,
                      CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE],
-                    'hrvst_{}_{}'.format(spawn.pos.roomName, rand_int),
+                    'hrv-{}-{}'.format(spawn_room_low, rand_int),
                     {memory: {'role': 'harvester', 'assigned_room': spawn.pos.roomName, 'size': 2}})
             # print('what happened:', regular_spawn)
             if regular_spawn == -6:
                 # one for 1500 cap == need 2
                 if spawn.spawnCreep(
                     [WORK, WORK, WORK, WORK, WORK, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE],
-                    'hrvst_{}_{}'.format(spawn.pos.roomName, rand_int),
+                    'hrv-{}-{}'.format(spawn_room_low, rand_int),
                     {memory: {'role': 'harvester', 'assigned_room': spawn.pos.roomName,
                               'size': 1}}) == -6:
                     # 3 WORK
                     if spawn.spawnCreep([MOVE, MOVE, WORK, WORK, WORK, CARRY, CARRY],
-                                        'hrvst_{}_{}'.format(spawn.pos.roomName, rand_int),
+                                        'hrv-{}-{}'.format(spawn_room_low, rand_int),
                                         {memory: {'role': 'harvester', 'assigned_room': spawn.pos.roomName,
                                                   'size': 1}}) == -6:
                         # final barrier
                         spawn.spawnCreep([MOVE, WORK, WORK, CARRY],
-                                         'hrvst_{}_{}'.format(spawn.pos.roomName, rand_int),
+                                         'hrv-{}-{}'.format(spawn_room_low, rand_int),
                                          {memory: {'role': 'harvester', 'assigned_room': spawn.pos.roomName,
                                                    'size': 1}})
             return
@@ -265,7 +267,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
             #          MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY,
             #          CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY,
             #          CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY],
-            #         'hlr_{}_{}'.format(spawn.pos.roomName, rand_int),
+            #         'hlr-{}-{}'.format(spawn.pos.roomName, rand_int),
             #         {memory: {'role': 'hauler', 'assigned_room': spawn.pos.roomName,
             #                     'level': 8}})
 
@@ -278,7 +280,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                          WORK, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY,
                          CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY,
                          CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY],
-                        'hlr_{}_{}'.format(spawn.pos.roomName, rand_int),
+                        'hlr-{}-{}'.format(spawn_room_low, rand_int),
                         {memory: {'role': 'hauler', 'assigned_room': spawn.pos.roomName,
                                   'level': 8}})
             else:
@@ -290,7 +292,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                     [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, CARRY,
                      CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY,
                      CARRY, CARRY],
-                    'hlr_{}_{}'.format(spawn.pos.roomName, rand_int),
+                    'hlr-{}-{}'.format(spawn_room_low, rand_int),
                     {memory: {'role': 'hauler', 'assigned_room': spawn.pos.roomName,
                               'level': 8}})
 
@@ -299,7 +301,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                 spawning_creep = spawn.spawnCreep(
                     [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, CARRY, CARRY, CARRY,
                      CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY],
-                    'hlr_{}_{}'.format(spawn.pos.roomName, rand_int),
+                    'hlr-{}-{}'.format(spawn_room_low, rand_int),
                     {memory: {'role': 'hauler', 'assigned_room': spawn.pos.roomName,
                               'level': 8}})
 
@@ -307,17 +309,17 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                 # 250
                 spawning_creep = spawn.spawnCreep([WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY,
                                                    CARRY, CARRY, MOVE, MOVE, MOVE, MOVE, MOVE],
-                                                  'hlr_{}_{}'.format(spawn.pos.roomName, rand_int),
+                                                  'hlr-{}-{}'.format(spawn_room_low, rand_int),
                                                   {memory: {'role': 'hauler', 'assigned_room': spawn.pos.roomName,
                                                             'level': 5}})
 
             if spawning_creep == ERR_NOT_ENOUGH_ENERGY:
                 if spawn.spawnCreep([WORK, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE],
-                                    'hlr_{}_{}'.format(spawn.pos.roomName, rand_int),
+                                    'hlr-{}-{}'.format(spawn_room_low, rand_int),
                                     {memory: {'role': 'hauler', 'assigned_room': spawn.pos.roomName,
                                               'level': 2}}) == -6:
                     spawn.spawnCreep([MOVE, MOVE, WORK, CARRY, CARRY],
-                                     'hlr_{}_{}'.format(spawn.pos.roomName, rand_int),
+                                     'hlr-{}-{}'.format(spawn_room_low, rand_int),
                                      {memory: {'role': 'hauler', 'assigned_room': spawn.pos.roomName,
                                                'level': 0}})
 
@@ -355,14 +357,14 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                              WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK,
                              WORK,
                              WORK, WORK, CARRY],
-                            'mine_{}_{}'.format(spawn.pos.roomName, rand_int),
+                            'mine-{}-{}'.format(spawn_room_low, rand_int),
                             {memory: {'role': 'miner', 'assigned_room': spawn.pos.roomName, 'level': 5}})
                         if spawning_creep == ERR_NOT_ENOUGH_RESOURCES:
                             spawning_creep = spawn.spawnCreep(
                                 [MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK,
                                  WORK,
                                  WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, CARRY, CARRY],
-                                'mine_{}_{}'.format(spawn.pos.roomName, rand_int),
+                                'mine-{}-{}'.format(spawn_room_low, rand_int),
                                 {memory: {'role': 'miner', 'assigned_room': spawn.pos.roomName}})
 
         # 업그레이더는 버켓 비상 근접시부터 생산 고려 자체를 안한다.
@@ -404,7 +406,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                     big = spawn.spawnCreep(
                         [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK,
                          WORK, WORK, WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY],
-                        'upg_{}_{}'.format(spawn.pos.roomName, rand_int),
+                        'upg-{}-{}'.format(spawn_room_low, rand_int),
                         {memory: {'role': 'upgrader', 'assigned_room': spawn.pos.roomName, 'level': 5}})
                 else:
                     big = -6
@@ -415,21 +417,21 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                         or (spawn.room.controller.ticksToDowngrade < CONTROLLER_DOWNGRADE[8] - 4900
                             and len(hostile_creeps) > 0):
                         spawn.spawnCreep([WORK, WORK, CARRY, CARRY, MOVE, MOVE],
-                                         'upg_{}_{}'.format(spawn.pos.roomName, rand_int),
+                                         'upg-{}-{}'.format(spawn_room_low, rand_int),
                                          {memory: {'role': 'upgrader', 'assigned_room': spawn.pos.roomName}})
                 elif big == -6:
                     small = spawn.spawnCreep(
                         [WORK, WORK, WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY,
                          CARRY, CARRY, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE],
-                        'upg_{}_{}'.format(spawn.pos.roomName, rand_int),
+                        'upg-{}-{}'.format(spawn_room_low, rand_int),
                         {memory: {'role': 'upgrader', 'assigned_room': spawn.pos.roomName, 'level': 3}})
                     if small == -6:
                         little = spawn.spawnCreep([WORK, WORK, WORK, CARRY, MOVE, MOVE],
-                                                  'upg_{}_{}'.format(spawn.pos.roomName, rand_int),
+                                                  'upg-{}-{}'.format(spawn_room_low, rand_int),
                                                   {memory: {'role': 'upgrader', 'assigned_room': spawn.pos.roomName}})
                     if little == -6:
                         spawn.spawnCreep([WORK, WORK, CARRY, CARRY, MOVE, MOVE],
-                                         'upg_{}_{}'.format(spawn.pos.roomName, rand_int),
+                                         'upg-{}-{}'.format(spawn_room_low, rand_int),
                                          {memory: {'role': 'upgrader', 'assigned_room': spawn.pos.roomName}})
 
         if not chambro.memory[options][stop_fixer]:
@@ -461,7 +463,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                     [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE,
                      WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK,
                      WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY,
-                     CARRY], '🛠️_{}_{}'.format(spawn.pos.roomName, rand_int),
+                     CARRY], 'fix-{}-{}'.format(spawn_room_low, rand_int),
                     {memory: {'role': 'fixer', 'assigned_room': spawn.pos.roomName, 'level': 8}})
 
         if Memory.debug or Game.time % interval == 0 or Memory.tick_check:
@@ -873,6 +875,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
             for r in Object.keys(Memory.rooms[spawn.room.name].options.remotes):
                 # 뒤에 점없는게 필요해서...
                 room_name = r
+                room_name_low = room_name.lower()
                 # if seeing the room is False - need to be scouted
                 # if not Game.flags[flag].room:
                 if not Game.rooms[room_name]:
@@ -880,7 +883,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                     creep_scouts = _.filter(creeps, lambda c: c.memory.role == 'scout'
                                                               and c.memory.assigned_room == room_name)
                     if len(creep_scouts) < 1:
-                        spawn_res = spawn.spawnCreep([MOVE], 'scout_{}_{}'.format(room_name, rand_int),
+                        spawn_res = spawn.spawnCreep([MOVE], 'scout-{}-{}'.format(room_name, rand_int),
                                                      {memory: {'role': 'scout', 'assigned_room': room_name}})
                         break
                 else:
@@ -948,7 +951,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                                      RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK,
                                      RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK,
                                      RANGED_ATTACK, HEAL, HEAL, HEAL],
-                                    'def_{}_{}'.format(room_name, rand_int),
+                                    'def-{}-{}'.format(room_name_low, rand_int),
                                     {memory: {'role': 'soldier', 'soldier': 'remote_defender',
                                               'assigned_room': room_name, 'home_room': spawn.pos.roomName}})
 
@@ -964,7 +967,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                                      RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK,
                                      RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK,
                                      RANGED_ATTACK, HEAL, HEAL, HEAL],
-                                    'def_{}_{}'.format(room_name, rand_int),
+                                    'def-{}-{}'.format(room_name_low, rand_int),
                                     {memory: {'role': 'soldier', 'soldier': 'remote_defender',
                                               'assigned_room': room_name, 'home_room': spawn.pos.roomName}})
 
@@ -1021,13 +1024,13 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                                 != spawn.room.controller.owner.username and len(remote_troops) > 0):
                             spawning_creep = spawn.spawnCreep(
                                 [MOVE, MOVE, MOVE, MOVE, CLAIM, CLAIM, CLAIM, CLAIM],
-                                'res_{}_{}_{}'.format(spawn.room.name, room_name, rand_int),
+                                'res-{}-{}'.format(room_name_low, rand_int),
                                 {memory: {'role': 'reserver', 'home_room': spawn.room.name,
                                           'assigned_room': room_name}})
                             if spawning_creep == ERR_NOT_ENOUGH_RESOURCES:
                                 spawning_creep = spawn.spawnCreep(
                                     [MOVE, MOVE, CLAIM, CLAIM],
-                                    'res_{}_{}_{}'.format(spawn.room.name, room_name, rand_int),
+                                    'res-{}-{}'.format(room_name_low, rand_int),
                                     {memory: {'role': 'reserver', 'home_room': spawn.room.name,
                                               'assigned_room': room_name}})
                             continue
@@ -1127,15 +1130,15 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                                 print('objs', objs)
                                 # 키퍼가 있으면 중간에 크립도 있는지라.
                                 if keeper_lair:
-                                    opts = {'trackCreeps': True, 'refreshMatrix': True,
+                                    opts = {'trackCreeps': True, 'refreshMatrix': True, 'pass_walls': True,
                                             'costByArea': {'objects': objs, 'size': 1, 'cost': 6}}
                                 else:
-                                    opts = {'trackCreeps': False, 'refreshMatrix': True,
+                                    opts = {'trackCreeps': False, 'refreshMatrix': True, 'pass_walls': True,
                                             'costByArea': {'objects': objs, 'size': 1, 'cost': 6}}
                                 # RoomPosition 목록. 컨테이너 건설한 김에 길도 깐다.
                                 constr_roads_pos = \
                                     PathFinder.search(constr_pos, spawn.pos,
-                                                      {'plainCost': 3, 'swampCost': 3,
+                                                      {'plainCost': 2, 'swampCost': 3,
                                                        'roomCallback':
                                                            lambda room_name:
                                                            pathfinding.Costs(room_name, opts).load_matrix()}, ).path
@@ -1215,7 +1218,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                                             CARRY, CARRY]
 
                             spawning = spawn.spawnCreep(body,
-                                                        'carrier_{}_{}'.format(room_name, rand_int),
+                                                        'carrier-{}-{}'.format(room_name_low, rand_int),
                                                         {memory: {'role': 'carrier',
                                                                   'assigned_room': room_name,
                                                                   'home_room': spawn.pos.roomName,
@@ -1246,7 +1249,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                                 print('2nd body({}): {}'.format(len(body), body))
                                 spawning = spawn.spawnCreep(
                                     body,
-                                    'carrier_{}_{}'.format(room_name, rand_int),
+                                    'carrier-{}-{}'.format(room_name_low, rand_int),
                                     {memory: {'role': 'carrier',
                                               'assigned_room': room_name, 'home_room': spawn.pos.roomName,
                                               'pickup': carrier_pickup_id, 'work': work_chance,
@@ -1260,7 +1263,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                             spawning = spawn.spawnCreep(
                                 [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, WORK,
                                  WORK, WORK, WORK, CARRY, CARRY],
-                                'carrier_{}_{}'.format(room_name, rand_int),
+                                'carrier-{}-{}'.format(room_name_low, rand_int),
                                 {memory: {'role': 'carrier', 'assigned_room': room_name,
                                           'work': 1, 'home_room': spawn.room.name,
                                           'source_num': carrier_source, 'frontier': 1}})
@@ -1268,7 +1271,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                                 spawn.spawnCreep(
                                     [WORK, WORK, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, MOVE,
                                      MOVE, MOVE, MOVE, MOVE],
-                                    'carrier_{}_{}'.format(room_name, rand_int),
+                                    'carrier-{}-{}'.format(room_name_low, rand_int),
                                     {memory: {'role': 'carrier', 'assigned_room': room_name,
                                               'work': 1, 'home_room': spawn.room.name,
                                               'source_num': carrier_source, 'frontier': 1}})
@@ -1284,7 +1287,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                                 [TOUGH, TOUGH, TOUGH, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE,
                                  WORK, WORK, WORK, WORK, WORK, WORK, WORK,
                                  CARRY, CARRY, CARRY, CARRY],
-                                "🌽_{}_{}".format(spawn.pos.roomName, rand_int),
+                                "hrv-{}-{}".format(room_name_low, rand_int),
                                 {memory: {'role': 'harvester', 'assigned_room': room_name,
                                           'home_room': spawn.room.name,
                                           'size': 2}})
@@ -1295,7 +1298,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                                 [WORK, WORK, WORK, WORK, WORK, WORK,
                                  CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE,
                                  MOVE, MOVE],
-                                "🌽_{}_{}".format(spawn.pos.roomName, rand_int),
+                                "hrv-{}-{}".format(room_name_low, rand_int),
                                 {memory: {'role': 'harvester', 'assigned_room': room_name,
                                           'home_room': spawn.room.name,
                                           'size': 2}})
@@ -1303,7 +1306,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                         if regular_spawn == -6:
                             spawn.spawnCreep([WORK, WORK, WORK, WORK, WORK,
                                               CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE],
-                                             "🌽_{}_{}".format(spawn.pos.roomName, rand_int),
+                                             "hrv-{}-{}".format(room_name_low, rand_int),
                                              {memory: {'role': 'harvester', 'assigned_room': room_name,
                                                        'home_room': spawn.room.name}})
                             continue

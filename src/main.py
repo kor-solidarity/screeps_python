@@ -55,8 +55,10 @@ creep.memory.flag:
 """
 
 js_global._costs = {'base': {}, 'rooms': {}, 'creeps': {}}
-
-
+# js_global.yolo = yolo('aa')
+#
+# def yolo(a):
+#     print(a)
 # todo 깃발꽂는거보다 이걸로. console cmd
 # js_global._cmd = lambda a, b: ([a, b])
 
@@ -535,7 +537,6 @@ def main():
         room_cpu_num = 0
 
         # 방 안 건물/소스현황 갱신.
-        # todo ADD LABS
         # 1차 발동조건: structure_renew_count 만큼의 턴이 지났는가? 또는 스폰있는 방에 리셋명령을 내렸는가?
         if Game.time % structure_renew_count == 0 or (chambro.memory.options and chambro.memory.options.reset):
             structure_cpu = Game.cpu.getUsed()
@@ -567,6 +568,16 @@ def main():
                     chambro.memory[STRUCTURE_CONTAINER] = []
                 if not chambro.memory[STRUCTURE_LAB] or chambro.memory.options.reset:
                     chambro.memory[STRUCTURE_LAB] = []
+                # 렙8이 되면 기존에 업글 등의 역할이 배정된것들 초기화 해야함. 그 용도
+                if not chambro.memory[room_lvl] or chambro.memory.options.reset:
+                    chambro.memory[room_lvl] = 1
+                    # 아래 레벨 확인 용도.
+                    if not chambro.memory[room_lvl]:
+                        past_lvl = 0
+                    else:
+                        past_lvl = chambro.memory[room_lvl]
+                    chambro.memory[room_lvl] = chambro.controller.level
+
 
                 # 방 안 스토리지 자원이 꽉 찼는데 수리레벨이 남아있을 경우 한단계 올린다.
                 if chambro.storage \
@@ -588,24 +599,41 @@ def main():
                         chambro.memory[STRUCTURE_TOWER].push(stt.id)
 
                 # add links. 위와 동일한 원리.
+                # todo 여기뿐 아니라 캐려쪽도 해당인데, 거리에 따라 업글용인지 등등을 확인하는건 다 여기서만!
                 str_links = _.filter(all_structures, lambda s: s.structureType == STRUCTURE_LINK)
                 if not len(str_links) == len(chambro.memory[STRUCTURE_LINK]):
                     chambro.memory[STRUCTURE_LINK] = []
-                    # 안보내는 조건은 주변 5칸거리내에 컨트롤러·스폰·스토리지가 있을 시.
+                    # 안보내는 조건은 주변 6칸거리내에 컨트롤러·스폰·스토리지가 있을 시.
                     str_points = _.filter(all_structures, lambda s: s.structureType == STRUCTURE_STORAGE
-                                                                    or s.structureType == STRUCTURE_SPAWN or s.structureType == STRUCTURE_TERMINAL
+                                                                    or s.structureType == STRUCTURE_SPAWN
+                                                                    or s.structureType == STRUCTURE_TERMINAL
                                                                     or s.structureType == STRUCTURE_EXTENSION)
-                    # 링크는 크게 두 종류가 존재한다. 하나는 보내는거, 또하난 안보내는거.
+                    # 만렙이 아닐 경우 컨트롤러 근처에 있는것도 센다.
+                    # if not chambro.controller.level == 8:
+                    #     str_points.append(chambro.controller)
+
+                    # 링크는 크게 두 종류가 존재한다. 하나는 보내는거, 또하난 받는거.
                     for stl in str_links:
-                        for_store = 0
-                        # 안보내는 조건은 주변 5칸거리내에 컨트롤러·스폰·스토리지가 있을 시.
-                        for stp in str_points:
-                            if len(stl.pos.findPathTo(stp, {'ignoreCreeps': True})) <= 5:
-                                for_store = 1
-                                break
+                        # 0이면 보내는거.
+                        _store = 0
+                        # 0이면 업글용인거.
+                        _upgrade = 0
+                        # 컨트롤러 근처에 있는지도 센다. 다만 렙8 아래일때만.
+                        if not chambro.controller.level == 8 and \
+                                len(stl.pos.findPathTo(chambro.controller, {'ignoreCreeps': True})) <= 6:
+                            _store = 1
+                            _upgrade = 1
+
+                        if not _store:
+                            for stp in str_points:
+                                if len(stl.pos.findPathTo(stp, {'ignoreCreeps': True})) <= 6:
+                                    _store = 1
+                                    break
+
                         # 추가한다
-                        chambro.memory[STRUCTURE_LINK].push({'id': stl.id, 'for_store': for_store})
-                        for_send = 0
+                        chambro.memory[STRUCTURE_LINK]\
+                            .push({'id': stl.id, for_upgrade: _upgrade, for_store: _store})
+
                 # 컨테이너
                 str_cont = _.filter(all_structures, lambda s: s.structureType == STRUCTURE_CONTAINER)
                 if not len(str_cont) == len(chambro.memory[STRUCTURE_CONTAINER]):
@@ -620,9 +648,9 @@ def main():
                     for stc in str_cont:
                         # 하베스터 저장용인가? 맞으면 1, 만일 캐리어 운송용이면 2. 2는 캐리어 쪽에서 건든다.
                         # 0 이면 방업글 끝나면 계속 갖고있을 이유가 없는 잉여인 셈.
-                        for_harvest = 0
+                        _harvest = 0
                         # 방 업글용인가?
-                        for_upgrade = 0
+                        _upgrade = 0
 
                         room_sources = []
                         for e in chambro.memory[resources][energy]:
@@ -635,14 +663,15 @@ def main():
                             print('컨테이너 주변 4칸이내에 소스가 있는지 확인한다.', rs)
                             if len(stc.pos.findPathTo(rs, {'ignoreCreeps': True})) <= 4:
                                 # 있으면 이 컨테이너는 하베스터 저장용.
-                                for_harvest = 1
+                                _harvest = 1
                                 break
                         # 확인 끝났으면 이제 방 업글용인지 확인한다. 방렙 8 미만 + 컨트롤러부터의 실제 거리가 6 이하인가?
                         if chambro.controller.level < 8 \
-                            and len(stc.pos.findPathTo(chambro.controller, {'ignoreCreeps': True})) <= 6:
-                            for_upgrade = 1
+                                and len(stc.pos.findPathTo(chambro.controller, {'ignoreCreeps': True})) <= 6:
+                            _upgrade = 1
                         chambro.memory[STRUCTURE_CONTAINER] \
-                            .push({'id': stc.id, 'for_upgrade': for_upgrade, 'for_harvest': for_harvest})
+                            .push({'id': stc.id, for_upgrade: _upgrade, for_harvest: _harvest})
+
                 # todo 연구소
                 # 연구소는 렙8 되기 전까지 건들지 않는다. 또한 모든 랩의 수가 10개여야만 찾는다.
                 # if chambro.controller.level == 8 and len(chambro.memory[STRUCTURE_LAB]) == 0\
