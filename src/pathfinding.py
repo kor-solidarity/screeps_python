@@ -165,7 +165,6 @@ class Costs:
 
         return matrix
 
-
     def generate_new_matrix(self):
         """Creates a new instance of `CostMatrix` that reflects the positions of
         structures in a room.

@@ -161,7 +161,8 @@ def main():
         # deleting unused creep memory.
         for name in Object.keys(Memory.creeps):
             if not Game.creeps[name]:
-                print('Clearing non-existing creep memory(powered by python™): ' + name)
+                if Memory.debug:
+                    print('Clearing non-existing creep memory(powered by python™): ' + name)
                 del Memory.creeps[name]
                 continue
 
@@ -204,7 +205,8 @@ def main():
 
     # 때에따라 한번씩 빈주문 삭제
     if Game.time % 80000 == 0:
-        print('attempting to clear market records...')
+        if Memory.debug:
+            print('attempting to clear market records...')
         miscellaneous.clear_orders()
 
     # 좀 아래에 CPU 계산 디스플레이 용도.
@@ -515,13 +517,13 @@ def main():
 
             elif creep.memory.role == 'g_collector':
                 role_collector.collector(creep, room_creeps, dropped_all, all_structures)
-
-            # print('{} apswning: {}'.format(creep.name, creep.spawning))
-            creep_cpu_end = Game.cpu.getUsed() - creep_cpu
-
             # 크립의 CPU 사용량 명시.
             if not creep.memory.cpu_usage:
                 creep.memory.cpu_usage = []
+            # print('{} apswning: {}'.format(creep.name, creep.spawning))
+            creep_cpu_end = Game.cpu.getUsed() - creep_cpu
+            creep.room.visual.text(round(creep_cpu_end, 2), creep.pos, {'color': 'FloralWhite', 'font': 0.35})
+
             creep.memory.cpu_usage.append(round(creep_cpu_end, 2))
             # cpu_usage 는 cpu_count 에 명시된 숫자 만큼만 센다. 그 이상 누적되면 오래된 순으로 자른다.
             while len(creep.memory.cpu_usage) > cpu_count:
@@ -555,6 +557,13 @@ def main():
                 for rm in room_minerals:
                     chambro.memory[resources][minerals].append(rm.id)
                 del room_sources
+            # 이 방에 키퍼가 있는지 확인.
+            if not chambro.memory[STRUCTURE_KEEPER_LAIR]:
+                chambro.memory[STRUCTURE_KEEPER_LAIR] = []
+                room_str = chambro.find(FIND_STRUCTURES)
+                for s in room_str:
+                    if s.structureType == STRUCTURE_KEEPER_LAIR:
+                        chambro.memory[keeper].append(s.id)
 
             # 본진인가?
             if chambro.controller and chambro.controller.my:
@@ -572,12 +581,8 @@ def main():
                 if not chambro.memory[room_lvl] or chambro.memory.options.reset:
                     chambro.memory[room_lvl] = 1
                     # 아래 레벨 확인 용도.
-                    if not chambro.memory[room_lvl]:
-                        past_lvl = 0
-                    else:
-                        past_lvl = chambro.memory[room_lvl]
+                    past_lvl = chambro.memory[room_lvl]
                     chambro.memory[room_lvl] = chambro.controller.level
-
 
                 # 방 안 스토리지 자원이 꽉 찼는데 수리레벨이 남아있을 경우 한단계 올린다.
                 if chambro.storage \
@@ -601,7 +606,8 @@ def main():
                 # add links. 위와 동일한 원리.
                 # todo 여기뿐 아니라 캐려쪽도 해당인데, 거리에 따라 업글용인지 등등을 확인하는건 다 여기서만!
                 str_links = _.filter(all_structures, lambda s: s.structureType == STRUCTURE_LINK)
-                if not len(str_links) == len(chambro.memory[STRUCTURE_LINK]):
+                if not len(str_links) == len(chambro.memory[STRUCTURE_LINK]) or \
+                        not past_lvl == chambro.memory[room_lvl]:
                     chambro.memory[STRUCTURE_LINK] = []
                     # 안보내는 조건은 주변 6칸거리내에 컨트롤러·스폰·스토리지가 있을 시.
                     str_points = _.filter(all_structures, lambda s: s.structureType == STRUCTURE_STORAGE
@@ -609,8 +615,8 @@ def main():
                                                                     or s.structureType == STRUCTURE_TERMINAL
                                                                     or s.structureType == STRUCTURE_EXTENSION)
                     # 만렙이 아닐 경우 컨트롤러 근처에 있는것도 센다.
-                    # if not chambro.controller.level == 8:
-                    #     str_points.append(chambro.controller)
+                    if not chambro.controller.level == 8:
+                        str_points.append(chambro.controller)
 
                     # 링크는 크게 두 종류가 존재한다. 하나는 보내는거, 또하난 받는거.
                     for stl in str_links:
@@ -618,6 +624,10 @@ def main():
                         _store = 0
                         # 0이면 업글용인거.
                         _upgrade = 0
+                        closest = stl.pos.findClosestByPath(str_points, {ignoreCreeps: True})
+                        if len(stl.pos.findPathTo(closest, {ignoreCreeps: True})) <= 6:
+                            _store = 1
+
                         # 컨트롤러 근처에 있는지도 센다. 다만 렙8 아래일때만.
                         if not chambro.controller.level == 8 and \
                                 len(stl.pos.findPathTo(chambro.controller, {'ignoreCreeps': True})) <= 6:
@@ -660,7 +670,7 @@ def main():
                         # print(room_sources)
                         for rs in room_sources:
                             # 컨테이너 주변 4칸이내에 소스가 있는지 확인한다.
-                            print('컨테이너 주변 4칸이내에 소스가 있는지 확인한다.', rs)
+                            # print('컨테이너 주변 4칸이내에 소스가 있는지 확인한다.', rs)
                             if len(stc.pos.findPathTo(rs, {'ignoreCreeps': True})) <= 4:
                                 # 있으면 이 컨테이너는 하베스터 저장용.
                                 _harvest = 1
@@ -702,13 +712,13 @@ def main():
                 #         #
                 #         if
 
-                chambro.memory.options.reset = 0
             # 여기로 왔으면 내 방이 아닌거.
             else:
                 pass
-
-            print('{}방 메모리에 건물현황 갱신하는데 {}CPU 소모'
-                  .format(chambro.name, round(Game.cpu.getUsed() - structure_cpu, 2)))
+            if Memory.debug or chambro.controller.my and chambro.memory.options.reset:
+                print('{}방 메모리에 건물현황 갱신하는데 {}CPU 소모'
+                      .format(chambro.name, round(Game.cpu.getUsed() - structure_cpu, 2)))
+                chambro.memory.options.reset = 0
         # 스폰과 링크목록
         spawns_and_links = []
         spawns_and_links.extend(spawns)
@@ -778,7 +788,7 @@ def main():
                 for_str += 1
                 room_cpu_num += 1
 
-        if (Memory.debug or Game.time % interval == 0 or Memory.tick_check) and room_cpu_num > 0:
+        if (Memory.debug and Game.time % interval == 0) and room_cpu_num > 0:
             end = Game.cpu.getUsed()
             # print("end {} start {}".format(round(end, 2), round(room_cpu, 2)))
             room_cpu_avg = (end - room_cpu) / room_cpu_num
@@ -845,7 +855,7 @@ def main():
             if divider > counter:
                 divider -= counter
 
-            if Memory.debug or Game.time % interval == 0 or Memory.tick_check:
+            if Memory.debug and Game.time % interval == 0:
                 print('방 {} 루프에서 스폰 {} 준비시간 : {} cpu'.format(nesto.room.name, nesto.name
                                                              , round(Game.cpu.getUsed() - spawn_cpu, 2)))
 
@@ -855,13 +865,13 @@ def main():
                                       min_hits)
 
             spawn_cpu_end = Game.cpu.getUsed() - spawn_cpu
-            if Memory.debug or Game.time % interval == 0 or Memory.tick_check:
+            if Memory.debug and Game.time % interval == 0:
                 print('spawn {} used {} cpu'.format(spawn.name, round(spawn_cpu_end, 2)))
 
     if Game.cpu.bucket < cpu_bucket_emergency:
         print('passed creeps:', passing_creep_counter)
 
-    if Memory.debug or Game.time % interval == 0 or Memory.tick_check:
+    if Memory.debug and Game.time % interval == 0:
         print("total of {} creeps run with avg. {} cpu, tot. {} cpu"
               .format(total_creep_cpu_num, round(total_creep_cpu / total_creep_cpu_num, 2), round(total_creep_cpu, 2)))
 
@@ -882,8 +892,9 @@ def main():
     # Memory.cpu_usage.total.push(round(Game.cpu.getUsed(), 2))
 
     # there's a reason I made it this way...
-    if not Memory.tick_check and Memory.tick_check != False:
-        Memory.tick_check = False
+    # 뭐꼬이게... 삭제.
+    # if not Memory.tick_check and Memory.tick_check != False:
+    #     Memory.tick_check = False
 
     pathfinding.run_maintenance()
 

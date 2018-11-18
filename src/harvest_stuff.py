@@ -14,29 +14,29 @@ __pragma__('noalias', 'update')
 # 자원 얻는 방식에 대한 그 모든것은 여기로 간다.
 
 
-def harvest_energy(creep, source_num):
+def harvest_energy(creep, source_id):
     """
     자원을 캐고 없으면 다음껄로(다음번호) 보낸다.
 
     :param creep: the creep. do i have to tell you? intended for harvesters and upgraders.
-    :param source_num: ID of the energy source.
+    :param source_id: ID of the energy source.
     :return: ain't returning shit.
     """
     vis_key = "visualizePathStyle"
     stroke_key = "stroke"
 
-    if not creep.pos.isNearTo(Game.getObjectById(source_num)):
+    if not creep.pos.isNearTo(Game.getObjectById(source_id)):
         harvested = ERR_NOT_IN_RANGE
-    elif Game.getObjectById(source_num).energy == 0:
+    elif Game.getObjectById(source_id).energy == 0:
         harvested = ERR_NOT_ENOUGH_RESOURCES
     # activate the harvest cmd.
     else:
-        harvested = creep.harvest(Game.getObjectById(source_num))
+        harvested = creep.harvest(Game.getObjectById(source_id))
 
     # is sources too far out?
     if harvested == ERR_NOT_IN_RANGE:
         # then go.
-        creep.moveTo(Game.getObjectById(source_num), {vis_key: {stroke_key: '#ffffff'},
+        creep.moveTo(Game.getObjectById(source_id), {vis_key: {stroke_key: '#ffffff'},
                                                       'maxOps': 5000})
 
     # did the energy from the sources got depleted?
@@ -151,15 +151,16 @@ def grab_energy_new(creep, min_capacity=.5):
     resource_type = creep.memory[haul_resource]
 
     if not resource_type:
-        creep.say('허울타입 안정함!!')
-        return
+        creep.say('허울타입X!!')
+        return ERR_NOT_ENOUGH_ENERGY
 
     pickup_obj = Game.getObjectById(creep.memory.pickup)
 
     # 존재하지 않는 물건이거나 용량 저장하는게 없으면 이 작업을 못함.
-    if not pickup_obj or not (pickup_obj.store or pickup_obj.energy or pickup_obj.mineralAmount):
-
+    if not pickup_obj:
         return ERR_INVALID_TARGET
+    elif not (pickup_obj.store or pickup_obj.energy or pickup_obj.mineralAmount):
+        return ERR_NOT_ENOUGH_ENERGY
 
     # if there's no energy in the pickup target, delete it
     # 스토어가 있는 경우면 에너지 외 다른것도 있을 수 있단거
@@ -264,54 +265,58 @@ def transfer_stuff(creep):
     """
 
 
-
-def pick_drops(creep, pickup, only_energy):
+def pick_drops(creep, only_energy=False):
     """
-    pick up dropped resources, or tombstones.
+    떨궈진 물건 줍기.
+    존재여부, 내용물 여부, 거리 순으로 확인하고 시행.
 
     :param creep:
-    :param pickup: 집을 대상 id
-    :param only_energy:
+    :param only_energy: 에너지만 줍는가? 기본값 거짓
     :return:
     """
-
-    pickup_obj = Game.getObjectById(pickup)
+    # print('++++++++++++++++++++++++++++++++++++')
+    # print('pick {}'.format(creep.name))
+    # creep.memory.dropped 이건 떨군거 집을때 모든 크립 공통
+    pickup_obj = Game.getObjectById(creep.memory.dropped)
+    # 존재하는가?
     if not pickup_obj:
         return ERR_INVALID_TARGET
+
+    # 내용물이 있는지 확인.
+    if only_energy and not ((pickup_obj.store and pickup_obj.store[RESOURCE_ENERGY]) or pickup_obj.energy):
+        return ERR_NOT_ENOUGH_ENERGY
+    elif not ((pickup_obj.store and _.sum(pickup_obj.store)) or pickup_obj.energy):
+        return ERR_NOT_ENOUGH_ENERGY
 
     # 근처에 없으면 이걸 돌릴 이유가 없다.
     if not pickup_obj.pos.isNearTo(creep):
         return ERR_NOT_IN_RANGE
 
-    # 두 경우만 존재한다. 떨궈졌냐? 무덤이냐
-    # 무덤?
+    # 두 경우만 존재한다. 떨궈졌냐? 무덤이냐. 스토어 있음 무덤
     if pickup_obj.store:
-        for resource in Object.keys(pickup_obj.store):
-            # if the creep only need to pick up energy.
-            if only_energy and resource != RESOURCE_ENERGY:
-                continue
-            # and there's no energy there
-            if only_energy and Game.getObjectById(pickup).store[resource] == 0:
-                # creep.say('noEnergy')
+        # print('store')
+        # 에너지만 잡는거면 에너지만 본다.
+        if only_energy:
+            if pickup_obj.store[RESOURCE_ENERGY]:
+                return creep.withdraw(pickup_obj, RESOURCE_ENERGY)
+            else:
                 return ERR_NOT_ENOUGH_ENERGY
-
-            # if there's no such resource, pass it to next loop.
-            if Game.getObjectById(pickup).store[resource] == 0:
-                continue
-
-            # pick it up.
-            grab_action = creep.withdraw(Game.getObjectById(pickup), resource)
-
-            if grab_action == ERR_NOT_ENOUGH_RESOURCES:
-                print('ERR_NOT_ENOUGH_RESOURCES', resource)
-            # 오직 잡기 결과값만 반환한다. 이 함수에서 수거활동 외 활동을 금한다!
-            return grab_action
+        else:
+            # print('els')
+            # 에너지가 안에 있는지 확인.
+            if len(Object.keys(pickup_obj.store)) > 1:
+                for resource in Object.keys(pickup_obj.store):
+                    # 에너지는 마지막에 챙긴다.
+                    if resource == RESOURCE_ENERGY:
+                        continue
+                    else:
+                        return creep.withdraw(pickup_obj, resource)
+            else:
+                return creep.withdraw(pickup_obj, RESOURCE_ENERGY)
     # 떨군거
     else:
-
+        # print('nStore')
         if only_energy and pickup_obj.resourceType != RESOURCE_ENERGY:
             return ERR_INVALID_TARGET
         else:
-            grab_action = creep.pickup(pickup_obj)
-
-            return grab_action
+            return creep.pickup(pickup_obj, RESOURCE_ENERGY)
