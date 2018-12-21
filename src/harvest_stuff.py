@@ -152,8 +152,9 @@ def grab_energy_new(creep, min_capacity=.5):
 
     if not resource_type:
         creep.say('허울타입X!!')
-        return ERR_NOT_ENOUGH_ENERGY
+        return ERR_INVALID_ARGS
 
+    # 아이디 추출
     pickup_obj = Game.getObjectById(creep.memory.pickup)
 
     # 존재하지 않는 물건이거나 용량 저장하는게 없으면 이 작업을 못함.

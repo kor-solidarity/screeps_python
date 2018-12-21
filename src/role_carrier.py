@@ -58,6 +58,35 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
     elif not creep.memory[haul_resource]:
         creep.memory[haul_resource] = haul_all
 
+    # 픽업에 저장된 길이 있나 확인한다. 우선 이리 만들긴 했는데 스폰부터 메모리화되서 의미가 없어진듯
+    if not creep.memory[to_pickup] and Game.getObjectById(creep.memory.pickup):
+        # print(Game.getObjectById(creep.memory.pickup))
+        objs = []
+        for i in Game.getObjectById(creep.memory.pickup).room.memory[resources][RESOURCE_ENERGY]:
+            objs.append(Game.getObjectById(i))
+        for i in Game.getObjectById(creep.memory.pickup).room.memory[resources][minerals]:
+            objs.append(Game.getObjectById(i))
+        # for i in Game.getObjectById(creep.memory.pickup).room.memory[STRUCTURE_KEEPER_LAIR]:
+        #     objs.append(Game.getObjectById(i))
+        opts = {'trackCreeps': False, 'refreshMatrix': True, 'pass_walls': False,
+                'costByArea': {'objects': objs, 'size': 1, 'cost': 6}}
+        if creep.memory.birthplace:
+            birthplace = RoomPosition(creep.memory.birthplce.x, creep.memory.birthplce.y, creep.memory.birthplce.roomName)
+        else:
+            birthplace = creep.pos
+        # 가는길 저장.
+        creep.memory[to_pickup] = \
+            PathFinder.search(birthplace, Game.getObjectById(creep.memory.pickup).pos,
+                              {'plainCost': 2, 'swampCost': 3,
+                               'roomCallback':
+                                   lambda room_name:
+                                   pathfinding.Costs(room_name, opts).load_matrix()
+                               }, ).path
+        # 그리고 위에꺼 그대로 역순으로 나열해서 돌아가는길 저장.
+        creep.memory[to_home] = []
+        for r in creep.memory[to_pickup]:
+            creep.memory[to_home].insert(0, r)
+
     if _.sum(creep.carry) == 0 and creep.memory.laboro != 0:
         creep.memory.laboro = 0
         creep.memory.priority = 0
@@ -223,32 +252,11 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
 
             # *******************************************************************
             if result == ERR_NOT_IN_RANGE:
-                # 픽업에 저장된 길이 있나 확인한다. 우선 이리 만들긴 했는데 스폰부터 메모리화되서 의미가 없어진듯
-                if not creep.memory[to_pickup] and Game.getObjectById(creep.memory.pickup):
-                    objs = []
-                    for i in Game.getObjectById(creep.memory.pickup).room.memory[resources][RESOURCE_ENERGY]:
-                        objs.append(Game.getObjectById(i))
-                    for i in Game.getObjectById(creep.memory.pickup).room.memory[resources][minerals]:
-                        objs.append(Game.getObjectById(i))
-                    for i in Game.getObjectById(creep.memory.pickup).room.memory[keeper]:
-                        objs.append(Game.getObjectById(i))
-                    opts = {'trackCreeps': False, 'refreshMatrix': True, 'pass_walls': False,
-                            'costByArea': {'objects': objs, 'size': 1, 'cost': 6}}
-                    # 가는길 저장.
-                    creep.memory[to_pickup] = \
-                        PathFinder.search(creep.pos, Game.getObjectById(creep.memory.pickup).pos,
-                                                     {'plainCost': 2, 'swampCost': 3,
-                                                      'roomCallback':
-                                                          lambda room_name:
-                                                          pathfinding.Costs(room_name, opts).load_matrix()
-                                                      }, ).path
-                    # 그리고 위에꺼 그대로 역순으로 나열해서 돌아가는길 저장.
-                    creep.memory[to_home] = []
-                    for r in creep.memory[to_pickup]:
-                        creep.memory[to_home].insert(0, r)
-                path_array = []
-                for i in creep.memory[to_pickup]:
-                    path_array.append(__new__(RoomPosition(i.x, i.y, i.roomName)))
+                path_array = \
+                    _.map(creep.memory[to_pickup],
+                          lambda p: __new__(RoomPosition(p.x, p.y, p.roomName)))
+                # for i in creep.memory[to_pickup]:
+                #     path_array.append(__new__(RoomPosition(i.x, i.y, i.roomName)))
                 moving = creep.moveByPath(path_array)
 
                 if moving == OK:
@@ -318,7 +326,12 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                     or not creep.pos.inRangeTo(Game.getObjectById(creep.memory.source_num), 5):
                 # get_to_da_room(creep, creep.memory.assigned_room, False)
                 # 스폰될때 자동으로 현위치에서 길이 배정되기 때문에 없으면 애초부터 잘못 스폰된거.
-                moving = creep.moveByPath(creep.memory[to_pickup])
+
+                path_array = \
+                    _.map(creep.memory[to_pickup],
+                          lambda p: __new__(RoomPosition(p.x, p.y, p.roomName)))
+
+                moving = creep.moveByPath(path_array)
 
                 if moving == OK:
                     draw_path(creep, creep.memory[to_pickup])
@@ -326,8 +339,9 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                 # 크립위치가 길과 안맞는 경우.
                 elif moving == ERR_NOT_FOUND:
                     # 가장 가까이 있는 길을 찾아나선다.
-                    creep.say('탈선-{}'.format(len(creep.memory[to_pickup])))
-                    movi(creep, creep.pos.findClosestByRange(creep.memory[to_pickup]))
+                    draw_path(creep, creep.memory[to_pickup], 'red')
+                    move = movi(creep, creep.pos.findClosestByRange(path_array))
+                    creep.say('픽업탈선:{}'.format(move))
                 else:
                     creep.say('ERR {}'.format(moving))
 
@@ -491,8 +505,9 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                     # 크립위치가 길과 안맞는 경우.
                 elif go_home == ERR_NOT_FOUND:
                     # 가장 가까이 있는 길을 찾아나선다.
-                    creep.say('탈선-{}'.format(len(creep.memory[to_pickup])))
-                    movi(creep, creep.pos.findClosestByRange(creep.memory[to_pickup]))
+
+                    move = movi(creep, creep.pos.findClosestByRange(home_arr))
+                    creep.say('집 탈선:{}'.format(move))
                 else:
                     creep.say('ERR {}'.format(go_home))
             # 본진도착

@@ -441,6 +441,8 @@ def main():
             if creep.spawning:
                 if not creep.memory.age and creep.memory.age != 0:
                     creep.memory.age = 0
+                if not creep.memory.birthplace:
+                    creep.memory.birthplace = creep.pos
                 continue
 
             # but if a soldier/harvester.... nope. they're must-be-run creeps
@@ -867,6 +869,10 @@ def main():
             spawn_cpu_end = Game.cpu.getUsed() - spawn_cpu
             if Memory.debug and Game.time % interval == 0:
                 print('spawn {} used {} cpu'.format(spawn.name, round(spawn_cpu_end, 2)))
+
+        # 맨 위 visual 부분 정산
+        chambro.visual.text('visual size: {}'.format(Game.rooms[chambra_nomo].visual.getSize()),
+                            disp_x, disp_y + 3)
 
     if Game.cpu.bucket < cpu_bucket_emergency:
         print('passed creeps:', passing_creep_counter)

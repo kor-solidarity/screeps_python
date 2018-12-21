@@ -221,18 +221,19 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                         if carrier_plus == 1 or carrier_plus == 3:
                             plus += 1
 
+        # NULLIFIED - 링크에 따른 허울러 증가여부는 무시
         # 위와 동일. 링크를 센다.
-        for mlink in spawn.room.memory[STRUCTURE_LINK]:
-            # 링크는 크게 두종류가 존재한다. 받는것과 주는것.
-            # 주는것이 꽉찰때 추가.
-            if not mlink.for_store:
-                mlink_obj = Game.getObjectById(mlink.id)
-                # 링크가 꽉 차고 캐리어용이 아닌 한에 채운다.
-                if mlink_obj and mlink_obj.energy == mlink_obj.energyCapacity \
-                    and mlink_obj.cooldown == 0 and not mlink.for_harvest:
-                    plus += 1
-                    print('plus! link {}, harvest: {}'
-                          .format(mlink_obj.id, mlink_obj.for_harvest))
+        # for mlink in spawn.room.memory[STRUCTURE_LINK]:
+        #     # 링크는 크게 두종류가 존재한다. 받는것과 주는것.
+        #     # 주는것이 꽉찰때 추가.
+        #     if not mlink.for_store:
+        #         mlink_obj = Game.getObjectById(mlink.id)
+        #         # 링크가 꽉 차고 캐리어용이 아닌 한에 채운다.
+        #         if mlink_obj and mlink_obj.energy == mlink_obj.energyCapacity \
+        #             and mlink_obj.cooldown == 0 and not mlink.for_harvest:
+        #             plus += 1
+        #             print('plus! link {}, harvest: {}'
+        #                   .format(mlink_obj.id, mlink_obj.for_harvest))
 
         # 건물이 아예 없을 시
         if len(harvest_carry_targets) == 0:

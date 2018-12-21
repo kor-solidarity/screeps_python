@@ -15,7 +15,7 @@ __pragma__('kwargs')
 
 
 # noinspection PyPep8Naming
-def movi(creep, target, range_to=0, reusePath=20, ignoreCreeps=False, maxOps=3000, color='#ffffff'):
+def movi(creep, target, range_to=0, reusePath=20, ignore_creeps=False, maxOps=3000, color='#ffffff'):
     """
     크립 움직이는거 관련.
 
@@ -23,15 +23,13 @@ def movi(creep, target, range_to=0, reusePath=20, ignoreCreeps=False, maxOps=300
     :param target: 목표 ID, or RoomPosition
     :param range_to: 거리, 기본값 1
     :param reusePath: 재사용틱, 기본값 20
-    :param ignoreCreeps: 크립무시여부, 기본값 False
+    :param ignore_creeps: 크립무시여부, 기본값 False
     :param maxOps: 패스파인딩 할때 돌릴 시뮬 수. 기본값 2천
     :param color: 기본값 #ffffff
     :return: 결과
     """
-    # if typeof(target) == RoomPosition
-    # print('typeof(target)', typeof(target), 'string? {}'.format(bool(typeof(target) == 'string')))
+
     if typeof(target) == 'string':
-        # print('if typeof(target) == String')
         target_obj = Game.getObjectById(target)
     else:
         # print('els')
@@ -41,7 +39,7 @@ def movi(creep, target, range_to=0, reusePath=20, ignoreCreeps=False, maxOps=300
     if creep.pos.isEqualTo(target_obj):
         return OK
 
-    return creep.moveTo(target_obj, {'range': range_to, 'ignoreCreeps': ignoreCreeps,
+    return creep.moveTo(target_obj, {'range': range_to, ignoreCreeps: ignore_creeps,
                                      'visualizePathStyle': {'stroke': color},
                                      'reusePath': reusePath, 'maxOps': maxOps})
 
@@ -117,49 +115,47 @@ def check_loc_and_swap_if_needed(creep, creeps, avoid_id=False, avoid_role=False
         return OK
 
 
-def draw_path(creep, path_arr):
+def draw_path(creep, path_arr, color='white'):
     """
     크립의 길이 저장된 경우 크립위치에서 해당 길까지 줄을 긋는다.
 
     :param creep:
     :param path_arr: RoomPosition 어레이
+    :param color: 줄 그릴 색
     :return:
     """
     creep_pos_checked = False
     points = []
     for p in path_arr:
-        # print(JSON.stringify(p))
-        # print(p.roomName, creep.pos.roomName, bool(p.roomName == creep.pos.roomName))
-        # if p.roomName == creep.pos.roomName and \
-        #         not JSON.stringify(p) == JSON.stringify(creep.pos):
-        #     # if not p.roomName == creep.pos.roomName:
-        #     # continue
-        #     points.append(p)
+
+        if not p.roomName == creep.pos.roomName:
+            continue
+
         # 크립이 있는 곳을 찍는다.
         if not creep_pos_checked and JSON.stringify(creep.pos) == JSON.stringify(p):
             creep_pos_checked = True
         elif creep_pos_checked:
-            # print('creep_pos_checked')
+
             points.append(p)
-    print(JSON.stringify(points))
-    # creep.room\
+
     Game.rooms[creep.pos.roomName].visual.poly(points,
                                                        {
-                                                        # 'fill': 'transparent',
-                                                        'stroke': 'white',
+                                                        'fill': 'transparent',
+                                                        'stroke': color,
                                                         'lineStyle': 'dashed',
                                                         'strokeWidth': .15,
-                                                        'opacity': .1
+                                                        'opacity': .2
                                                         })
 
 
-def get_findPathTo(start, target, ignore_creeps=True):
+def get_findPathTo(start, target, range=0, ignore_creeps=True):
     """
     findPathTo 를 이용한 길찾기
 
-    :param start:
-    :param target:
-    :param ignoreCreeps:
+    :param start: 출발지. 아이디여도 되고 포지션 오브젝트도 됨
+    :param target: 목적지. 출발지와 동일
+    :param range: 거리.
+    :param ignore_creeps: 크립을 무시하는가? 통상은 무조건 무시한다.
     :return:
     """
     if typeof(start) == 'string':
@@ -171,7 +167,8 @@ def get_findPathTo(start, target, ignore_creeps=True):
     # if target.pos:
     #     target = target.pos
 
-    path = start.findPathTo(target, {ignoreCreeps: ignore_creeps})
+    path = start.findPathTo(target,
+                            {'maxOps': 5000, ignoreCreeps: ignore_creeps, 'range': range})
     return _.map(path, lambda p: __new__(RoomPosition(p.x, p.y, start.roomName)))
 
 
@@ -286,16 +283,99 @@ def move_using_swap(creep, creeps, target, ignore_creeps=True, reuse_path=40,
         return OK
 
 
-# def get_path(creep, target, avoid_res=True, avoid_creep=True):
-#     """
-#     패스파인딩할 자료들.
-#
-#     :param creep:
-#     :param target:
-#     :param avoid_res: 자원을 비껴갈 것인가? 통상 캐리어를 쓸때 사용할듯.
-#     :param avoid_creep: ignoreCreep과 동일.
-#     :return:
-#     """
+def move_with_mem(creep, target, rangxo=0, pathfinder=False):
+    """
+    크립을 무시하고 저장된 메모리따라 움직일 모든 코드는 여기에 들어간다.
+
+    :param creep: 크립
+    :param target: 갈 표적 아이디.
+    :param rangxo: range
+    :param pathfinder: 패스파인더를 쓸지 여부. 안쓰면 그냥 findPathTo 쓰는거. 당장은 안넣는걸로.
+    :return:
+    """
+
+    # 새 길을 찾아야 하는가
+    need_new_path = False
+
+    # creep.memory.old_target == 이전 목적지. 이동중 목적지 등이 바뀌는 경우를 위해 필요.
+    # 크립의 구 목표가 없거나 구 목표와 현 목표 아이디가 일치하지 않는 경우 새 길을 파야 한다.
+    if not creep.memory.old_target or not creep.memory.old_target == target:
+        need_new_path = True
+        creep.memory.old_target = target
+    # 도로가 없음 만들어야하니.
+    elif not creep.memory.path:
+        need_new_path = True
+
+    move_by_path = ERR_NOT_FOUND
+    counter = 0
+    while move_by_path == ERR_NOT_FOUND and counter < 3:
+        counter += 1
+        # 길 새로 짜야하는 경우 짠다.
+        if need_new_path or not creep.memory.path:
+            creep.memory.path = get_findPathTo(creep.pos, target, rangxo)
+            need_new_path = False
+        # 여기까지 새 도로가 필요없으면 가지고 있는거 돌려본다.
+        move_by_path = creep.\
+            moveByPath(_.map(creep.memory.path,
+                             lambda p: __new__(RoomPosition(p.x, p.y, creep.room.name))))
+        if move_by_path == ERR_NOT_FOUND:
+            print(creep.name, 'ERR_NOT_FOUND')
+            del creep.memory.path
+
+    if not move_by_path == OK:
+        creep.say("mwm {}".format(move_by_path))
+
+    return move_by_path
 
 
+def move_with_mem_block_check(creep, path, counter=3):
+    """
+    move_with_mem 과 연동. 앞에 길막하는놈이랑 위치교대.
+    현재 check_loc_and_swap_if_needed 랑 겹치는 부분이 있긴 한데 궁극적으론 다 여기로 보낸다.
 
+    :param creep: 크립
+    :param path: 길 목록. RoomPosition 이어야함.
+    :param counter: 몇번까지 교체허용?
+    :return: 뭘 쓸까.... 오케이 외엔 딱히없긴 할듯.
+    """
+
+    # 없으면 1로 초기화.
+    if not creep.memory.move_ticks:
+        creep.memory.move_ticks = 1
+
+    # checking current location - only needed when check in par with move_ticks
+    if not creep.memory.cur_loc:
+        creep.memory.cur_loc = creep.pos
+    if not creep.fatigue == 0:
+        pass
+    # 현재 크립위치와 대조해본다. 동일하면 move_ticks 에 1 추가 아니면 1로 초기화.
+    elif JSON.stringify(creep.memory.cur_loc) == JSON.stringify(creep.pos):
+        creep.memory.move_ticks += 1
+    else:
+        # 안 동일하면 초기화.
+        creep.memory.move_ticks = 1
+        creep.memory.cur_loc = creep.pos
+
+    # 5보다 더 올라갔다는건 앞에 뭔가에 걸렸다는 소리. 그 앞에 뭔가랑 교체한다.
+    if creep.memory.move_ticks > 5 and creep.fatigue == 0:
+        creep_located = False
+        for p in path:
+            # 길위에 크립 위치를 찾았는지?
+            if creep_located:
+                for i in p.look():
+                    # 앞에 크립이 존재하고 그게 내꺼면 교대.
+                    if i.type == 'creep' and i.creep.my:
+                        Game.getObjectById(i.creep.id).moveTo(creep)
+                        creep.moveTo(Game.getObjectById(i.creep.id))
+                        creep.say('교대좀', True)
+                        return OK
+                break
+            # print('p: {}, creep: {}'.format(p, creep.pos))
+            if JSON.stringify(p) == JSON.stringify(creep.pos):
+                # print('{} 현위치 {},{}'.format(creep.name, creep.pos.x, creep.pos.y))
+                creep_located = True
+        # 포문 밖으로 나오면 안됨..
+        return ERR_NO_PATH
+
+    else:
+        return OK
