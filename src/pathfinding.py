@@ -67,8 +67,10 @@ class Costs:
 
         for grid in grids:
             x, y = grid[0], grid[1]
-
-            if Game.map.getTerrainAt(x, y, self.room.name) == 'wall':
+            # if Game.map.getTerrainAt(x, y, self.room.name) == 'wall':
+            #     continue
+            # 위에서 교체
+            if Game.map.getRoomTerrain(self.room.name).get(x, y) == TERRAIN_MASK_WALL:
                 continue
 
             if matrix.get(x, y) < 255:
@@ -151,7 +153,9 @@ class Costs:
         for x in range(1, 49):
             for y in range(1, 49):
                 # 벽이 있으면 값을 넣는다.
-                if Game.map.getTerrainAt(x, y, self.room.name) == 'wall':
+                # if Game.map.getTerrainAt(x, y, self.room.name) == 'wall':
+                #     matrix.set(x, y, int(self.opts.cost * 1.5))
+                if Game.map.getRoomTerrain(self.room.name).get(x, y) == TERRAIN_MASK_WALL:
                     matrix.set(x, y, int(self.opts.cost * 1.5))
 
         # for grid in grids:

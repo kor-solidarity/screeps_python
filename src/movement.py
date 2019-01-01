@@ -126,26 +126,22 @@ def draw_path(creep, path_arr, color='white'):
     """
     creep_pos_checked = False
     points = []
-    for p in path_arr:
 
+    for p in path_arr:
         if not p.roomName == creep.pos.roomName:
             continue
-
         # 크립이 있는 곳을 찍는다.
         if not creep_pos_checked and JSON.stringify(creep.pos) == JSON.stringify(p):
             creep_pos_checked = True
         elif creep_pos_checked:
-
             points.append(p)
 
-    Game.rooms[creep.pos.roomName].visual.poly(points,
-                                                       {
-                                                        'fill': 'transparent',
-                                                        'stroke': color,
-                                                        'lineStyle': 'dashed',
-                                                        'strokeWidth': .15,
-                                                        'opacity': .2
-                                                        })
+    if len(points) > 1:
+        return Game.rooms[creep.pos.roomName]\
+            .visual.poly(points, {'fill': 'transparent',
+                                  'stroke': color, 'lineStyle': 'dashed',
+                                  'strokeWidth': .15, 'opacity': .2})
+    return ERR_NO_PATH
 
 
 def get_findPathTo(start, target, range=0, ignore_creeps=True):
@@ -283,19 +279,27 @@ def move_using_swap(creep, creeps, target, ignore_creeps=True, reuse_path=40,
         return OK
 
 
-def move_with_mem(creep, target, rangxo=0, pathfinder=False):
+def move_with_mem(creep, target, rangxo=0, path=[], pathfinder=False):
     """
     크립을 무시하고 저장된 메모리따라 움직일 모든 코드는 여기에 들어간다.
 
     :param creep: 크립
     :param target: 갈 표적 아이디.
     :param rangxo: range
+    :param path: 최초 지정된 길. 존재하면 사용.
     :param pathfinder: 패스파인더를 쓸지 여부. 안쓰면 그냥 findPathTo 쓰는거. 당장은 안넣는걸로.
     :return:
     """
 
+    # todo 위에 path 활성화. 아래에서 불필요하게 map 쓰는거 방지가 요점.
+
     # 새 길을 찾아야 하는가
     need_new_path = False
+    if not len(path):
+        changed_path = True
+    # path 반환 용도
+    else:
+        changed_path = False
 
     # creep.memory.old_target == 이전 목적지. 이동중 목적지 등이 바뀌는 경우를 위해 필요.
     # 크립의 구 목표가 없거나 구 목표와 현 목표 아이디가 일치하지 않는 경우 새 길을 파야 한다.
@@ -303,7 +307,7 @@ def move_with_mem(creep, target, rangxo=0, pathfinder=False):
         need_new_path = True
         creep.memory.old_target = target
     # 도로가 없음 만들어야하니.
-    elif not creep.memory.path:
+    elif not creep.memory.path or not len(path):
         need_new_path = True
 
     move_by_path = ERR_NOT_FOUND
@@ -312,20 +316,25 @@ def move_with_mem(creep, target, rangxo=0, pathfinder=False):
         counter += 1
         # 길 새로 짜야하는 경우 짠다.
         if need_new_path or not creep.memory.path:
-            creep.memory.path = get_findPathTo(creep.pos, target, rangxo)
+            path_array = get_findPathTo(creep.pos, target, rangxo)
+            path_array.insert(0, creep.pos)
+
+            creep.memory.path = path_array
             need_new_path = False
+            changed_path = True
+            path = _.map(creep.memory.path, lambda p: __new__(RoomPosition(p.x, p.y, p.roomName)))
         # 여기까지 새 도로가 필요없으면 가지고 있는거 돌려본다.
-        move_by_path = creep.\
-            moveByPath(_.map(creep.memory.path,
-                             lambda p: __new__(RoomPosition(p.x, p.y, creep.room.name))))
-        if move_by_path == ERR_NOT_FOUND:
-            print(creep.name, 'ERR_NOT_FOUND')
+        move_by_path = creep.moveByPath(path)
+        if move_by_path == ERR_NOT_FOUND or move_by_path == ERR_INVALID_ARGS:
+            print('typeof(path): {}, move_by_path: {}'
+                  .format(bool(typeof(path) == 'object'), move_by_path))  # True
+            print(creep.name, 'ERR_NOT_FOUND {}'.format(Game.time))
             del creep.memory.path
 
     if not move_by_path == OK:
         creep.say("mwm {}".format(move_by_path))
 
-    return move_by_path
+    return move_by_path, changed_path, path
 
 
 def move_with_mem_block_check(creep, path, counter=3):
@@ -338,6 +347,15 @@ def move_with_mem_block_check(creep, path, counter=3):
     :param counter: 몇번까지 교체허용?
     :return: 뭘 쓸까.... 오케이 외엔 딱히없긴 할듯.
     """
+
+    # 길 목록에 크립의 현위치가 없으면 안되기에 추가한다.
+    mem_in_path = False
+    for p in path:
+        if JSON.stringify(creep.pos) == JSON.stringify(p):
+            mem_in_path = True
+            break
+    if not mem_in_path:
+        path.insert(0, __new__(RoomPosition(creep.pos.x, creep.pos.y, creep.pos.roomName)))
 
     # 없으면 1로 초기화.
     if not creep.memory.move_ticks:
@@ -362,7 +380,9 @@ def move_with_mem_block_check(creep, path, counter=3):
         for p in path:
             # 길위에 크립 위치를 찾았는지?
             if creep_located:
+                # print('creep_located')
                 for i in p.look():
+                    # print(JSON.stringify(i))
                     # 앞에 크립이 존재하고 그게 내꺼면 교대.
                     if i.type == 'creep' and i.creep.my:
                         Game.getObjectById(i.creep.id).moveTo(creep)
@@ -370,7 +390,8 @@ def move_with_mem_block_check(creep, path, counter=3):
                         creep.say('교대좀', True)
                         return OK
                 break
-            # print('p: {}, creep: {}'.format(p, creep.pos))
+            # print('p: {}, creep: {}, same:{}'
+            #       .format(p, creep.pos, bool(JSON.stringify(p) == JSON.stringify(creep.pos))))
             if JSON.stringify(p) == JSON.stringify(creep.pos):
                 # print('{} 현위치 {},{}'.format(creep.name, creep.pos.x, creep.pos.y))
                 creep_located = True

@@ -55,10 +55,11 @@ creep.memory.flag:
 """
 
 js_global._costs = {'base': {}, 'rooms': {}, 'creeps': {}}
-# js_global.yolo = yolo('aa')
+# js_global.yolo = yolo()
 #
-# def yolo(a):
-#     print(a)
+#
+# def yolo():
+#     print('uugh')
 # todo 깃발꽂는거보다 이걸로. console cmd
 # js_global._cmd = lambda a, b: ([a, b])
 

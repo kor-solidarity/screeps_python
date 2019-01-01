@@ -901,10 +901,6 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
 
                     keeper_lair = False
 
-                    # for s in flag_structures:
-                    #     if s.structureType == STRUCTURE_KEEPER_LAIR:
-                    #         keeper_lair = True
-                    #         break
                     if Game.rooms[room_name].memory[STRUCTURE_KEEPER_LAIR]:
                         if len(Game.rooms[room_name].memory[STRUCTURE_KEEPER_LAIR]):
                             keeper_lair = True
