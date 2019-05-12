@@ -59,7 +59,13 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
         creep.memory[haul_resource] = haul_all
 
     # 픽업에 저장된 길이 있나 확인한다. 우선 이리 만들긴 했는데 스폰부터 메모리화되서 의미가 없어진듯
-    if not creep.memory[to_pickup] and Game.getObjectById(creep.memory.pickup):
+    # if not creep.memory[to_pickup] and Game.getObjectById(creep.memory.pickup):
+    # todo 함수로 빼낸다.
+    if not creep.memory[to_pickup]:
+        if Game.getObjectById(creep.memory.pickup):
+            target_obj = Game.getObjectById(creep.memory.pickup)
+        else:
+            target_obj = Game.getObjectById(creep.memory.source_num)
         # print(Game.getObjectById(creep.memory.pickup))
         objs = []
         for i in Game.getObjectById(creep.memory.pickup).room.memory[resources][RESOURCE_ENERGY]:
@@ -76,7 +82,7 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
             birthplace = creep.pos
         # 가는길 저장.
         creep.memory[to_pickup] = \
-            PathFinder.search(birthplace, Game.getObjectById(creep.memory.pickup).pos,
+            PathFinder.search(birthplace, target_obj.pos,
                               {'plainCost': 2, 'swampCost': 3,
                                'roomCallback':
                                    lambda room_name:
@@ -86,7 +92,7 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
         creep.memory[to_home] = []
         for r in creep.memory[to_pickup]:
             creep.memory[to_home].insert(0, r)
-    # 사실상의 초기화 작업
+    # 초기화 작업
     if _.sum(creep.carry) == 0 and creep.memory.laboro != 0:
         creep.memory.laboro = 0
         creep.memory.priority = 0
@@ -112,7 +118,8 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
 
         del creep.memory.build_target
 
-    elif _.sum(creep.carry) >= creep.carryCapacity * .6 and creep.memory.laboro != 1:
+    elif _.sum(creep.carry) >= creep.carryCapacity * .6 and creep.memory.laboro != 1 \
+            and not creep.memory.container_full:
         creep.memory.laboro = 1
         del creep.memory.last_swap
 
@@ -174,7 +181,7 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
             # 멀리있음
             elif item_pickup_res == ERR_NOT_IN_RANGE:
                 movi(creep, creep.memory.dropped, 0, 10, False, 2000, '#0000FF')
-
+                return
             elif item_pickup_res == OK:
                 creep.say('♻♻♻', True)
                 return
@@ -201,7 +208,6 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                     creep.say('drpERR {}'.format(item_pickup_res))
 
                 break
-
 
         # if there's pickup, no need to go through all them below.
         # creep.memory.pickup == id of the container carrier's gonna pick up
@@ -357,9 +363,11 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                 # 이게 걸리면 지금 반대쪽 방에 아무것도 없어서 시야확보 안됐단 소리.
                 return
             # if there's no WORK in carrier they cant do fix or build at all.
-            if not creep_body_has_work:
+            # 또는 컨테이너 풀 메모리가 활성화된 경우: 픽업 꽉차서 재실행된거임.
+            if not creep_body_has_work or creep.memory.container_full:
                 creep.say('🔄물류,염려말라!', True)
                 creep.memory.priority = 2
+                creep.memory.container_full = 0
             elif len(constructions) > 0:
                 creep.say('🚧 건설투쟁!', True)
                 creep.memory.priority = 1
@@ -455,18 +463,31 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                 for i in creep.memory[to_home]:
                     # print('i.x, i.y, i.roomName {} {} {}'.format(i.x, i.y, i.roomName))
                     path.append(__new__(RoomPosition(i.x, i.y, i.roomName)))
-                go_home = creep.moveByPath(path)
-                if go_home == OK:
-                    draw_path(creep, path)
-                    check_loc_and_swap_if_needed(creep, creeps, False, False, path)
-                    # 크립위치가 길과 안맞는 경우.
-                elif go_home == ERR_NOT_FOUND:
-                    # 가장 가까이 있는 길을 찾아나선다.
+                # go_home = creep.moveByPath(path)
+                # # todo 현재 스와핑이 안됨.
+                # if go_home == OK:
+                #     draw_path(creep, path)
+                #     check_loc_and_swap_if_needed(creep, creeps, False, False, path)
+                #     # 크립위치가 길과 안맞는 경우.
+                # elif go_home == ERR_NOT_FOUND:
+                #     # 가장 가까이 있는 길을 찾아나선다.
+                #
+                #     move = movi(creep, creep.pos.findClosestByRange(path))
+                #     creep.say('집 탈선:{}'.format(move))
+                # else:
+                #     creep.say('ERR {}'.format(go_home))
 
+                # 우선 길따라 가되 만약 탈선되면 길에서 가장 가까운 곳으로 이동.
+                move_by_path = move_with_mem(creep, creep.memory.pickup, 0, path, to_home, False)
+                if move_by_path[0] == OK:
+                    passed_block = move_with_mem_block_check(creep, path)
+                    if not passed_block == OK:
+                        creep.say('막힘: {}'.format(passed_block))
+                # 만일 길에서 벗어났을 경우 가장 가까운 곳으로 이동.
+                elif move_by_path[0] == ERR_NOT_FOUND:
                     move = movi(creep, creep.pos.findClosestByRange(path))
                     creep.say('집 탈선:{}'.format(move))
-                else:
-                    creep.say('ERR {}'.format(go_home))
+
             # 본진도착
             else:
                 # 배정된 목표지가 있는가?

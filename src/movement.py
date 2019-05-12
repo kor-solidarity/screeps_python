@@ -194,10 +194,22 @@ def swapping(creep, creeps, avoid_id='', avoid_role=''):
     return ERR_NO_PATH
 
 
+def pathfinder_for_creep(creep, creeps, target, ignore_creeps=True):
+    """
+    패스파인딩을 다 여기로 통합.
+
+    :param creep:
+    :param creeps:
+    :param target:
+    :param ignore_creeps:
+    :return:
+    """
+    pass
+
+
 def move_using_swap(creep, creeps, target, ignore_creeps=True, reuse_path=40,
                     avoid_id=False, avoid_role=False, ranged=0):
     """
-    크립의 이동 종결자.
     이동은 두가지 뿐이다. 바로앞까지 가는가 아니면 몇칸이상 남겨도 되는가.
     그리고 이 이동은 지속적인 수정이 필요한 이동이 아니면 사용을 금지한다.
     물론 이건 군인 외 해당사항이 거의 없으리라고 봄.
@@ -279,7 +291,8 @@ def move_using_swap(creep, creeps, target, ignore_creeps=True, reuse_path=40,
         return OK
 
 
-def move_with_mem(creep, target, rangxo=0, path=[], pathfinder=False):
+def move_with_mem(creep, target, rangxo=0, path=[], path_mem='path',
+                  repath=True, pathfinder=False):
     """
     크립을 무시하고 저장된 메모리따라 움직일 모든 코드는 여기에 들어간다.
 
@@ -287,8 +300,10 @@ def move_with_mem(creep, target, rangxo=0, path=[], pathfinder=False):
     :param target: 갈 표적 아이디.
     :param rangxo: range
     :param path: 최초 지정된 길. 존재하면 사용.
+    :param path_mem: 메모리에 저장된 길목록 이름. 기본값은 'path'
+    :param repath: 도로가 안맞을 시 다시 길찾기를 시도할건가? 기본값 True
     :param pathfinder: 패스파인더를 쓸지 여부. 안쓰면 그냥 findPathTo 쓰는거. 당장은 안넣는걸로.
-    :return:
+    :return: 결과값, 길이 교체됬는지 확인여부, 최종적으로 쓰인 길
     """
 
     # todo 위에 path 활성화. 아래에서 불필요하게 map 쓰는거 방지가 요점.
@@ -307,34 +322,50 @@ def move_with_mem(creep, target, rangxo=0, path=[], pathfinder=False):
         need_new_path = True
         creep.memory.old_target = target
     # 도로가 없음 만들어야하니.
-    elif not creep.memory.path or not len(path):
+    elif not creep.memory[path_mem] or not len(path):
         need_new_path = True
 
     move_by_path = ERR_NOT_FOUND
     counter = 0
     while move_by_path == ERR_NOT_FOUND and counter < 3:
         counter += 1
+        # 길 새로 안짜는거면 패스파인딩 과정 자체를 거른다.
+        if not repath:
+            pass
         # 길 새로 짜야하는 경우 짠다.
-        if need_new_path or not creep.memory.path:
+        elif need_new_path or not creep.memory[path_mem]:
             path_array = get_findPathTo(creep.pos, target, rangxo)
             path_array.insert(0, creep.pos)
 
-            creep.memory.path = path_array
+            creep.memory[path_mem] = path_array
             need_new_path = False
             changed_path = True
-            path = _.map(creep.memory.path, lambda p: __new__(RoomPosition(p.x, p.y, p.roomName)))
+            path = _.map(creep.memory[path_mem], lambda p: __new__(RoomPosition(p.x, p.y, p.roomName)))
         # 여기까지 새 도로가 필요없으면 가지고 있는거 돌려본다.
         move_by_path = creep.moveByPath(path)
         if move_by_path == ERR_NOT_FOUND or move_by_path == ERR_INVALID_ARGS:
             print('typeof(path): {}, move_by_path: {}'
                   .format(bool(typeof(path) == 'object'), move_by_path))  # True
             print(creep.name, 'ERR_NOT_FOUND {}'.format(Game.time))
-            del creep.memory.path
+            # 도로 새로 찾는게 아니면 여기서 끝
+            if not repath:
+                return move_by_path, False, path
+            del creep.memory[path_mem]
 
     if not move_by_path == OK:
         creep.say("mwm {}".format(move_by_path))
 
     return move_by_path, changed_path, path
+
+    # 위에 move_with_mem에 넣어야함.
+    # if move_by_path[0] == OK:
+    #     passed_block = move_with_mem_block_check(creep, path)
+    #     if not passed_block == OK:
+    #         creep.say('막힘: {}'.format(passed_block))
+    # # 만일 길에서 벗어났을 경우 가장 가까운 곳으로 이동.
+    # elif move_by_path[0] == ERR_NOT_FOUND:
+    #     move = movi(creep, creep.pos.findClosestByRange(path))
+    #     creep.say('집 탈선:{}'.format(move))
 
 
 def move_with_mem_block_check(creep, path, counter=3):

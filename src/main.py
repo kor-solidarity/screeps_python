@@ -360,17 +360,6 @@ def main():
             # allied_creeps = miscellaneous.filter_friends(foreign_creeps)
             allied_creeps = miscellaneous.filter_enemies_new(foreign_creeps)[3]
 
-        # NULLIFIED
-        # if chambro.controller:
-        #     # 수리점수는 방별 레벨제를 쓴다. 기본값은 5, 최대 60까지 가능.
-        #
-        #     if bool(nukes):
-        #         repair_pts = 5200000
-        #     else:
-        #         repair_pts = 500
-        # else:
-        #     square = 4
-        #     repair_pts = 500
 
         # 초기화.
         terminal_capacity = 0
@@ -523,7 +512,7 @@ def main():
             # 크립의 CPU 사용량 명시.
             if not creep.memory.cpu_usage:
                 creep.memory.cpu_usage = []
-            # print('{} apswning: {}'.format(creep.name, creep.spawning))
+
             creep_cpu_end = Game.cpu.getUsed() - creep_cpu
             creep.room.visual.text(round(creep_cpu_end, 2), creep.pos, {'color': 'FloralWhite', 'font': 0.35})
 
@@ -534,9 +523,6 @@ def main():
             # 총값확인용도
             total_creep_cpu_num += 1
             total_creep_cpu += creep_cpu_end
-            # if Memory.debug:
-            #     print('{} the {} of room {} used {} cpu'
-            #           .format(creep.name, creep.memory.role, creep.room.name, round(creep_cpu_end, 2)))
 
         room_cpu = Game.cpu.getUsed()
         room_cpu_num = 0
