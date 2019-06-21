@@ -224,6 +224,14 @@ def main():
     for chambra_nomo in Object.keys(Game.rooms):
         chambro_cpu = Game.cpu.getUsed()
         chambro = Game.rooms[chambra_nomo]
+
+        # stop_fixer 급수별 램파트 수리 양.
+        fix_rating = 5000000
+        # 레벨8 진입전까진 10%대 유지
+        if chambro.controller and chambro.controller.level < 8:
+            fix_rating /= 10
+
+
         # 게임 내 수동조작을 위한 초기화 설정. 단, 방이 우리꺼일 경우에만 적용.
         if chambro.controller and chambro.controller.my:
             # 방 메모리가 아예 없을경우.
@@ -332,6 +340,57 @@ def main():
                 chambro.visual.text('E할당량: {} | 수리X: {}'.format(str(int(energy_txt / 1000)) + 'k', stop_fixer_txt), disp_x, disp_y + 2)
                 # chambro.visual.text(display_txt, disp_x, disp_y+2)
 
+            # bld_plan - 건설예약설정.
+            if not chambro.memory.bld_plan:
+                chambro.memory.bld_plan = []
+            # 건설예약시스템(?)
+            if chambro.memory.bld_plan:
+                num = 0
+                for plan in chambro.memory.bld_plan:
+                    try:
+                        print(plan)
+                        if plan.type == STRUCTURE_LINK:
+                            ball = '🔗'
+                        elif plan.type == STRUCTURE_EXTENSION:
+                            ball = 'ⓔ'
+                        elif plan.type == STRUCTURE_ROAD:
+                            ball = 'ⓡ'
+                        elif plan.type == STRUCTURE_RAMPART:
+                            ball = '🛡️'
+                        elif plan.type == STRUCTURE_STORAGE:
+                            ball = 'ⓢ'
+                        elif plan.type == STRUCTURE_SPAWN:
+                            ball = '🏭'
+                        # 우선 같은 지역에 해당 건물 또는 다른 무언가가 있는지 확인.
+                        site = chambro.lookForAt(LOOK_STRUCTURES, plan.pos.x, plan.pos.y)
+                        print('site', site)
+                        if len(site):
+                            # 있으면 해당 건설은 유효하지 않다. 삭제한다.
+                            chambro.memory.bld_plan.splice(num, 1)
+                            continue
+                        # 이미 건설장이 있는 경우 대기한다. 뭔가 완전히 완공되지 않는 한 해당 옵션은 계속된다.
+                        elif len(chambro.lookForAt(LOOK_CONSTRUCTION_SITES, plan.pos.x, plan.pos.y)):
+                            pass
+                        else:
+                            # 건설시도.
+                            place_plan = __new__(RoomPosition(plan.pos.x, plan.pos.y, plan.pos.roomName))\
+                                .createConstructionSite(plan.type)
+                            print(place_plan, 'place_plan')
+                            # 어떤 타입의 건물인지 명시
+                            chambro.visual.text(ball, plan.pos.x, plan.pos.y)
+                        # 만일 타겟이
+                        # if place_plan == ERR_INVALID_ARGS or place_plan == ERR_INVALID_ARGS:
+
+                        # todo 건설 완료하기 전까지 계속 기록 남긴다.
+                        # if not place_plan == ERR_RCL_NOT_ENOUGH:
+                        #     del plan
+                    except:
+                        chambro.memory.bld_plan.splice(num, 1)
+                    num += 1
+
+
+
+
         # ALL .find() functions are done in here. THERE SHOULD BE NONE INSIDE CREEP FUNCTIONS!
         # filters are added in between to lower cpu costs.
         all_structures = chambro.find(FIND_STRUCTURES)
@@ -390,16 +449,10 @@ def main():
                                                   and s.hits < s.hitsMax)
         # print('WTFR', JSON.stringify(repairs))
         if chambro.controller and chambro.controller.my:
-            if chambro.controller.level == 8:
-                wall_repairs = all_structures.filter(lambda s: (s.structureType == STRUCTURE_RAMPART
-                                                                or s.structureType == STRUCTURE_WALL)
-                                                               and s.hits < chambro.memory[options][
-                                                                   repair] * 5000000 + nuke_extra)
-            else:
-                wall_repairs = all_structures.filter(lambda s: (s.structureType == STRUCTURE_RAMPART
-                                                                or s.structureType == STRUCTURE_WALL)
-                                                               and s.hits < 500000 + nuke_extra)
-
+            wall_repairs = all_structures.filter(lambda s: (s.structureType == STRUCTURE_RAMPART
+                                                            or s.structureType == STRUCTURE_WALL)
+                                                           and s.hits < chambro.memory[options][
+                                                               repair] * fix_rating + nuke_extra)
 
         # 벽을 본다.
         all_repairs = []
@@ -407,7 +460,7 @@ def main():
             # 지도에서 가장 낮은 체력의 방벽
             min_wall = _.min(wall_repairs, lambda s: s.hits)
             # 가장 낮은 체력의 방벽이 몇? 여기서 필요한건 아님.
-            min_hits = int(min_wall.hits / 5000000)
+            min_hits = int(min_wall.hits / fix_rating)
             # repairs.extend(wall_repairs)
             all_repairs.extend(repairs)
             all_repairs.extend(wall_repairs)
@@ -573,6 +626,10 @@ def main():
                     past_lvl = chambro.memory[room_lvl]
                     chambro.memory[room_lvl] = chambro.controller.level
 
+                if chambro.storage:
+                    print('chambro.storage.store[RESOURCE_ENERGY] {} > chambro.memory[options][max_energy] {}'
+                          .format(chambro.storage.store[RESOURCE_ENERGY] , chambro.memory[options][max_energy]))
+                    print('min_wall:', min_wall)
                 # 방 안 스토리지 자원이 꽉 찼는데 수리레벨이 남아있을 경우 한단계 올린다.
                 if chambro.storage \
                         and chambro.storage.store[RESOURCE_ENERGY] > chambro.memory[options][max_energy] \
@@ -583,6 +640,10 @@ def main():
                 # 방에 수리할 벽이 없을 경우 확인한 시간 갱신한다.
                 if not len(min_wall):
                     chambro.memory[options][stop_fixer] = Game.time
+
+                # 만약 리페어가 너무 아래로 떨어졌을 시 리페어값을 거기에 맞게 낮춘다.
+                elif min_wall.hits // fix_rating < chambro.memory[options][repair] - 1:
+                    chambro.memory[options][repair] = min_wall.hits // fix_rating + 1
 
                 # 매번 완전초기화 하면 너무 자원낭비. 수량 틀릴때만 돌린다.
                 # 타워세기.
@@ -664,10 +725,25 @@ def main():
                                 # 있으면 이 컨테이너는 하베스터 저장용.
                                 _harvest = 1
                                 break
-                        # 확인 끝났으면 이제 방 업글용인지 확인한다. 방렙 8 미만 + 컨트롤러부터의 실제 거리가 6 이하인가?
-                        if chambro.controller.level < 8 \
-                                and len(stc.pos.findPathTo(chambro.controller, {'ignoreCreeps': True})) <= 6:
-                            _upgrade = 1
+                        # 확인 끝났으면 이제 방 업글용인지 확인한다. 방렙 8 미만인가?
+                        if chambro.controller.level < 8:
+                            # 컨테이너와의 거리가 컨트롤러에 비해 다른 스폰 또는 스토리지보다 더 먼가?
+                            # 컨트롤러부터의 실제 거리가 10 이하인가?
+
+                            # 컨테이너와 스폰간의 거리
+                            controller_dist = \
+                                len(stc.pos.findPathTo(chambro.controller, {'ignoreCreeps': True, 'range': 3}))
+                            # 컨테이너에서 가장 가까운 스폰
+                            closest_spawn = stc.pos.findClosestByPath(spawns, {'ignoreCreeps': True})
+                            # 컨테이너에서 가장 가까운 스폰까지 거리
+                            closest_spawn_dist = len(stc.pos.findPathTo(closest_spawn, {'ignoreCreeps': True}))
+                            if chambro.storage:
+                                len(stc.pos.findPathTo(chambro.storage, {'ignoreCreeps': True}))
+                            # 조건충족하면 업글용으로 분류
+                            # todo 컨트롤러와 스폰간의 거리가 가까울 경우에 대한 대책이 없음.
+                            if controller_dist <= 10 and controller_dist < closest_spawn_dist:
+                                _upgrade = 1
+                                print('x{}y{}에 {}, 업글컨테이너로 분류'.format(stc.pos.x, stc.pos.y, stc.id))
                         chambro.memory[STRUCTURE_CONTAINER] \
                             .push({'id': stc.id, for_upgrade: _upgrade, for_harvest: _harvest})
 
@@ -726,8 +802,8 @@ def main():
                                                         and (s.hits < 2000 and s.hitsMax == 5000)
                                                         or (s.hits < 6000 and s.hitsMax == 25000)
                                                         or (s.hits < 15500 and s.hitsMax > 50000)))
-            # 벽수리는 5만까지만. 다만 핵이 있으면 통과.
-            if min_wall.hits < 50000 or bool(nukes):
+            # 벽수리는 1만까지만. 다만 핵이 있으면 통과.
+            if min_wall.hits < 10000 or bool(nukes):
                 # print('min_wall', min_wall)
                 tow_repairs.append(min_wall)
             # print('tow', JSON.stringify(tow_repairs))
@@ -881,7 +957,8 @@ def main():
     while len(Memory.cpu_usage) >= Memory.ticks:
         Memory.cpu_usage.splice(0, 1)
         # Memory.cpu_usage.total.splice(0, 1)
-    Memory.cpu_usage.push(round(Game.cpu.getUsed(), 2))
+    # 소수점 다 올림처리. 겜에서도 그리 간주함.
+    Memory.cpu_usage.push(int(Game.cpu.getUsed()) + 1)
     # Memory.cpu_usage.total.push(round(Game.cpu.getUsed(), 2))
 
     # there's a reason I made it this way...

@@ -167,11 +167,13 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
             # print('what happened:', regular_spawn)
             if regular_spawn == -6:
                 # one for 1500 cap == need 2
+                # 만약 방에 수용가능한 자원이 800 미만 또는 허울러가 없을 경우에만 이거보다 더 작은 하베스터를 생산한다.
                 if spawn.spawnCreep(
-                    [WORK, WORK, WORK, WORK, WORK, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE],
+                    # [WORK, WORK, WORK, WORK, WORK, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE],
+                    [MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, CARRY],
                     'hv_{}_{}'.format(spawn_room_low, rand_int),
                     {memory: {'role': 'harvester', 'assigned_room': spawn.pos.roomName,
-                              'size': 1}}) == -6:
+                              'size': 2}}) == -6 and (chambro.energyCapacityAvailable < 800 or len(creep_haulers) == 0):
                     # 3 WORK
                     if spawn.spawnCreep([MOVE, MOVE, WORK, WORK, WORK, CARRY, CARRY],
                                         'hv_{}_{}'.format(spawn_room_low, rand_int),
@@ -393,11 +395,20 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                 else:
                     proper_level = 0
             # 렙4부터는 스토리지 건설이 최우선이기에 업글러 스폰에 총력가하면 망함...
+            elif chambro.energyCapacityAvailable < 800:
+                # print('chambro.energyCapacityAvailable < 800')
+                proper_level = int(max_num_upgraders / 4)
+                # print(proper_level)
+                if not proper_level:
+                    proper_level = 1
             elif chambro.controller.level < 4:
-                # print('chk3')
-                # 이시점엔 소형애들만 생성됨.
-                # print('이시점엔 소형애들만 생성됨.')
                 proper_level = int(max_num_upgraders / 2)
+                # 만약 컨테이너중 꽉찬게 하나라도 있으면 업글러 수를 추가해준다.
+                for con in chambro.memory.container:
+                    if _.sum(Game.getObjectById(con.id).store) == 2000:
+                        proper_level += 2
+                if not proper_level:
+                    proper_level = 1
             else:
                 # print('checkWTF')
                 proper_level = 0
@@ -435,30 +446,52 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                                          'up_{}_{}'.format(spawn_room_low, rand_int),
                                          {memory: {'role': 'upgrader', 'assigned_room': spawn.pos.roomName}})
 
+        # 초기화 목적.
         if not chambro.memory[options][stop_fixer]:
             chambro.memory[options][stop_fixer] = 1
+
+        # 수리가 필요한 건물이 발견되고 나서 경과한 시간. 뒤에 긴 공식 간소화 목적
+        elapsed_fixer_time = Game.time - chambro.memory[options][stop_fixer]
 
         # 렙 7 이상일때부터 수리병을 부름. 7때는 단지 하나. 8때는 5천에 하나.
         # 그리고 할당량 다 찼는데도 뽑는 경우도 있을 수 있으니 타이머 쟨다.
         # 수리할게 더 없으면 천틱동안 추가 생산을 안한다.
-        if Game.time - chambro.memory[options][stop_fixer] > 1000 \
+        if elapsed_fixer_time > 1000 \
                 and len(wall_repairs) and chambro.controller.level >= 7 \
                 and chambro.storage and chambro.storage.store[RESOURCE_ENERGY] >= 5000:
 
+            max_num_fixers = 0
+
+            # 방 에너지가 반토막인 상태면 스폰 중지
+            if chambro.energyAvailable < chambro.energyCapacityAvailable / 2:
+                pass
+
             # 렙8부터 본격적인 작업에 드간다. 그전까진 무의미.
             # 또한 수리할게 더 없는 상황에서 첫 생성을 한거면 하나만 뽑고 천틱 대기한다.
-            if chambro.controller.level == 7 and chambro.storage.store[RESOURCE_ENERGY] >= 10000 \
-                    or Game.time - chambro.memory[options][stop_fixer] <= 3000:
+            elif chambro.controller.level == 7 and chambro.storage.store[RESOURCE_ENERGY] >= 10000 \
+                    or elapsed_fixer_time <= 3000:
                 max_num_fixers = 1
+
             # 벽수리가 중심인데 수리할 벽이 없으면 의미가 없음.
             elif chambro.controller.level == 8 and min_hits < chambro.memory[options][repair]:
-                max_num_fixers = int(chambro.storage.store[RESOURCE_ENERGY] / 20000)
+                # max_num_fixers = int(chambro.storage.store[RESOURCE_ENERGY] / 30000)
+                if chambro.storage.store[RESOURCE_ENERGY] < 30000:
+
+                    max_num_fixers = 1
+                # 스토리지 에너지양 / 3만의 정수 vs 수리할게 생긴 시점부터의 시간 / 3천의 정수
+                # 둘 중 적은 숫자를 택한다.
+                elif int(chambro.storage.store[RESOURCE_ENERGY] / 30000)\
+                        < int(elapsed_fixer_time / 3000):
+
+                    max_num_fixers = int(elapsed_fixer_time / 30000)
+                else:
+
+                    # 시간이 지나면서 계속 수리할게 있으면 누적시키는 방식.
+                    max_num_fixers += int(elapsed_fixer_time / 3000)
                 # 최대값. 임시조치임.
                 if max_num_fixers > 5:
                     max_num_fixers = 5
-            else:
-                print('wtf')
-                max_num_fixers = 0
+
             if len(creep_fixers) < max_num_fixers:
                 fixer_spawn = spawn.spawnCreep(
                     [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE,
@@ -489,10 +522,66 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
         # todo 이거 따로 떼내야함.
         # 메모리화 절차
         for flag_name in Object.keys(flags):
+            # 해당 플래그 오브젝트. flag_name 은 말그대로 이름뿐임.
+            flag_obj = flags[flag_name]
+            # 해당 깃발이 내 소속 방에 있는건지 확인
+            controlled = False
+            if flag_obj.room and flag_obj.room.controller and flag_obj.room.controller.my:
+                controlled = True
+
+            # 깃발 명령어 쪼개는데 필요함.
+            name_list = flag_name.split()
+
             # 포문 끝나고 깃발 삭제할지 확인...
             delete_flag = False
             # 깃발이 있는 방이름.
-            flag_room_name = flags[flag_name].pos.roomName
+            flag_room_name = flag_obj.pos.roomName
+
+            # 건물 건설 지정.
+            if flag_name.includes(STRUCTURE_LINK) or flag_name.includes(STRUCTURE_CONTAINER)\
+                    or flag_name.includes(STRUCTURE_SPAWN) or flag_name.includes(STRUCTURE_EXTENSION)\
+                    or flag_name.includes(STRUCTURE_ROAD) or flag_name.includes(STRUCTURE_STORAGE)\
+                    or flag_name.includes(STRUCTURE_RAMPART) or flag_name.includes(STRUCTURE_EXTRACTOR):
+                # todo 미완성임.
+                bld_type = name_list[0]
+                # 링크용일 경우.
+                if bld_type == STRUCTURE_LINK:
+                    bld_plan = flag_obj.room.createConstructionSite(flag_obj.pos, STRUCTURE_LINK)
+                # 컨테이너
+                elif bld_type == STRUCTURE_CONTAINER:
+                    bld_plan = flag_obj.room.createConstructionSite(flag_obj.pos, STRUCTURE_LINK)
+                # 스폰
+                elif bld_type == STRUCTURE_SPAWN:
+                    bld_plan = flag_obj.room.createConstructionSite(flag_obj.pos, STRUCTURE_SPAWN)
+                # 익스텐션
+                elif bld_type == STRUCTURE_EXTENSION:
+                    bld_plan = flag_obj.room.createConstructionSite(flag_obj.pos, STRUCTURE_EXTENSION)
+                # storage
+                elif bld_type == STRUCTURE_STORAGE:
+                    bld_plan = flag_obj.room.createConstructionSite(flag_obj.pos, STRUCTURE_STORAGE)
+                # todo 도로랑 램파트는 한번에 쭉 연결하는게 가능함. 그걸 확인해보자.
+
+                print(bld_plan, bld_type)
+                # 건설할 건물이 레벨부족 또는 한도초과로 못놓는 경우.
+                if bld_plan == ERR_RCL_NOT_ENOUGH or bld_plan == ERR_FULL:
+                    # 건설용 메모리 초기화
+                    if not chambro.memory.bld_plan:
+                        chambro.memory.bld_plan = []
+                    # 내 방이 아닌 경우 그냥 삭제.
+                    # todo 멀티방이면 어찌할거임?
+                    if bld_plan == ERR_RCL_NOT_ENOUGH and not controlled:
+                        print('the {} cannot be built in {} - not controlled.'.format(bld_type, flag_obj.pos.roomName))
+                    else:
+                        print('added bld')
+                        # json to put into the bld_plan memory
+                        blds = {'type': bld_type, 'pos': flag_obj.pos}
+                        chambro.memory.bld_plan.append(blds)
+
+                # 건설이 불가한 경우.
+                elif bld_plan == ERR_INVALID_TARGET or bld_plan == ERR_INVALID_ARGS:
+                    print('building plan at {}x{}y is wrong: {}'.format(flag_obj.pos.x, flag_obj.pos.y, bld_plan))
+
+                delete_flag = True
 
             # 방이름 + -rm + 아무글자(없어도됨) << 방을 등록한다.
             if flag_name.includes(spawn.room.name) and flag_name.includes("-rm"):
@@ -511,7 +600,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                         if Memory.rooms[i].options.remotes:
                             # for_num = 0
                             for r in Object.keys(Memory.rooms[i].options.remotes):
-                                if r == Game.flags[flag_name].pos.roomName:
+                                if r == flag_obj.pos.roomName:
                                     del Memory.rooms[i].options.remotes[r]
                                     # print('del')
                                     found_and_deleted = True
@@ -524,41 +613,37 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                 # 이미 방이 있는지 확인한다.
                 for r in Object.keys(Memory.rooms[spawn.room.name].options.remotes):
                     # 있으면 굳이 또 추가할 필요가 없음..
-                    if r.roomName == Game.flags[flag_name].pos.roomName:
+                    if r.roomName == flag_obj.pos.roomName:
                         room_added = True
                         break
                 print('room added?', room_added)
                 # 추가가 안된 상태면 초기화를 진행
                 if not room_added:
                     print('what??')
-                    # init = {'roomName': Game.flags[flag_name].pos.roomName, 'defenders': 1, 'initRoad': 0,
-                    #         'display': {'x': Game.flags[flag_name].pos.x, 'y': Game.flags[flag_name].pos.y}}
+                    # init = {'roomName': Game.flag_obj.pos.roomName, 'defenders': 1, 'initRoad': 0,
+                    #         'display': {'x': Game.flag_obj.pos.x, 'y': Game.flag_obj.pos.y}}
                     init = {'defenders': 1, 'initRoad': 0,
-                            'display': {'x': Game.flags[flag_name].pos.x,
-                                        'y': Game.flags[flag_name].pos.y}}
-                    Memory.rooms[spawn.room.name][options][remotes][Game.flags[flag_name].pos.roomName] = init
-                    # Memory.rooms[spawn.room.name][options][remotes].update({Game.flags[flag_name].pos.roomName: init})
+                            'display': {'x': flag_obj.pos.x,
+                                        'y': flag_obj.pos.y}}
+                    Memory.rooms[spawn.room.name][options][remotes][flag_obj.pos.roomName] = init
+                    # Memory.rooms[spawn.room.name][options][remotes].update({flag_obj.pos.roomName: init})
                     print('Memory.rooms[{}][options][remotes][{}]'.format(spawn.room.name,
-                                                                          Game.flags[flag_name].pos.roomName),
-                          JSON.stringify(Memory.rooms[spawn.room.name][options][remotes][Game.flags[flag_name]
+                                                                          flag_obj.pos.roomName),
+                          JSON.stringify(Memory.rooms[spawn.room.name][options][remotes][flag_obj
                                          .pos.roomName]))
 
                 delete_flag = True
-
-            # 아래부터 값을 쪼개는데 필요함.
-            name_list = flag_name.split()
 
             # 주둔할 병사 수 재정의
             if flag_name.includes('-def'):
                 print("includes('-def')")
                 number_added = False
                 included = name_list.index('-def')
-                # 트라이에 걸린다는건 숫자 빼먹었거나 숫자가 아니라는거.
                 # 초기화
                 number = 0
+                # 트라이에 걸린다는건 숫자 빼먹었거나 숫자가 아니라는거.
                 try:
-                    number = name_list[included + 1]
-                    number = int(number)
+                    number = int(name_list[included + 1])
                     number_added = True
                 except:
                     print("error for flag {}: no number for -def".format(flag_name))
@@ -580,11 +665,6 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
             # 방의 수리단계 설정.
             if flag_name.includes('-rp'):
                 print("includes('-rp')")
-                # 내 방 맞음?
-                controlled = False
-                if flags[flag_name].room.controller:
-                    if flags[flag_name].room.controller.my:
-                        controlled = True
 
                 # 내 방이 아니면 이걸 돌리는 이유가없음....
                 if controlled:
@@ -597,16 +677,11 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                     except:
                         print("error for flag {}: no number for -rp".format(flag_name))
                     # 설정 끝.
-                    flags[flag_name].room.memory.options.repair = number
+                    flag_obj.room.memory.options.repair = number
                     delete_flag = True
 
             # 방의 운송크립수 설정.
             if flag_name.includes('-hl'):
-                # 내 방 맞음?
-                controlled = False
-                if flags[flag_name].room.controller:
-                    if flags[flag_name].room.controller.my:
-                        controlled = True
 
                 # 내 방이 아니면 이걸 돌리는 이유가없음....
                 if controlled:
@@ -618,21 +693,16 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                     except:
                         print("error for flag {}: no number for -hl".format(flag_name))
                     # 설정 끝.
-                    flags[flag_name].room.memory.options.haulers = number
+                    flag_obj.room.memory.options.haulers = number
                     delete_flag = True
 
             # 방 안에 미네랄 채취 시작
             if flag_name.includes('-mine'):
                 print('-mine')
-                # 내 방 맞음?
-                controlled = False
                 # todo 키퍼방일 경우 추가요망. 현재는 내방만.
-                if flags[flag_name].room and flags[flag_name].room.controller:
-                    if flags[flag_name].room.controller.my:
-                        controlled = True
 
                 if controlled:
-                    mineral_loc = flags[flag_name].room.find(FIND_MINERALS)[0]
+                    mineral_loc = flag_obj.room.find(FIND_MINERALS)[0]
                     # 엑스트랙터 생성
                     mineral_loc.pos.createConstructionSite(STRUCTURE_EXTRACTOR)
 
@@ -644,10 +714,10 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                         if counter == 0 or counter == road_len:
                             pass
                         elif counter == 1:
-                            posi = __new__(RoomPosition(s.x, s.y, flags[flag_name].room.name))
+                            posi = __new__(RoomPosition(s.x, s.y, flag_obj.room.name))
                             posi.createConstructionSite(STRUCTURE_CONTAINER)
                         else:
-                            posi = __new__(RoomPosition(s.x, s.y, flags[flag_name].room.name))
+                            posi = __new__(RoomPosition(s.x, s.y, flag_obj.room.name))
                             posi.createConstructionSite(STRUCTURE_ROAD)
                         counter += 1
                 delete_flag = True
@@ -655,143 +725,113 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
             # 방내 설정값 표기.
             if flag_name.includes('-dsp'):
                 print("includes('-dsp')")
-                # 내 방 맞음?
-                controlled = False
-                if flags[flag_name].room and flags[flag_name].room.controller:
-                    if flags[flag_name].room.controller.my:
-                        controlled = True
-                    # 아니면 리모트임.
-                    else:
-                        # 리모트 소속방 찾는다.
-                        for chambra_nomo in Object.keys(Game.rooms):
-                            set_loc = False
-                            if Memory.rooms[chambra_nomo].options:
-                                # counter_num = 0
 
-                                for r in Object.keys(Memory.rooms[chambra_nomo].options.remotes):
-                                    remote_room_name = r
-                                    # 방이름 이거랑 똑같은지.
-                                    # 안똑같으면 통과
-                                    if remote_room_name != flags[flag_name].pos.roomName:
-                                        print('{} != flags[{}].pos.roomName {}'
-                                              .format(remote_room_name, flag_name, flags[flag_name].pos.roomName))
-                                        pass
-                                    else:
-                                        print('Memory.rooms[chambra_nomo].options.remotes[counter_num].display'
-                                              , Memory.rooms[chambra_nomo].options.remotes[r].display)
-                                        if not Memory.rooms[chambra_nomo].options.remotes[r].display:
-                                            Memory.rooms[chambra_nomo].options.remotes[r].display = {}
-                                        rx = flags[flag_name].pos.x
-                                        ry = flags[flag_name].pos.y
-                                        Memory.rooms[chambra_nomo].options.remotes[r].display.x = rx
-                                        Memory.rooms[chambra_nomo].options.remotes[r].display.y = ry
-                                        set_loc = True
-                                    # counter_num += 1
-                            if set_loc:
-                                break
+                if not controlled:
+                    # 리모트 소속방 찾는다.
+                    for chambra_nomo in Object.keys(Game.rooms):
+                        set_loc = False
+                        if Memory.rooms[chambra_nomo].options:
+                            # counter_num = 0
+
+                            for r in Object.keys(Memory.rooms[chambra_nomo].options.remotes):
+                                remote_room_name = r
+                                # 방이름 이거랑 똑같은지.
+                                # 안똑같으면 통과
+                                if remote_room_name != flag_obj.pos.roomName:
+                                    print('{} != flags[{}].pos.roomName {}'
+                                          .format(remote_room_name, flag_name, flag_obj.pos.roomName))
+                                    pass
+                                else:
+                                    print('Memory.rooms[chambra_nomo].options.remotes[counter_num].display'
+                                          , Memory.rooms[chambra_nomo].options.remotes[r].display)
+                                    if not Memory.rooms[chambra_nomo].options.remotes[r].display:
+                                        Memory.rooms[chambra_nomo].options.remotes[r].display = {}
+                                    rx = flag_obj.pos.x
+                                    ry = flag_obj.pos.y
+                                    Memory.rooms[chambra_nomo].options.remotes[r].display.x = rx
+                                    Memory.rooms[chambra_nomo].options.remotes[r].display.y = ry
+                                    set_loc = True
+                                # counter_num += 1
+                        if set_loc:
+                            break
                 delete_flag = True
 
                 # 내 방이 아니면 이걸 돌리는 이유가없음....
                 if controlled:
                     # 만일 비어있으면 값 초기화.
-                    if not flags[flag_name].room.memory.options.display:
-                        flags[flag_name].room.memory.options.display = {}
+                    if not flag_obj.room.memory.options.display:
+                        flag_obj.room.memory.options.display = {}
                     # 깃발꽂힌 위치값 등록.
-                    print('flagpos {}, {}'.format(flags[flag_name].pos.x, flags[flag_name].pos.y))
-                    flags[flag_name].room.memory.options.display['x'] = flags[flag_name].pos.x
-                    flags[flag_name].room.memory.options.display['y'] = flags[flag_name].pos.y
+                    print('flagpos {}, {}'.format(flag_obj.pos.x, flag_obj.pos.y))
+                    flag_obj.room.memory.options.display['x'] = flag_obj.pos.x
+                    flag_obj.room.memory.options.display['y'] = flag_obj.pos.y
                     print('flags[{}].room.memory.options.display {}'
-                          .format(flag_name, flags[flag_name].room.memory.options.display))
+                          .format(flag_name, flag_obj.room.memory.options.display))
 
                     delete_flag = True
 
             # 방 내 핵채우기 트리거. 예·아니오 토글
             if flag_name.includes('-fln'):
                 delete_flag = True
-                # 내 방 맞음?
-                controlled = False
-                if flags[flag_name].room.controller:
-                    if flags[flag_name].room.controller.my:
-                        controlled = True
 
                 if controlled:
-                    if flags[flag_name].room.memory.options.fill_nuke == 1:
-                        flags[flag_name].room.memory.options.fill_nuke = 0
-                    elif flags[flag_name].room.memory.options.fill_nuke == 0:
-                        flags[flag_name].room.memory.options.fill_nuke = 1
+                    if flag_obj.room.memory.options.fill_nuke == 1:
+                        flag_obj.room.memory.options.fill_nuke = 0
+                    elif flag_obj.room.memory.options.fill_nuke == 0:
+                        flag_obj.room.memory.options.fill_nuke = 1
                     else:
-                        flags[flag_name].room.memory.options.fill_nuke = 0
+                        flag_obj.room.memory.options.fill_nuke = 0
 
             # 방 내 연구소 채우기 트리거. 예·아니오 토글
             if flag_name.includes('-fll'):
                 delete_flag = True
-                # 내 방 맞음?
-                controlled = False
-                if flags[flag_name].room.controller:
-                    if flags[flag_name].room.controller.my:
-                        controlled = True
 
                 if controlled:
-                    if flags[flag_name].room.memory.options.fill_labs == 1:
-                        flags[flag_name].room.memory.options.fill_labs = 0
-                    elif flags[flag_name].room.memory.options.fill_labs == 0:
-                        flags[flag_name].room.memory.options.fill_labs = 1
+                    if flag_obj.room.memory.options.fill_labs == 1:
+                        flag_obj.room.memory.options.fill_labs = 0
+                    elif flag_obj.room.memory.options.fill_labs == 0:
+                        flag_obj.room.memory.options.fill_labs = 1
                     else:
-                        flags[flag_name].room.memory.options.fill_labs = 0
+                        flag_obj.room.memory.options.fill_labs = 0
 
             # 램파트 토글.
             if flag_name.includes('-ram'):
-                # 내 방 맞음?
-                controlled = False
-                if flags[flag_name].room.controller:
-                    if flags[flag_name].room.controller.my:
-                        controlled = True
 
                 # 내 방이 아니면 이걸 돌리는 이유가없음....
                 if controlled:
                     # 램파트가 열렸는가?
-                    if flags[flag_name].room.memory.options.ramparts_open == 1:
+                    if flag_obj.room.memory.options.ramparts_open == 1:
                         # 그럼 닫는다.
-                        flags[flag_name].room.memory.options.ramparts = 2
+                        flag_obj.room.memory.options.ramparts = 2
                     # 그럼 닫힘?
-                    elif flags[flag_name].room.memory.options.ramparts_open == 0:
+                    elif flag_obj.room.memory.options.ramparts_open == 0:
                         # 열어
-                        flags[flag_name].room.memory.options.ramparts = 1
+                        flag_obj.room.memory.options.ramparts = 1
                     delete_flag = True
 
             # 타워공격 토글.
             if flag_name.includes('-tow'):
-                # 내 방 맞음?
-                controlled = False
-                if flags[flag_name].room.controller:
-                    if flags[flag_name].room.controller.my:
-                        controlled = True
                 # 내 방이 아니면 이걸 돌리는 이유가없음....
                 if controlled:
-                    if flags[flag_name].room.memory.options.tow_atk == 1:
-                        flags[flag_name].room.memory.options.tow_atk = 0
+                    if flag_obj.room.memory.options.tow_atk == 1:
+                        flag_obj.room.memory.options.tow_atk = 0
                     else:
-                        flags[flag_name].room.memory.options.tow_atk = 1
+                        flag_obj.room.memory.options.tow_atk = 1
                     delete_flag = True
 
             # 디스플레이 제거. 쓸일은 없을듯 솔까.
             if flag_name.includes('-dsprm'):
-                # 내 방 맞음?
-                controlled = False
-                if flags[flag_name].room.controller:
-                    if flags[flag_name].room.controller.my:
-                        controlled = True
 
                 # 내 방이 아니면 이걸 돌리는 이유가없음....
                 if controlled:
                     # 깃발꽂힌 위치값 제거.
-                    flags[flag_name].room.memory.options.display = {}
+                    flag_obj.room.memory.options.display = {}
                     delete_flag = True
 
             # 방 안 건설장 다 삭제..
             if flag_name.includes('-clr'):
                 print("includes('-clr')")
-                # cons = Game.flags[flag_name].room.find(FIND_CONSTRUCTION_SITES)
+                # cons = Game.flag_obj.room.find(FIND_CONSTRUCTION_SITES)
                 world_const = Game.constructionSites
                 for c in Object.keys(world_const):
                     obj = Game.getObjectById(c)
@@ -802,13 +842,27 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                     break
                 delete_flag = True
 
-            # remote 배정된 방 삭제조치.
+            # remote 배정된 방 삭제조치. 자기 방에서 했을 경우 해당 위치에 배정된 건물을 지운다.
             if flag_name.includes('-del'):
                 print("includes('-del')")
-                # 리모트가 아니라 자기 방으로 잘못 찍었을 경우 그냥 통과한다.
-                if Game.flags[flag_name].room and Game.flags[flag_name].room.controller \
-                    and Game.flags[flag_name].room.controller.my:
-                    pass
+                # 자기 방으로 잘못 찍었을 경우 찍은 위치에 뭐가 있는지 확인하고 그걸 없앤다.
+                if flag_obj.room and flag_obj.room.controller \
+                        and flag_obj.room.controller.my:
+                    # 해당 위치에 건설장 또는 건물이 있으면 없앤다.
+                    if len(flag_obj.pos.lookFor(LOOK_CONSTRUCTION_SITES)):
+                        print(flag_obj.pos.lookFor(LOOK_CONSTRUCTION_SITES), JSON.stringify())
+                        del_res = flag_obj.pos.lookFor(LOOK_CONSTRUCTION_SITES)[0].remove()
+                    elif len(flag_obj.pos.lookFor(LOOK_STRUCTURES)):
+                        del_res = flag_obj.pos.lookFor(LOOK_STRUCTURES)[0].destroy()
+                    # 만약 건물도 건설장도 없으면 해당 위치에 배정된 건설 메모리가 있나 찾아본다
+                    elif chambro.memory.bld_plan:
+                        num = 0
+                        for plan in chambro.memory.bld_plan:
+                            if JSON.stringify(plan.pos) == JSON.stringify(flag_obj.pos):
+                                chambro.memory.bld_plan.splice(num, 1)
+                                print('deleted!')
+                            num += 1
+
                 else:
                     # 방을 돌린다.
                     for i in Object.keys(Memory.rooms):
@@ -836,8 +890,8 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                                             obj = Game.getObjectById(c)
                                             if obj.pos.roomName == flag_room_name:
                                                 obj.remove()
-                                        # if Game.flags[flag_name].room:
-                                        #     cons = Game.flags[flag_name].room.find(FIND_CONSTRUCTION_SITES)
+                                        # if Game.flag_obj.room:
+                                        #     cons = Game.flag_obj.room.find(FIND_CONSTRUCTION_SITES)
                                         #     for c in cons:
                                         #         c.remove()
                                         break
@@ -850,20 +904,15 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
             # 방 안에 건물확인 스크립트 초기화 조치
             if flag_name.includes('-rset'):
                 print("resetting")
-                # 내 방 맞음? 내방 아니면 이거 돌 이유가 전혀없음.
-                controlled = False
-                if flags[flag_name].room and flags[flag_name].room.controller \
-                    and flags[flag_name].room.controller.my:
-                    controlled = True
                 if controlled:
                     chambro.memory[options][reset] = 1
                 else:
-                    print(flags[flag_name].room.name, '은 내 방이 아님.')
+                    print(flag_obj.room.name, '은 내 방이 아님.')
                 delete_flag = True
 
             if delete_flag:
-                aa = flags[flag_name].remove()
-                print('delete {}: {}'.format(flags[flag_name], aa))
+                aa = flag_obj.remove()
+                print('delete {}: {}'.format(flag_obj, aa))
 
         # 이하 진짜 리모트-------------------------------------------------
 
@@ -1035,7 +1084,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                             continue
                     # 캐리어가 소스 수 만큼 있는가?
                     if len(flag_energy_sources) > len(remote_carriers):
-                        print('flag carrier?')
+                        # print('flag carrier?')
                         # 픽업으로 배정하는 것이 아니라 자원으로 배정한다.
                         if len(remote_carriers) == 0:
                             # 캐리어가 아예 없으면 그냥 첫 자원으로.
@@ -1044,7 +1093,6 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                         else:
                             # 캐리어가 존재할 시. 각 소스를 돌린다.
                             for s in flag_energy_sources:
-
                                 for c in remote_carriers:
                                     # 캐리어들을 돌려서 만약 캐리어와
                                     if s.id == c.memory.source_num:
@@ -1060,7 +1108,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                         carrier_pickup_id = ''
 
                         # 에너지소스에 담당 컨테이너가 존재하는가?
-                        containter_exist = False
+                        container_exist = False
                         print('carrier_source 위치:', target_source.pos)
                         # loop all structures. I'm not gonna use filter. just loop it at once.
                         if len(flag_containers) > 0:
@@ -1069,7 +1117,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                                                                                {ignoreCreeps: True})
                             print('closest_cont', closest_cont)
                             if target_source.pos.inRangeTo(closest_cont, 4):
-                                containter_exist = True
+                                container_exist = True
                                 carrier_pickup_id = closest_cont.id
 
                         # ignore placing roads around sources and controllers alike as much as possible.
@@ -1083,7 +1131,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                             objs.extend(flag_mineral)
 
                         # 컨테이너가 존재하지 않는 경우.
-                        if not containter_exist:
+                        if not container_exist:
                             # 건설장 존재여부. 있으면 참.
                             container_sites = False
                             # 건설장이 존재하는지 확인한다.

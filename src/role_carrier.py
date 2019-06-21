@@ -2,7 +2,7 @@ from defs import *
 from harvest_stuff import *
 import pathfinding
 from miscellaneous import *
-from movement import *
+# from movement import *
 from _custom_constants import *
 import movement
 
@@ -180,7 +180,7 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                 del creep.memory.dropped
             # 멀리있음
             elif item_pickup_res == ERR_NOT_IN_RANGE:
-                movi(creep, creep.memory.dropped, 0, 10, False, 2000, '#0000FF')
+                movement.movi(creep, creep.memory.dropped, 0, 10, False, 2000, '#0000FF')
                 return
             elif item_pickup_res == OK:
                 creep.say('♻♻♻', True)
@@ -201,7 +201,7 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                 item_pickup_res = pick_drops(creep, True)
                 creep.say('⛏BITCOINS!', True)
                 if item_pickup_res == ERR_NOT_IN_RANGE:
-                    movi(creep, creep.memory.dropped, 0, 10, False, 2000, '#0000FF')
+                    movement.movi(creep, creep.memory.dropped, 0, 10, False, 2000, '#0000FF')
                 elif item_pickup_res == OK:
                     pass
                 else:
@@ -240,7 +240,7 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                     closest = creep.pos.findClosestByRange(path)
                     print(JSON.stringify(closest))
                     creep.say('탈선x{}y{}'.format(closest.x, closest.y))
-                    movi(creep, closest)
+                    movement.movi(creep, closest)
                 else:
                     creep.say('ERR {}'.format(moving))
 
@@ -492,7 +492,7 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
             else:
                 # 배정된 목표지가 있는가?
                 if not creep.memory.haul_target:
-                    # 캐리어가 끌고갈 수 있는 목표물들
+                    # 캐리어가 갈 수 있는 컨테이너·링크 등등
                     haul_target_objs = []
                     # 전송용 링크
                     for l in creep.room.memory[STRUCTURE_LINK]:
@@ -571,6 +571,7 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                             creep.memory.haul_target = creep.memory.link_target
                             # 다음번에 안세고 바로 컨테이너행인듯
                             creep.memory.err_full = 3
+
                     # 링크고 컨테이너 가진게 없는 경우 한번 주변에 컨테이너가 있나 둘러봅시다
                     elif Game.getObjectById(creep.memory.haul_target).structureType == STRUCTURE_LINK \
                             and not creep.memory.container:

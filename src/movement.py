@@ -351,8 +351,9 @@ def move_with_mem(creep, target, rangxo=0, path=[], path_mem='path',
             if not repath:
                 return move_by_path, False, path
             del creep.memory[path_mem]
-
-    if not move_by_path == OK:
+    if move_by_path == ERR_TIRED:
+        pass
+    elif not move_by_path == OK:
         creep.say("mwm {}".format(move_by_path))
 
     return move_by_path, changed_path, path

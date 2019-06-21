@@ -185,7 +185,7 @@ def run_harvester(creep, all_structures, constructions, creeps, dropped_all):
                 creep.memory.source_num = sources[0].id
 
     # If you have nothing but on laboro 1 => get back to harvesting.
-    if _.sum(creep.carry) == 0 and creep.memory.laboro == 1:
+    if _.sum(creep.carry) == 0 and not creep.memory.laboro == 0:
         if creep.ticksToLive < 5:
             return
         creep.say('☭ 다이나믹 로동!', True)
@@ -241,7 +241,7 @@ def run_harvester(creep, all_structures, constructions, creeps, dropped_all):
             harvest = harvest_stuff.harvest_energy(creep, creep.memory.source_num)
 
     # if carryCapacity is full - then go to nearest container or storage to store the energy.
-    elif creep.memory.laboro == 1:
+    if creep.memory.laboro == 1:
         if not creep.memory.container:
             # find ALL containers(whether its full doesn't matter)
             containers = _.filter(all_structures,
