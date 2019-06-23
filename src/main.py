@@ -172,9 +172,15 @@ def main():
             # add creep's age. just for fun lol
             try:  # since this is new....
                 if not creep.spawning:
-                    creep.memory.age += 1
-                    if creep.memory.age % 1500 == 0 and creep.ticksToLive > 50:
-                        creep.say("{}차생일!🎂🎉".format(int(creep.memory.age / 1500)), True)
+                    if not creep.memory.birthday:
+                        creep.memory.birthday = Game.time
+                    if (Game.time - creep.memory.birthday) % 1500 == 0 and creep.ticksToLive > 50 \
+                            and Game.time - creep.memory.birthday:
+                        age = (Game.time - creep.memory.birthday) // 1500
+                        creep.say("{}차생일!🎂🎉".format(age), True)
+                    # creep.memory.age += 1
+                    # if creep.memory.age % 1500 == 0 and creep.ticksToLive > 50:
+                    #     creep.say("{}차생일!🎂🎉".format(int(creep.memory.age / 1500)), True)
                 else:
                     continue
             except:
@@ -348,7 +354,7 @@ def main():
                 num = 0
                 for plan in chambro.memory.bld_plan:
                     try:
-                        print(plan)
+                        # print(plan)
                         if plan.type == STRUCTURE_LINK:
                             ball = '🔗'
                         elif plan.type == STRUCTURE_EXTENSION:
@@ -363,7 +369,7 @@ def main():
                             ball = '🏭'
                         # 우선 같은 지역에 해당 건물 또는 다른 무언가가 있는지 확인.
                         site = chambro.lookForAt(LOOK_STRUCTURES, plan.pos.x, plan.pos.y)
-                        print('site', site)
+                        # print('site', site)
                         if len(site):
                             # 있으면 해당 건설은 유효하지 않다. 삭제한다.
                             chambro.memory.bld_plan.splice(num, 1)
@@ -375,7 +381,7 @@ def main():
                             # 건설시도.
                             place_plan = __new__(RoomPosition(plan.pos.x, plan.pos.y, plan.pos.roomName))\
                                 .createConstructionSite(plan.type)
-                            print(place_plan, 'place_plan')
+                            # print(place_plan, 'place_plan')
                             # 어떤 타입의 건물인지 명시
                             chambro.visual.text(ball, plan.pos.x, plan.pos.y)
                         # 만일 타겟이
@@ -626,10 +632,10 @@ def main():
                     past_lvl = chambro.memory[room_lvl]
                     chambro.memory[room_lvl] = chambro.controller.level
 
-                if chambro.storage:
-                    print('chambro.storage.store[RESOURCE_ENERGY] {} > chambro.memory[options][max_energy] {}'
-                          .format(chambro.storage.store[RESOURCE_ENERGY] , chambro.memory[options][max_energy]))
-                    print('min_wall:', min_wall)
+                # if chambro.storage:
+                #     print('chambro.storage.store[RESOURCE_ENERGY] {} > chambro.memory[options][max_energy] {}'
+                #           .format(chambro.storage.store[RESOURCE_ENERGY] , chambro.memory[options][max_energy]))
+                #     print('min_wall:', min_wall)
                 # 방 안 스토리지 자원이 꽉 찼는데 수리레벨이 남아있을 경우 한단계 올린다.
                 if chambro.storage \
                         and chambro.storage.store[RESOURCE_ENERGY] > chambro.memory[options][max_energy] \
@@ -802,8 +808,8 @@ def main():
                                                         and (s.hits < 2000 and s.hitsMax == 5000)
                                                         or (s.hits < 6000 and s.hitsMax == 25000)
                                                         or (s.hits < 15500 and s.hitsMax > 50000)))
-            # 벽수리는 1만까지만. 다만 핵이 있으면 통과.
-            if min_wall.hits < 10000 or bool(nukes):
+            # 벽수리는 5천까지만. 다만 핵이 있으면 통과.
+            if min_wall.hits < 5000 or bool(nukes):
                 # print('min_wall', min_wall)
                 tow_repairs.append(min_wall)
             # print('tow', JSON.stringify(tow_repairs))

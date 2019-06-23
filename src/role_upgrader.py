@@ -31,6 +31,7 @@ def run_upgrader(creep, creeps, all_structures, repairs, constructions):
 
     # in case it's gonna die soon. this noble act is only allowed if there's a storage in the room.
     if creep.ticksToLive < 30 and _.sum(creep.carry) != 0 and creep.room.storage:
+        repair_on_the_way(creep, repairs, constructions)
         creep.say('endIsNear')
         for minerals in Object.keys(creep.carry):
             # print('minerals:', minerals)
@@ -66,7 +67,7 @@ def run_upgrader(creep, creeps, all_structures, repairs, constructions):
     # when you have to harvest. laboro: 0 == HARVEST
     if creep.memory.laboro == 0:
 
-        # todo 자원캐기 방식: 지랄하지말고 컨테이너 다 뽑아갑시다.
+        # todo 자원캐기 방식:
         # 업글은 렙8 도달전까지 필수임. 업글러가 무조건 최우선권 가져야함.
         # 우선 원칙적으로 컨트롤러 옆에 업글러 전용 컨테이너/링크가 있어야함. >> 확인완료
         # 없으면? 아무 컨테이너나 찾는다. >> 이거 미구현임.
@@ -77,79 +78,94 @@ def run_upgrader(creep, creeps, all_structures, repairs, constructions):
         if not creep.memory.pickup:
             # 전용 컨테이너가 있고 채워짐?
             jeonyong = False
-            # 전용 컨테이너 목록
+            # 업글 전용 컨테이너 목록
             la_containers = []
+            # 모든 컨테이너 목록 - 업글에 용량이 없을때 대비
+            total_containers = []
 
             pickup_id = ERR_INVALID_TARGET
-            # # 업글용 컨테이너 따로 뽑는다 - 방렙 8이 아니고 방에 컨테이너가 있는 경우.
-            # if not Game.getObjectById(creep.memory.upgrade_target).level == 8\
-            #         and creep.room.memory[STRUCTURE_CONTAINER]:
-            #     for s in creep.room.memory[STRUCTURE_CONTAINER]:
-            #         obj = Game.getObjectById(s.id)
-            #         if obj and s.for_upgrade:
-            #             la_containers.append(obj)
-            #     for s in creep.room.memory[STRUCTURE_LINK]:
-            #         obj = Game.getObjectById(s.id)
-            #         if obj and s.for_upgrade:
-            #             la_containers.append(obj)
-            #     # 가장 먼져 전용 컨테이너를 찾는다.
-            #     pickup_id = pick_pickup(creep, creeps, la_containers, 10000, True)
-            #     # print('ch1 pickup_id', pickup_id)
+            # 업글용 컨테이너/링크를 우선적으로 따로 뽑는다 - 방렙 8인 경우에만.
+            if not Game.getObjectById(creep.memory.upgrade_target).level == 8:
+                if creep.room.memory[STRUCTURE_CONTAINER]:
+                    for s in creep.room.memory[STRUCTURE_CONTAINER]:
+                        obj = Game.getObjectById(s.id)
+                        if obj:
+                            total_containers.append(obj)
+                            if s.for_upgrade:
+                                la_containers.append(obj)
 
-            # --------------------새작업
-            # 소속된 업글용 컨테이너와 링크를 찾는다.
-            # testing - 기존 업글전용으로 배정된 것 제외한 모든 컨테이너가 대상.
-            for s in creep.room.memory[STRUCTURE_CONTAINER]:
-                obj = Game.getObjectById(s.id)
-                # if obj and s.for_upgrade:
-                if obj:
-                    la_containers.append(obj)
+                if creep.room.memory[STRUCTURE_LINK]:
+                    for s in creep.room.memory[STRUCTURE_LINK]:
+                        obj = Game.getObjectById(s.id)
+                        if obj:
+                            if s.for_store:
+                                total_containers.append(obj)
+                            if s.for_upgrade:
+                                la_containers.append(obj)
 
-            for s in creep.room.memory[STRUCTURE_LINK]:
-                obj = Game.getObjectById(s.id)
-                # if obj and s.for_upgrade:
-                if obj and s.for_store:
-                    la_containers.append(obj)
-            # testing - 이 조건 폐지.
-            # 만일 렙 8인 경우, 즉, 업글용 컨테이너가 필요 없어졌을 경우, 스토리지에서 뽑아가도 된다.
-            # if not Game.getObjectById(creep.memory.upgrade_target).level == 8 \
-            #         and creep.room.memory[STRUCTURE_CONTAINER]:
-            if creep.room.storage:
-                la_containers.append(creep.room.storage)
-            # 이제 픽업 시전
-            pickup_id = pick_pickup(creep, creeps, la_containers, 10000, True)
-            # --------------------새작업 끝
-            # # 전용 컨테이너를 못찾으면 끝.
-            # if pickup_id == ERR_INVALID_TARGET:
-            #     la_containers = []
-            #     # find any storages with any energy inside
-            #     # containers_or_links = all_structures.filter(lambda s: (s.structureType == STRUCTURE_CONTAINER
-            #     #                                             and s.store[RESOURCE_ENERGY] >= creep.carryCapacity * .5))
-            #     #
-            #     for s in creep.room.memory[STRUCTURE_CONTAINER]:
-            #         obj = Game.getObjectById(s.id)
-            #         if obj and s.for_upgrade:
-            #             la_containers.append(obj)
-            #     for s in creep.room.memory[STRUCTURE_LINK]:
-            #         obj = Game.getObjectById(s.id)
-            #         if obj and s.for_upgrade:
-            #             la_containers.append(obj)
+                # 가장 먼져 전용 컨테이너를 찾는다.
+                pickup_id = pick_pickup(creep, creeps, la_containers, 10000, True)
+                # print('ch1 pickup_id', pickup_id)
+
+            # # --------------------새작업
+            # # 소속된 업글용 컨테이너와 링크를 찾는다.
+            # # testing - 기존 업글전용으로 배정된 것 제외한 모든 컨테이너가 대상.
+            # for s in creep.room.memory[STRUCTURE_CONTAINER]:
+            #     obj = Game.getObjectById(s.id)
+            #     if obj and s.for_upgrade:
+            #     # if obj:
+            #         la_containers.append(obj)
             #
-            #     # 링크를 찾는다.
-            #     # links = []
-            #     # for link in creep.room.memory[STRUCTURE_LINK]:
-            #     #     if not link:
-            #     #         continue
-            #     #     # 저장용인 링크만 중요함.
-            #     #     if link.for_store:
-            #     #         if Game.getObjectById(link.id):
-            #     #             links.extend([Game.getObjectById(link.id)])
-            #     # containers_or_links.extend(links)
-            #     if creep.room.storage:
-            #         la_containers.append(creep.room.storage)
-            #
-            #     # 가장 가까운곳에서 빼오는거임. 원래 스토리지가 최우선이었는데 바뀜.
-            #     pickup_id = pick_pickup(creep, creeps, la_containers, 10000, True)
+            # for s in creep.room.memory[STRUCTURE_LINK]:
+            #     obj = Game.getObjectById(s.id)
+            #     if obj and s.for_upgrade:
+            #     # if obj and s.for_store:
+            #         la_containers.append(obj)
+            # # testing - 이 조건 폐지.
+            # # 만일 렙 8인 경우, 즉, 업글용 컨테이너가 필요 없어졌을 경우, 스토리지에서 뽑아가도 된다.
+            # # if not Game.getObjectById(creep.memory.upgrade_target).level == 8 \
+            # #         and creep.room.memory[STRUCTURE_CONTAINER]:
+            # # if creep.room.storage:
+            # #     la_containers.append(creep.room.storage)
+            # # 이제 픽업 시전
+            # pickup_id = pick_pickup(creep, creeps, la_containers, 10000, True)
+            # # --------------------새작업 끝
+            # 전용 컨테이너를 못찾으면 끝.
+
+            # 전용 컨테이너에서 뽑아올게 없는 경우: 그럼 모든곳에서 뽑아버린다.
+            if pickup_id == ERR_INVALID_TARGET:
+                # la_containers = []
+                # # find any storages with any energy inside
+                # # containers_or_links = all_structures.filter(lambda s: (s.structureType == STRUCTURE_CONTAINER
+                # #                                             and s.store[RESOURCE_ENERGY] >= creep.carryCapacity * .5))
+                # #
+                # for s in creep.room.memory[STRUCTURE_CONTAINER]:
+                #     obj = Game.getObjectById(s.id)
+                #     if obj and s.for_upgrade:
+                #         la_containers.append(obj)
+                # for s in creep.room.memory[STRUCTURE_LINK]:
+                #     obj = Game.getObjectById(s.id)
+                #     if obj and s.for_upgrade:
+                #         la_containers.append(obj)
+                #
+                # # 링크를 찾는다.
+                # # links = []
+                # # for link in creep.room.memory[STRUCTURE_LINK]:
+                # #     if not link:
+                # #         continue
+                # #     # 저장용인 링크만 중요함.
+                # #     if link.for_store:
+                # #         if Game.getObjectById(link.id):
+                # #             links.extend([Game.getObjectById(link.id)])
+                # # containers_or_links.extend(links)
+                # if creep.room.storage:
+                #     la_containers.append(creep.room.storage)
+
+                # 가장 가까운곳에서 빼오는거임. 원래 스토리지가 최우선이었는데 바뀜.
+
+                if creep.room.storage:
+                    total_containers.append(creep.room.storage)
+                pickup_id = pick_pickup(creep, creeps, total_containers, 10000, True)
 
             # 픽업 가져올게 없는 경우.
             # 위에 찾는게 없는 경우:

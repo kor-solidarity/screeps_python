@@ -316,7 +316,8 @@ def pick_drops(creep, only_energy=False):
                 return creep.withdraw(pickup_obj, RESOURCE_ENERGY)
     # 떨군거
     else:
-        # print('nStore')
+        print('nStore')
+        print(only_energy, pickup_obj.resourceType)
         if only_energy and pickup_obj.resourceType != RESOURCE_ENERGY:
             return ERR_INVALID_TARGET
         else:

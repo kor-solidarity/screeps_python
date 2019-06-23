@@ -196,7 +196,6 @@ def pick_pickup(creep, creeps, storages, terminal_capacity=10000, upgrade=False)
         # if loop_storage
         # del loop_storage
         # todo .이딴짓 여기서 하지말고 처음 컨테이너 잡을때 한다!! 개 헷갈림.
-
         # NULLIFIED
         # # to distinguish storage var. with storages inside while loop.
         # # 만일 업글이면 for_upgrade 로 분류된 컨테이너에서 최우선으로 자원을 뽑는다.
@@ -523,3 +522,7 @@ def repair_on_the_way(creep, repairs, constructions, upgrader=False, irregular=F
         repair = creep.pos.findClosestByRange(repairs)
         if repair and creep.pos.inRangeTo(repair, 3):
             creep.repair(repair)
+
+
+# def map_changer(map_name, desto):
+

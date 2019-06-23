@@ -138,9 +138,13 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
 
         # if there's no dropped but there's dropped_all
         if not creep.memory.dropped and len(dropped_all) > 0:
+            # 떨어진거 확인 범위.
+            drop_range = 5
+            if creep.memory.all_full:
+                drop_range = 20
             for drop in dropped_all:
                 # if there's a dropped resources near 5
-                if creep.pos.inRangeTo(drop, 5):
+                if creep.pos.inRangeTo(drop, drop_range):
                     # 스토리지가 없으면 에너지 외엔 못넣어서 엉킴. 통과.
                     if not creep.room.storage:
                         if drop.store and not drop.store[RESOURCE_ENERGY]:
@@ -150,6 +154,9 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                         energy_only = True
                     else:
                         energy_only = False
+                    # todo 크립당 자기 수용량을 넘지 못한다. 나중에 하는걸로.
+                    # for c in creeps:
+                    #     if c.memory.dropped == drop['id']:
 
                     creep.memory.dropped = drop['id']
 
@@ -161,8 +168,9 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                         pass
                     else:
                         creep.say('drpERR {}'.format(item_pickup_res))
-
                     break
+            if creep.memory.all_full:
+                del creep.memory.all_full
 
         # 여기까지 떨군게 없으면 일반 컨테이너로.
         if not creep.memory.dropped:
@@ -187,7 +195,6 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                     if not Game.getObjectById(creep.memory.upgrade_target).level == 8:
                         if Game.getObjectById(creep.memory.upgrade_target).level > 3 \
                                 and not Game.getObjectById(creep.memory.upgrade_target).room.storage:
-                            print('wut')
                             pass
                         elif c[for_upgrade]:
                             continue
@@ -213,7 +220,6 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                 # 위 목록 중에서 가장 가까이 있는 컨테이너를 뽑아간다.
                 # 만약 뽑아갈 대상이 없을 시 터미널, 스토리지를 각각 찾는다.
                 # 만일 연구소를 안채우기로 했으면 거기서도 뽑는다.
-
                 if Memory.rooms[creep.room.name].options and Memory.rooms[creep.room.name].options.fill_labs == 0:
                     labs = all_structures \
                         .filter(lambda s: s.structureType == STRUCTURE_LAB and s.energy >= creep.carryCapacity * .5)
@@ -221,6 +227,28 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                 pickup_id = pick_pickup(creep, creeps, storages, terminal_capacity)
 
                 if pickup_id == ERR_INVALID_TARGET:
+                    # 뽑아갈 게 없으면 우선 허울러가 채워야할 대상이 있긴 한지부터 확인해보자.
+                    # 건설장 있나?
+                    if len(constructions):
+                        pass
+                    elif Game.getObjectById(creep.memory.upgrade_target).room.energyAvailable == \
+                            Game.getObjectById(creep.memory.upgrade_target).room.energyCapacityAvailable:
+                        _full = False
+                        if creep.room.memory[STRUCTURE_TOWER]:
+                            for t in creep.room.memory[STRUCTURE_TOWER]:
+                                # print('Game.getObjectById({}).energy {}'.format(t, Game.getObjectById(t).energy))
+                                if Game.getObjectById(t).energyCapacity * .8 <= Game.getObjectById(t).energy:
+                                    _full = True
+                                    break
+                        else:
+                            _full = True
+                        # print('_full', _full)
+                        # 채울게 없으면 잉여롭게 계속 뭐 뽑으려 하지 말고 활동중단
+                        if _full:
+                            # 꽉 차서 활동중단임을 표시.
+                            if not creep.memory.all_full:
+                                creep.memory.all_full = 1
+                            return
 
                     # todo 다른방법 강구요망
                     if creep.room.terminal and \
@@ -339,7 +367,7 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                 structures = grab_haul_list(creep, creep.room.name, all_structures, True)
             else:
                 structures = []
-
+            # print('picker {} and len(structures) {}'.format(picker, len(structures)))
             if not picker and len(structures) > 0:
                 creep.say('🔄물류,염려말라!', True)
                 creep.memory.priority = 1

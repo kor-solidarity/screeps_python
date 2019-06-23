@@ -136,6 +136,8 @@ def run_fixer(creep, all_structures, constructions, creeps, repairs, min_wall, t
 
     # 1 == 본격적인 수리작업 시작.
     if creep.memory.laboro == 1:
+        if not Game.getObjectById(creep.memory.repair_target):
+            del creep.memory.repair_target
         if creep.memory.repair_target and Game.getObjectById(creep.memory.repair_target).hits \
             == Game.getObjectById(creep.memory.repair_target).hitsMax:
             del creep.memory.repair_target

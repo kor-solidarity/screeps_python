@@ -166,7 +166,6 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                     {memory: {'role': 'harvester', 'assigned_room': spawn.pos.roomName, 'size': 2}})
             # print('what happened:', regular_spawn)
             if regular_spawn == -6:
-                # one for 1500 cap == need 2
                 # 만약 방에 수용가능한 자원이 800 미만 또는 허울러가 없을 경우에만 이거보다 더 작은 하베스터를 생산한다.
                 if spawn.spawnCreep(
                     # [WORK, WORK, WORK, WORK, WORK, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE],
@@ -374,46 +373,47 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
         if Game.cpu.bucket > cpu_bucket_emergency + cpu_bucket_emergency_spawn_start:
             max_num_upgraders = chambro.memory.options[max_upgraders]
             if spawn.room.controller.level == 8:
-                proper_level = 1
+                upgrader_quota = 1
             # start making upgraders after there's a storage
             elif spawn.room.storage:
-                # print('check2')
-                # if spawn.room.controller.level < 5:
+                # 스토리지가 생기면 원칙적으로 스토리지 안 에너지 양 / expected_reserve 값으로 할당량 배정
                 expected_reserve = 3000
 
                 # if there's no storage or storage has less than expected_reserve
                 if spawn.room.storage.store[RESOURCE_ENERGY] < expected_reserve or not spawn.room.storage:
-                    proper_level = 1
+                    upgrader_quota = 1
                 # more than 30k
                 elif spawn.room.storage.store[RESOURCE_ENERGY] >= expected_reserve:
-                    proper_level = 1
+                    upgrader_quota = 1
                     # extra upgrader every expected_reserve
-                    proper_level += int(spawn.room.storage.store[RESOURCE_ENERGY] / expected_reserve)
+                    upgrader_quota += int(spawn.room.storage.store[RESOURCE_ENERGY] / expected_reserve)
                     # max_num_upgraders
-                    if proper_level > max_num_upgraders:
-                        proper_level = max_num_upgraders
+                    if upgrader_quota > max_num_upgraders:
+                        upgrader_quota = max_num_upgraders
                 else:
-                    proper_level = 0
+                    upgrader_quota = 0
             # 렙4부터는 스토리지 건설이 최우선이기에 업글러 스폰에 총력가하면 망함...
             elif chambro.energyCapacityAvailable < 800:
                 # print('chambro.energyCapacityAvailable < 800')
-                proper_level = int(max_num_upgraders / 4)
-                # print(proper_level)
-                if not proper_level:
-                    proper_level = 1
+                upgrader_quota = int(max_num_upgraders / 4)
+                # print(upgrader_quota)
+                if not upgrader_quota:
+                    upgrader_quota = 1
             elif chambro.controller.level < 4:
-                proper_level = int(max_num_upgraders / 2)
-                # 만약 컨테이너중 꽉찬게 하나라도 있으면 업글러 수를 추가해준다.
-                for con in chambro.memory.container:
-                    if _.sum(Game.getObjectById(con.id).store) == 2000:
-                        proper_level += 2
-                if not proper_level:
-                    proper_level = 1
+                upgrader_quota = int(max_num_upgraders / 2)
+
+                if not upgrader_quota:
+                    upgrader_quota = 1
             else:
                 # print('checkWTF')
-                proper_level = 0
-            # print('proper_level', proper_level)
-            if len(creep_upgraders) < proper_level:
+                upgrader_quota = 0
+
+            # 만약 업글용 컨테이너중 꽉찬게 하나라도 있으면 업글러 수를 추가해준다.
+            for con in chambro.memory.container:
+                if con.for_upgrade and _.sum(Game.getObjectById(con.id).store) == 2000:
+                    upgrader_quota += 2
+            # print('upgrader_quota', upgrader_quota)
+            if len(creep_upgraders) < upgrader_quota:
                 if spawn.room.controller.level != 8:
                     big = spawn.spawnCreep(
                         [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK,
@@ -453,12 +453,18 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
         # 수리가 필요한 건물이 발견되고 나서 경과한 시간. 뒤에 긴 공식 간소화 목적
         elapsed_fixer_time = Game.time - chambro.memory[options][stop_fixer]
 
-        # 렙 7 이상일때부터 수리병을 부름. 7때는 단지 하나. 8때는 5천에 하나.
+        # 수리할게 있거나 렙 7 이상일때부터 수리병을 부름. 7때는 단지 하나. 8때는 5천에 하나.
         # 그리고 할당량 다 찼는데도 뽑는 경우도 있을 수 있으니 타이머 쟨다.
         # 수리할게 더 없으면 천틱동안 추가 생산을 안한다.
         if elapsed_fixer_time > 1000 \
-                and len(wall_repairs) and chambro.controller.level >= 7 \
-                and chambro.storage and chambro.storage.store[RESOURCE_ENERGY] >= 5000:
+                and len(wall_repairs) and chambro.storage \
+                and chambro.controller.level >= 4 and chambro.storage.store[RESOURCE_ENERGY] >= 5000:
+
+            # 원칙적으로는 렙 7부터 본격적으로 생산한다. 그 이하면 소형만 생산.
+            if chambro.controller.level < 7:
+                make_mini = True
+            else:
+                make_mini = False
 
             max_num_fixers = 0
 
@@ -468,37 +474,54 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
 
             # 렙8부터 본격적인 작업에 드간다. 그전까진 무의미.
             # 또한 수리할게 더 없는 상황에서 첫 생성을 한거면 하나만 뽑고 천틱 대기한다.
-            elif chambro.controller.level == 7 and chambro.storage.store[RESOURCE_ENERGY] >= 10000 \
-                    or elapsed_fixer_time <= 3000:
+            elif chambro.controller.level < 8 \
+                    and (10000 <= chambro.storage.store[RESOURCE_ENERGY] or elapsed_fixer_time <= 3000):
                 max_num_fixers = 1
 
             # 벽수리가 중심인데 수리할 벽이 없으면 의미가 없음.
             elif chambro.controller.level == 8 and min_hits < chambro.memory[options][repair]:
                 # max_num_fixers = int(chambro.storage.store[RESOURCE_ENERGY] / 30000)
+                # 스토리지에 에너지가 3만 이하면 1로 제한.
                 if chambro.storage.store[RESOURCE_ENERGY] < 30000:
-
                     max_num_fixers = 1
+                # 그 이상인 경우 수리대상 벽 20개당 하나로 제한한다
+                # 수리대상 20개당 하나 vs elapsed_fixer_time // 3k vs 스토리지 에너지양 / 3만의 정수
+                # 셋중 가장 적은걸로 결정
+                else:
+                    storage_dividend = int(chambro.storage.store[RESOURCE_ENERGY] / 30000)
+                    elapsed_fixer_dividend =  int(elapsed_fixer_time / 3000)
+                    dividend_by_repairs = len(wall_repairs) // 20
+                    max_num_fixers = _.min([storage_dividend, elapsed_fixer_dividend, dividend_by_repairs])
+
+                # NULLIFIED
                 # 스토리지 에너지양 / 3만의 정수 vs 수리할게 생긴 시점부터의 시간 / 3천의 정수
                 # 둘 중 적은 숫자를 택한다.
-                elif int(chambro.storage.store[RESOURCE_ENERGY] / 30000)\
-                        < int(elapsed_fixer_time / 3000):
-
-                    max_num_fixers = int(elapsed_fixer_time / 30000)
-                else:
-
-                    # 시간이 지나면서 계속 수리할게 있으면 누적시키는 방식.
-                    max_num_fixers += int(elapsed_fixer_time / 3000)
+                # elif int(chambro.storage.store[RESOURCE_ENERGY] / 30000) < int(elapsed_fixer_time / 3000):
+                #
+                #     max_num_fixers = int(elapsed_fixer_time / 30000)
+                # else:
+                #     # 시간이 지나면서 계속 수리할게 있으면 누적시키는 방식.
+                #     max_num_fixers += int(elapsed_fixer_time / 3000)
                 # 최대값. 임시조치임.
                 if max_num_fixers > 5:
                     max_num_fixers = 5
+                elif not max_num_fixers:
+                    max_num_fixers = 1
 
             if len(creep_fixers) < max_num_fixers:
-                fixer_spawn = spawn.spawnCreep(
-                    [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE,
-                     WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK,
-                     WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY,
-                     CARRY], 'fx_{}_{}'.format(spawn_room_low, rand_int),
-                    {memory: {'role': 'fixer', 'assigned_room': spawn.pos.roomName, 'level': 8}})
+                if make_mini:
+                    fixer_spawn = spawn.spawnCreep(
+                        [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK,
+                         CARRY, CARRY], 'fx_{}_{}'.format(spawn_room_low, rand_int),
+                        {memory: {'role': 'fixer', 'assigned_room': spawn.pos.roomName}})
+                else:
+                    fixer_spawn = spawn.spawnCreep(
+                        [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE,
+                         WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK,
+                         WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY,
+                         CARRY,
+                         CARRY], 'fx_{}_{}'.format(spawn_room_low, rand_int),
+                        {memory: {'role': 'fixer', 'assigned_room': spawn.pos.roomName, 'level': 8}})
 
         if Memory.debug and Game.time % interval == 0:
             print("이 시점까지 스폰 {} 소모량: {}, 이하 remote"
@@ -542,7 +565,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                     or flag_name.includes(STRUCTURE_SPAWN) or flag_name.includes(STRUCTURE_EXTENSION)\
                     or flag_name.includes(STRUCTURE_ROAD) or flag_name.includes(STRUCTURE_STORAGE)\
                     or flag_name.includes(STRUCTURE_RAMPART) or flag_name.includes(STRUCTURE_EXTRACTOR):
-                # todo 미완성임.
+                # todo 미완성임. -del 하고 섞일 수 있음.
                 bld_type = name_list[0]
                 # 링크용일 경우.
                 if bld_type == STRUCTURE_LINK:
@@ -583,8 +606,17 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
 
                 delete_flag = True
 
-            # 방이름 + -rm + 아무글자(없어도됨) << 방을 등록한다.
+            # 방이름/방향 + -rm + 아무글자(없어도됨) << 방을 등록한다.
             if flag_name.includes(spawn.room.name) and flag_name.includes("-rm"):
+                # 방이름 외 그냥 바로 위라던지 정도의 확인절차
+                # wasd 시스템(?) 사용
+                rm_loc = name_list.index('-rm')
+                target_room = name_list[rm_loc - 1]
+                # todo 방향 아직 안찍음
+                # 여기에 안뜨면 당연 방이름이 아니라 상대적 위치를 찍은거.
+                # if not Game.rooms[target_room]:
+
+
                 print('includes("-rm")')
                 # init. remote
                 if not Memory.rooms[spawn.room.name].options.remotes:
@@ -848,6 +880,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                 # 자기 방으로 잘못 찍었을 경우 찍은 위치에 뭐가 있는지 확인하고 그걸 없앤다.
                 if flag_obj.room and flag_obj.room.controller \
                         and flag_obj.room.controller.my:
+                    print('my room at {}'.format(flag_obj.room.name))
                     # 해당 위치에 건설장 또는 건물이 있으면 없앤다.
                     if len(flag_obj.pos.lookFor(LOOK_CONSTRUCTION_SITES)):
                         print(flag_obj.pos.lookFor(LOOK_CONSTRUCTION_SITES), JSON.stringify())
@@ -868,14 +901,15 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                     for i in Object.keys(Memory.rooms):
                         found = False
                         if Memory.rooms[i].options:
-                            # print('Memory.rooms[{}].options.remotes {}'.format(i, Memory.rooms[i].options.remotes))
+                            print('Memory.rooms[{}].options.remotes {}'.format(i, JSON.stringify(Memory.rooms[i].options.remotes)))
+                            print('len(Memory.rooms[{}].options.remotes) {}'.format(i, len(Memory.rooms[i].options.remotes)))
                             # 옵션안에 리모트가 없을수도 있음.. 특히 확장 안했을때.
                             if len(Memory.rooms[i].options.remotes) > 0:
                                 # 리모트 안에 배정된 방이 있는지 확인한다.
                                 # 아래 포문에 씀.
                                 del_number = 0
                                 for r in Object.keys(Memory.rooms[i].options.remotes):
-                                    # print('r', r)
+                                    print('r', r, 'flag_room_name', flag_room_name)
                                     # 배정된 방을 찾으면 이제 방정보 싹 다 날린다.
                                     if r == flag_room_name:
                                         # del_number = r  # Memory.rooms[i].options.remotes[r]
@@ -1064,10 +1098,10 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
 
                     if flag_room_controller and len(remote_reservers) == 0:
                         # 예약되지 않은 컨트롤러거나
-                        # 컨트롤러의 예약시간이 1200 이하거나
+                        # 컨트롤러의 예약시간이 1000 이하거나
                         # 컨트롤러가 다른사람꺼 + 아군 주둔중일때 만든다
                         if not Game.rooms[room_name].controller.reservation \
-                            or Game.rooms[room_name].controller.reservation.ticksToEnd < 1200 \
+                            or Game.rooms[room_name].controller.reservation.ticksToEnd < 1000 \
                             or (Game.rooms[room_name].controller.reservation.username
                                 != spawn.room.controller.owner.username and len(remote_troops) > 0):
                             spawning_creep = spawn.spawnCreep(
@@ -1174,7 +1208,6 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                                                                       , Game.rooms[room_name].name))
                                     print('constr_pos:', constr_pos)
                                     const_res = constr_pos.createConstructionSite(STRUCTURE_CONTAINER)
-
 
                                 print('objs', objs)
                                 # 키퍼가 있으면 중간에 크립도 있는지라.
@@ -1332,7 +1365,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                                 {memory: {'role': 'carrier', 'assigned_room': room_name,
                                           'work': 1, 'home_room': spawn.room.name,
                                           'source_num': carrier_source, 'frontier': 1,
-                                              to_pickup: path_spawn_to_pickup, to_home: path}})
+                                          to_pickup: path_spawn_to_pickup, to_home: path}})
                             if spawning == ERR_NOT_ENOUGH_RESOURCES:
                                 spawn.spawnCreep(
                                     [WORK, WORK, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, MOVE,
