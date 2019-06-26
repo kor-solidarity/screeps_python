@@ -304,6 +304,8 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                         passed_block = move_with_mem_block_check(creep, path)
                         if not passed_block == OK:
                             creep.say('막힘: {}'.format(passed_block))
+                            print('크립 {} {}x{}y에서 막힘: {}'
+                                  .format(creep.name, creep.pos.x, creep.pos.y, passed_block))
                         if move_by_path[1]:
                             path = move_by_path[2]
                             # print('path:', path)

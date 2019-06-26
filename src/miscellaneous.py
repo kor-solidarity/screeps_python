@@ -20,6 +20,7 @@ __pragma__('noalias', 'update')
 
 def check_for_carrier_setting(creep, target_obj):
     """
+    NULLIFIED - 왜 배정한거지??? 필요성이 전혀 없다.
     배정된 컨테이너의 for_harvest 가 캐리어용(2)으로 배정할 자격이 되는지 확인한다.
 
     :param creep:

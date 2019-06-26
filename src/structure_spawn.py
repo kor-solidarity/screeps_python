@@ -485,13 +485,13 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                 if chambro.storage.store[RESOURCE_ENERGY] < 30000:
                     max_num_fixers = 1
                 # 그 이상인 경우 수리대상 벽 20개당 하나로 제한한다
-                # 수리대상 20개당 하나 vs elapsed_fixer_time // 3k vs 스토리지 에너지양 / 3만의 정수
+                # 수리대상 10개당 하나 vs elapsed_fixer_time // 3k vs 스토리지 에너지양 / 3만의 정수
                 # 셋중 가장 적은걸로 결정
                 else:
-                    storage_dividend = int(chambro.storage.store[RESOURCE_ENERGY] / 30000)
-                    elapsed_fixer_dividend =  int(elapsed_fixer_time / 3000)
-                    dividend_by_repairs = len(wall_repairs) // 20
-                    max_num_fixers = _.min([storage_dividend, elapsed_fixer_dividend, dividend_by_repairs])
+                    storage_dividend = int(chambro.storage.store[RESOURCE_ENERGY] / 50000)
+                    elapsed_fixer_dividend = int(elapsed_fixer_time / 3000)
+                    # dividend_by_repairs = len(wall_repairs) // 10
+                    max_num_fixers = _.min([storage_dividend, elapsed_fixer_dividend])
 
                 # NULLIFIED
                 # 스토리지 에너지양 / 3만의 정수 vs 수리할게 생긴 시점부터의 시간 / 3천의 정수
@@ -1128,7 +1128,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                             # 캐리어가 존재할 시. 각 소스를 돌린다.
                             for s in flag_energy_sources:
                                 for c in remote_carriers:
-                                    # 캐리어들을 돌려서 만약 캐리어와
+                                    # 캐리어들을 돌려서 만약 캐리어의 배정소스 메모리와 일치하는게 있으면 이미 하나 배정된거니 통과.
                                     if s.id == c.memory.source_num:
                                         continue
                                     else:
