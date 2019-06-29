@@ -61,48 +61,48 @@ def check_for_carrier_setting(creep, target_obj):
         return
 
 
-# todo 이건 조만간 아래껄로 바꿔야함.
-def filter_enemies(foreign_creeps, count_ai=True):
-    """
-    filter out allies(ones must not be killed) from FIND_HOSTILE_CREEPS
-    :param foreign_creeps:
-    :param count_ai:
-    :return:
-    """
-    ally_list = Memory.allianceArray
-    enemy_list = []
-    for hostile in foreign_creeps:
-        enemy = True
-        # this is an NPC
-        if hostile.owner.username == 'Invader':
-            # 평소엔 필요없는거지만 가끔가다 NPC를 세면 안되는 경우가 있음...
-            if count_ai:
-                enemy_list.append(hostile)
-            continue
+# NULLIFIED - changed to function below
+# def filter_enemies(foreign_creeps, count_ai=True):
+#     """
+#     filter out allies(ones must not be killed) from FIND_HOSTILE_CREEPS
+#     :param foreign_creeps:
+#     :param count_ai:
+#     :return:
+#     """
+#     ally_list = Memory.allianceArray
+#     enemy_list = []
+#     for hostile in foreign_creeps:
+#         enemy = True
+#         # this is an NPC
+#         if hostile.owner.username == 'Invader':
+#             # 평소엔 필요없는거지만 가끔가다 NPC를 세면 안되는 경우가 있음...
+#             if count_ai:
+#                 enemy_list.append(hostile)
+#             continue
+#
+#         for ally in ally_list:
+#             # print('ally.username:', ally.username)
+#             # if hostile's name is equal to ally's name it's excluded
+#             if hostile.owner.username == ally:
+#                 enemy = False
+#                 break
+#         # filter out creeps without any harm.
+#         if enemy:
+#             is_civilian = True
+#             # print('hostile.body', hostile.body)
+#             for body in hostile.body:
+#                 # 움직일수만 있는놈 빼고 다 적임.
+#                 if body['type'] != MOVE:
+#                     is_civilian = False
+#                     break
+#
+#             if not is_civilian:
+#                 enemy_list.append(hostile)
+#     # return foreign_creeps
+#     return enemy_list
 
-        for ally in ally_list:
-            # print('ally.username:', ally.username)
-            # if hostile's name is equal to ally's name it's excluded
-            if hostile.owner.username == ally:
-                enemy = False
-                break
-        # filter out creeps without any harm.
-        if enemy:
-            is_civilian = True
-            # print('hostile.body', hostile.body)
-            for body in hostile.body:
-                # 움직일수만 있는놈 빼고 다 적임.
-                if body['type'] != MOVE:
-                    is_civilian = False
-                    break
 
-            if not is_civilian:
-                enemy_list.append(hostile)
-    # return foreign_creeps
-    return enemy_list
-
-
-def filter_enemies_new(foreign_creeps):
+def filter_friend_foe(foreign_creeps):
     """
     크립목록에서 적과 아군 필터링한다.
 
@@ -116,9 +116,9 @@ def filter_enemies_new(foreign_creeps):
     # 모든 적
     all_enemies = []
     # 엔피시
-    npcs = []
+    npc_enemies = []
     # 적 플레이어
-    enemy_list = []
+    player_enemies = []
     # 동맹군
     friendly = []
     for hostile in foreign_creeps:
@@ -128,7 +128,7 @@ def filter_enemies_new(foreign_creeps):
         if hostile.owner.username == 'Invader':
             # 엔피씨면 모든적과 엔피시로
             all_enemies.append(hostile)
-            npcs.append(hostile)
+            npc_enemies.append(hostile)
             continue
         # 동맹군 필터링
         for ally in ally_list:
@@ -143,27 +143,28 @@ def filter_enemies_new(foreign_creeps):
                 # 움직일수만 있는놈 빼고 다 잡는다.
                 if body['type'] != MOVE:
                     all_enemies.append(hostile)
-                    enemy_list.append(hostile)
+                    player_enemies.append(hostile)
                     break
 
-    return [all_enemies, npcs, enemy_list, friendly]
+    return [all_enemies, npc_enemies, player_enemies, friendly]
 
 
-def filter_friends(foreign_creeps):
-    """
-    find allies(ones must not be killed) from FIND_HOSTILE_CREEPS
-    :param foreign_creeps:
-    :return:
-    """
-    ally_list = Memory.allianceArray
-    friends = []
-    for foreigns in foreign_creeps:
-        for ally in ally_list:
-            # if it's one of our allies add to list
-            if foreigns.owner.username == ally:
-                friends.append(foreigns)
-
-    return friends
+# NULLIFIED - such filter merged altogether above
+# def filter_friends(foreign_creeps):
+#     """
+#     find allies(ones must not be killed) from FIND_HOSTILE_CREEPS
+#     :param foreign_creeps:
+#     :return:
+#     """
+#     ally_list = Memory.allianceArray
+#     friends = []
+#     for foreigns in foreign_creeps:
+#         for ally in ally_list:
+#             # if it's one of our allies add to list
+#             if foreigns.owner.username == ally:
+#                 friends.append(foreigns)
+#
+#     return friends
 
 
 def pick_pickup(creep, creeps, storages, terminal_capacity=10000, upgrade=False):

@@ -294,7 +294,8 @@ def move_using_swap(creep, creeps, target, ignore_creeps=True, reuse_path=40,
 def move_with_mem(creep, target, rangxo=0, path=[], path_mem='path',
                   repath=True, pathfinder=False):
     """
-    크립을 무시하고 저장된 메모리따라 움직일 모든 코드는 여기에 들어간다.
+    저장된 패스 메모리따라 움직일 모든 코드는 여기에 들어간다.
+    움직이려 하는데 안움직이면 앞자리 애랑 교대까지.
 
     :param creep: 크립
     :param target: 갈 표적 아이디.
@@ -305,8 +306,6 @@ def move_with_mem(creep, target, rangxo=0, path=[], path_mem='path',
     :param pathfinder: 패스파인더를 쓸지 여부. 안쓰면 그냥 findPathTo 쓰는거. 당장은 안넣는걸로.
     :return: 결과값, 길이 교체됬는지 확인여부, 최종적으로 쓰인 길
     """
-
-    # todo 위에 path 활성화. 아래에서 불필요하게 map 쓰는거 방지가 요점.
 
     # 새 길을 찾아야 하는가
     need_new_path = False
@@ -356,17 +355,59 @@ def move_with_mem(creep, target, rangxo=0, path=[], path_mem='path',
     elif not move_by_path == OK:
         creep.say("mwm {}".format(move_by_path))
 
-    return move_by_path, changed_path, path
+    # OK가 떠도 실제로 움직였나 확인한다.
+    elif move_by_path == OK:
 
-    # 위에 move_with_mem에 넣어야함.
-    # if move_by_path[0] == OK:
-    #     passed_block = move_with_mem_block_check(creep, path)
-    #     if not passed_block == OK:
-    #         creep.say('막힘: {}'.format(passed_block))
-    # # 만일 길에서 벗어났을 경우 가장 가까운 곳으로 이동.
-    # elif move_by_path[0] == ERR_NOT_FOUND:
-    #     move = movi(creep, creep.pos.findClosestByRange(path))
-    #     creep.say('집 탈선:{}'.format(move))
+        # 현 위치에서 움직이지 않고 있는지 확인하기 위한 메모리
+        if not creep.memory.move_ticks:
+            creep.memory.move_ticks = 1
+        # checking current location - only needed when check in par with move_ticks
+        if not creep.memory.cur_loc:
+            creep.memory.cur_loc = creep.pos
+
+        # 현재 크립위치와 대조해본다. 동일하면 move_ticks 에 1 추가 아니면 1로 초기화.
+        if JSON.stringify(creep.memory.cur_loc) == JSON.stringify(creep.pos):
+            creep.memory.move_ticks += 1
+        else:
+            # 안 동일하면 초기화.
+            creep.memory.move_ticks = 1
+            creep.memory.cur_loc = creep.pos
+
+        # 세번 못움직이면 바로 길 앞 크립과 위치교체 간다.
+        if creep.memory.move_ticks > 3:
+
+            # 길 목록에 크립의 현위치가 없으면 안되기에 추가한다.
+            mem_in_path = False
+            for p in path:
+                if JSON.stringify(creep.pos) == JSON.stringify(p):
+                    mem_in_path = True
+                    break
+            if not mem_in_path:
+                path.insert(0, __new__(RoomPosition(creep.pos.x, creep.pos.y, creep.pos.roomName)))
+
+            creep_located = False
+            for p in path:
+                # 이전 길 위에 본 크립 위치를 찾았는지?
+                if creep_located:
+                    # print('creep_located')
+                    for i in p.look():
+                        # print(JSON.stringify(i))
+                        # 앞에 크립이 존재하고 그게 내꺼면 교대.
+                        if i.type == 'creep' and i.creep.my:
+                            Game.getObjectById(i.creep.id).moveTo(creep)
+                            move_by_path = creep.moveTo(Game.getObjectById(i.creep.id))
+                            creep.say('교대좀', True)
+                            break
+                    break
+                # print('p: {}, creep: {}, same:{}'
+                #       .format(p, creep.pos, bool(JSON.stringify(p) == JSON.stringify(creep.pos))))
+                # 현재 포문상 위치가 이 크립의 위치와 동일한가? 그럼 이 위치 다음 크립과 교체하는거임.
+                if JSON.stringify(p) == JSON.stringify(creep.pos):
+                    # print('{} 현위치 {},{}'.format(creep.name, creep.pos.x, creep.pos.y))
+                    creep_located = True
+    if len(path):
+        draw_path(creep, path)
+    return move_by_path, changed_path, path
 
 
 def move_with_mem_block_check(creep, path, counter=3):

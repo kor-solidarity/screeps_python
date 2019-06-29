@@ -185,7 +185,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                                                    'size': 1}})
             return
 
-        plus = 0
+        stationed_defenders = 0
 
         # 위에 컨테이너로 인한 플러스 할때 캐리어용 컨테이너로 추가됬는가?
         carrier_plus = 0
@@ -202,7 +202,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                 #
                 if cont_obj and _.sum(cont_obj.store) == cont_obj.storeCapacity:
                     # plus += 2
-                    plus += 1
+                    stationed_defenders += 1
                 # elif cont_obj and _.sum(cont_obj.store) > cont_obj.storeCapacity * .6:
                 #     plus += 1
 
@@ -217,10 +217,10 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                     # 렙8 이후에야 어느정도 감당이 된다고 판단.
                     if chambro.controller.level == 8:
                         if carrier_plus == 2 or carrier_plus == 3:
-                            plus += 1
+                            stationed_defenders += 1
                     else:
                         if carrier_plus == 1 or carrier_plus == 3:
-                            plus += 1
+                            stationed_defenders += 1
 
         # NULLIFIED - 링크에 따른 허울러 증가여부는 무시
         # 위와 동일. 링크를 센다.
@@ -238,14 +238,14 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
 
         # 건물이 아예 없을 시
         if len(harvest_carry_targets) == 0:
-            plus = -num_o_sources
+            stationed_defenders = -num_o_sources
 
         # 만일 4렙이하면 두배
         if chambro.controller.level < 6:
-            plus *= 2
+            stationed_defenders *= 2
 
         # 허울러 수 계산법: 방별로 지정된 허울러(기본값 2) + 위에 변수값
-        hauler_capacity = Memory.rooms[spawn.room.name].options.haulers + plus
+        hauler_capacity = Memory.rooms[spawn.room.name].options.haulers + stationed_defenders
         # minimum number of haulers in the room is 1, max 4. always max when lvl 4 or less
         if hauler_capacity <= 0:
             hauler_capacity = 1
@@ -408,10 +408,12 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                 # print('checkWTF')
                 upgrader_quota = 0
 
-            # 만약 업글용 컨테이너중 꽉찬게 하나라도 있으면 업글러 수를 추가해준다.
-            for con in chambro.memory.container:
-                if con.for_upgrade and _.sum(Game.getObjectById(con.id).store) == 2000:
-                    upgrader_quota += 2
+            # 만약 모든 컨테이너중 꽉찬게 하나라도 있으면 업글러 수를 추가해준다.
+            if not chambro.controller.level == 8:
+                for con in chambro.memory.container:
+                    if _.sum(Game.getObjectById(con.id).store) == 2000:
+                        upgrader_quota += 2
+                        break
             # print('upgrader_quota', upgrader_quota)
             if len(creep_upgraders) < upgrader_quota:
                 if spawn.room.controller.level != 8:
@@ -489,7 +491,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                 # 셋중 가장 적은걸로 결정
                 else:
                     storage_dividend = int(chambro.storage.store[RESOURCE_ENERGY] / 50000)
-                    elapsed_fixer_dividend = int(elapsed_fixer_time / 3000)
+                    elapsed_fixer_dividend = int(elapsed_fixer_time / 3000) + 1
                     # dividend_by_repairs = len(wall_repairs) // 10
                     max_num_fixers = _.min([storage_dividend, elapsed_fixer_dividend])
 
@@ -1008,15 +1010,15 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                     #  렙 7부터 항시 상주한다. 단, 설정에 따라 투입자체를 안할수도 있게끔 해야함.
                     # to filter out the allies.
                     if len(hostiles) > 0 or chambro.controller.level >= 7:
-                        plus = Memory.rooms[spawn.room.name].options.remotes[r].defenders
+                        stationed_defenders = Memory.rooms[spawn.room.name].options.remotes[r].defenders
                         # 플러스가 있는 경우 병사가 상주중이므로 NPC 셀 필요가 없다.
-                        if plus:
-                            hostiles = miscellaneous.filter_enemies(hostiles, False)
+                        if stationed_defenders:
+                            hostiles = miscellaneous.filter_friend_foe(hostiles)[2]
                         else:
-                            hostiles = miscellaneous.filter_enemies(hostiles, True)
+                            hostiles = miscellaneous.filter_friend_foe(hostiles, True)[0]
                         # 적이 있거나 방이 만렙이고 상주인원이 없을 시.
-                        if len(hostiles) + plus > len(remote_troops) \
-                            or (len(remote_troops) < plus and chambro.controller.level == 8):
+                        if len(hostiles) + stationed_defenders > len(remote_troops) \
+                            or (len(remote_troops) < stationed_defenders and chambro.controller.level == 8):
                             # 렙7 아래면 스폰 안한다.
                             if spawn.room.controller.level < 7:
                                 continue
@@ -1025,7 +1027,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                             # second one is the BIG GUY. made in case invader's too strong.
                             # 임시로 0으로 놨음. 구조 자체를 뜯어고쳐야함.
                             # 원래 두 크립이 연동하는거지만 한번 없이 해보자.
-                            if len(remote_troops) < len(hostiles) + plus and not keeper_lair:
+                            if len(remote_troops) < len(hostiles) + stationed_defenders and not keeper_lair:
                                 spawn_res = spawn.spawnCreep(
                                     [TOUGH, TOUGH, TOUGH, TOUGH, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE,
                                      MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE,
@@ -1037,7 +1039,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                                     {memory: {'role': 'soldier', 'soldier': 'remote_defender',
                                               'assigned_room': room_name, 'home_room': spawn.pos.roomName}})
 
-                            elif keeper_lair and (len(remote_troops) == 0 or len(remote_troops) < len(hostiles) + plus):
+                            elif keeper_lair and (len(remote_troops) == 0 or len(remote_troops) < len(hostiles) + stationed_defenders):
                                 spawn_res = spawn.spawnCreep(
                                     # think this is too much for mere invaders
                                     [TOUGH, TOUGH, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE

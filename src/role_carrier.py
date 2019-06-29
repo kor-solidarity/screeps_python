@@ -179,8 +179,10 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
 
             # 위에서 뽑았으면 이제 작업시작 가능
             if creep.memory.container:
+                # todo 지금 리필 시행 한번 하면 그걸로 끝이여야 하는데 링크나 컨테이너 둘중하나가 떨어질때까지 계속함...
                 grab = grab_energy(creep, creep.memory.container, True, 0)
                 creep.say("refill {}".format(grab))
+                print(creep.name, 'refill res: ', grab)
                 # 컨테이너가 없으면 통과.
                 if grab == ERR_INVALID_TARGET:
                     del creep.memory.container
@@ -286,9 +288,8 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
             # 1. if 1 == False, look for storage|containers to get the energy from.
             # 2. if 2 == False, you harvest on ur own.
             # result = grab_energy(creep, creep.memory.pickup, False, 0.0)
-            #todo 개뻘짓인듯, 간소화한다.
+            # todo 개뻘짓인듯, 일반 무브먼트 기능으로 합칩시다.
             result = grab_energy_new(creep)
-
             # *******************************************************************
             if result == ERR_NOT_IN_RANGE:
                 path = \
@@ -769,36 +770,36 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                         # 교체할 대상이 존재하는가?
                         all_destos = []
                         # 스토리지면 빌때까지 무한대기
-                        print(creep.name, '교체대상')
+                        # print(creep.name, '교체대상')
                         if not creep.memory.haul_target == creep.room.storage.id:
-                            print('not storage')
+                            # print('not storage')
                             for h in creep.memory.haul_destos:
                                 # 아이디 중복이면 당연 무시
                                 if creep.memory.haul_target == h.id:
-                                    print('continue')
+                                    # print('continue')
                                     continue
                                 d_obj = Game.getObjectById(h.id)
                                 print(h.type)
                                 # 링크 + 안에 빈공간 존재.
                                 if h.type == STRUCTURE_LINK and not d_obj.energy == d_obj.energyCapacity:
-                                    print('link')
+                                    # print('link')
                                     links.append(d_obj)
                                     all_destos.append(d_obj)
                                 # container and not full
                                 elif h.type == STRUCTURE_CONTAINER and not _.sum(d_obj.store) == d_obj.storeCapacity:
-                                    print('container')
+                                    # print('container')
                                     all_destos.append(d_obj)
-                                print('------')
+                                # print('------')
                                 del d_obj
-                        print('links {}'.format(len(links)))
-                        print('all_destos {}'.format(len(all_destos)))
+                        # print('links {}'.format(len(links)))
+                        # print('all_destos {}'.format(len(all_destos)))
                         # 링크가 존재하면 교체 들어간다.
                         if len(links):
                             the_target = creep.pos.findClosestByRange(links)
                         # 링크가 없으면 그외 남아있는게 있나 확인
                         if not the_target and len(all_destos):
                             the_target = creep.pos.findClosestByRange(all_destos)
-                        print('the_target', the_target)
+                        # print('the_target', the_target)
                         if the_target:
                             creep.memory.haul_target = the_target.id
                         # 이마저도 없으면 카운터 다시센다.

@@ -225,9 +225,9 @@ def run_harvester(creep, all_structures, constructions, room_creeps, dropped_all
 
     # harvesting job. if on harvest(laboro == 0) and carrying energy is smaller than carryCapacity
     if creep.memory.laboro == 0:
-        # print(creep.name, creep.memory.pickup)
+        # print(creep.name, creep.memory.dropped)
         # pickup any dropped resources on the way
-        if not creep.memory.pickup:
+        if not creep.memory.dropped:
             if dropped_all:
                 for drop in dropped_all:
                     # not energy? pass
@@ -238,20 +238,20 @@ def run_harvester(creep, all_structures, constructions, room_creeps, dropped_all
                             continue
                     # print('drop', drop)
                     if creep.pos.inRangeTo(drop, 3):
-                        creep.memory.pickup = drop.id
-                        creep.moveTo(creep.memory.pickup, {'visualizePathStyle':
+                        creep.memory.dropped = drop.id
+                        creep.moveTo(creep.memory.dropped, {'visualizePathStyle':
                                                            {'stroke': '#0000FF', 'opacity': .25}})
                         return
         else:
-            grab_result = harvest_stuff.pick_drops(creep, creep.memory.pickup, True)
+            grab_result = harvest_stuff.pick_drops(creep, True)
             creep.say('cc{}'.format(grab_result))
             if grab_result == ERR_NOT_IN_RANGE:
 
-                creep.moveTo(Game.getObjectById(creep.memory.pickup), {'visualizePathStyle':
+                creep.moveTo(Game.getObjectById(creep.memory.dropped), {'visualizePathStyle':
                                                                        {'stroke': '#0000FF', 'opacity': .25}})
                 return
             elif grab_result == ERR_INVALID_TARGET:
-                del creep.memory.pickup
+                del creep.memory.dropped
 
         if _.sum(creep.carry) > creep.carryCapacity - 10:
             creep.memory.laboro = 1

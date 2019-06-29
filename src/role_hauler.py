@@ -300,12 +300,13 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                     path = _.map(creep.memory.path, lambda p: __new__(RoomPosition(p.x, p.y, creep.room.name)))
                     # 메모리에 있는걸 최우선적으로 찾는다.
                     move_by_path = move_with_mem(creep, creep.memory.pickup, 0, path)
-                    if move_by_path[0] == OK or move_by_path[0] == ERR_TIRED:
-                        passed_block = move_with_mem_block_check(creep, path)
-                        if not passed_block == OK:
-                            creep.say('막힘: {}'.format(passed_block))
-                            print('크립 {} {}x{}y에서 막힘: {}'
-                                  .format(creep.name, creep.pos.x, creep.pos.y, passed_block))
+                    if move_by_path[0] == OK:
+                        # move_with_mem_block_check 폐지
+                        # passed_block = move_with_mem_block_check(creep, path)
+                        # if not passed_block == OK:
+                        #     creep.say('막힘: {}'.format(passed_block))
+                        #     print('크립 {} {}x{}y에서 막힘: {}'
+                        #           .format(creep.name, creep.pos.x, creep.pos.y, passed_block))
                         if move_by_path[1]:
                             path = move_by_path[2]
                             # print('path:', path)
@@ -481,12 +482,13 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                 if not creep.pos.isNearTo(target):
                     path = _.map(creep.memory.path, lambda p: __new__(RoomPosition(p.x, p.y, creep.room.name)))
                     move_by_path = move_with_mem(creep, creep.memory.haul_target, 0, path)
-                    if move_by_path[0] == OK or move_by_path[0] == ERR_TIRED:
-                        passed_block = move_with_mem_block_check(creep, path)
-                        if not passed_block == OK:
-                            creep.say('운송막힘:{}'.format(passed_block))
-                    if move_by_path[1]:
-                        path = move_by_path[2]
+                    # if move_by_path[0] == OK or move_by_path[0] == ERR_TIRED:
+                    if move_by_path[0] == OK:
+                        # passed_block = move_with_mem_block_check(creep, path)
+                        # if not passed_block == OK:
+                        #     creep.say('운송막힘:{}'.format(passed_block))
+                        if move_by_path[1]:
+                            path = move_by_path[2]
 
                 # 바로 옆이면 시작.
                 else:
@@ -586,13 +588,14 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
             if build_result == ERR_NOT_IN_RANGE:
                 if not creep.pos.inRangeTo(Game.getObjectById(creep.memory.build_target), 6):
                     move_by_path = move_with_mem(creep, creep.memory.build_target, 3)
-                    if move_by_path[0] == OK or move_by_path[0] == ERR_TIRED:
+                    # if move_by_path[0] == OK or move_by_path[0] == ERR_TIRED:
+                    if move_by_path[0] == OK:
                         if move_by_path[1]:
                             path = move_by_path[2]
-                        path = _.map(creep.memory.path, lambda p: __new__(RoomPosition(p.x, p.y, creep.room.name)))
-                        passed_block = move_with_mem_block_check(creep, path)
-                        if not passed_block == OK:
-                            creep.say('공사중: {}'.format(passed_block))
+                        # path = _.map(creep.memory.path, lambda p: __new__(RoomPosition(p.x, p.y, creep.room.name)))
+                        # passed_block = move_with_mem_block_check(creep, path)
+                    else:
+                        creep.say('공사중: {}'.format(move_by_path[0]))
 
                 else:
                     build_result = movi(creep, creep.memory.build_target, 3, 5)
@@ -622,7 +625,7 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                 if repair.hits == repair.hitsMax:
                     del creep.memory.repair_target
                     # 당장 수리대상이 수리완료했을 때 채워야 하는 대상이 있으면 바로 전환한다.
-                    if creep.room.energyAvailable < creep.room.energyCapacityAvailable:
+                    if creep.room.energyAvailable < creep.room.energyCapacityAvailable or len(constructions):
                         creep.memory.priority = 1
                         creep.say('다시 채우러~', True)
                         return
@@ -696,8 +699,6 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                 creep.memory.priority = 1
                 creep.say('복귀!', True)
                 return
-    if len(path):
-        draw_path(creep, path)
 
 
 def filter_haul_targets(creep, ujoj, haulers):

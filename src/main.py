@@ -416,14 +416,17 @@ def main():
         # 필터하면서 목록을 삭제하는거 같음.... 그래서 이리 초기화
         foreign_creeps = chambro.find(FIND_HOSTILE_CREEPS)
         nukes = chambro.find(FIND_NUKES)
+        # [[적 전부], [적 NPC], [적 플레이어], [동맹]]
+        friends_and_foes = miscellaneous.filter_friend_foe(foreign_creeps)
         # init. list
-        hostile_creeps = []
-        allied_creeps = []
+        hostile_creeps = friends_and_foes[0]
+        allied_creeps = friends_and_foes[3]
+        # NULLIFIED - replaced with above
         # to filter out the allies.
-        if len(foreign_creeps) > 0:
-            hostile_creeps = miscellaneous.filter_enemies(foreign_creeps)
-            # allied_creeps = miscellaneous.filter_friends(foreign_creeps)
-            allied_creeps = miscellaneous.filter_enemies_new(foreign_creeps)[3]
+        # if len(foreign_creeps) > 0:
+        #     hostile_creeps = miscellaneous.filter_enemies(foreign_creeps)
+        #     allied_creeps = miscellaneous.filter_friends(foreign_creeps)
+        #     allied_creeps = miscellaneous.filter_friend_foe(foreign_creeps)[3]
 
 
         # 초기화.
@@ -668,8 +671,8 @@ def main():
                     # 안보내는 조건은 주변 6칸거리내에 컨트롤러·스폰·스토리지가 있을 시.
                     str_points = _.filter(all_structures, lambda s: s.structureType == STRUCTURE_STORAGE
                                                                     or s.structureType == STRUCTURE_SPAWN
-                                                                    or s.structureType == STRUCTURE_TERMINAL
-                                                                    or s.structureType == STRUCTURE_EXTENSION)
+                                                                    or s.structureType == STRUCTURE_TERMINAL)
+                                                                    # or s.structureType == STRUCTURE_EXTENSION)
                     # 만렙이 아닐 경우 컨트롤러 근처에 있는것도 센다.
                     if not chambro.controller.level == 8:
                         str_points.append(chambro.controller)
