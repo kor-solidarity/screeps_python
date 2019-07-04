@@ -309,7 +309,11 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                     closest = creep.pos.findClosestByRange(path)
                     print(JSON.stringify(closest))
                     creep.say('탈선x{}y{}'.format(closest.x, closest.y))
-                    movement.movi(creep, closest)
+                    # movement.movi(creep, closest)
+                    path = _.map(creep.memory.path, lambda p: __new__(RoomPosition(p.x, p.y, creep.room.name)))
+                    move_by_path = move_with_mem(creep, closest, 0, path)
+                    if move_by_path[0] == OK and move_by_path[1]:
+                        creep.memory.path = move_by_path[2]
                 else:
                     creep.say('ERR {}'.format(moving))
 
@@ -376,13 +380,28 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
 
                 if moving == OK:
                     draw_path(creep, creep.memory[to_pickup])
-                    check_loc_and_swap_if_needed(creep, creeps, False, False, creep.memory[to_pickup])
+                    # NULLIFIED - move_with_mem 으로 완전교체
+                    # check_loc_and_swap_if_needed(creep, creeps, False, False, creep.memory[to_pickup])
+
+                    path = _.map(creep.memory.to_pickup, lambda p: __new__(RoomPosition(p.x, p.y, creep.room.name)))
+                    move_by_path = move_with_mem(creep, None, 0, path, 'to_pickup', False)
+                    # if move_by_path[0] == OK and move_by_path[1]:
+                    #     creep.memory.path = move_by_path[2]
+                    if not move_by_path[0] == OK:
+                        creep.say('투픽업탈선:{}'.format(move_by_path[0]))
+
                 # 크립위치가 길과 안맞는 경우.
                 elif moving == ERR_NOT_FOUND:
                     # 가장 가까이 있는 길을 찾아나선다.
                     draw_path(creep, creep.memory[to_pickup], 'red')
-                    move = movi(creep, creep.pos.findClosestByRange(path))
-                    creep.say('픽업탈선:{}'.format(move))
+                    closest_loc = creep.pos.findClosestByRange(path)
+                    # move = movi(creep, creep.pos.findClosestByRange(path))
+                    path = _.map(creep.memory.path, lambda p: __new__(RoomPosition(p.x, p.y, creep.room.name)))
+                    move_by_path = move_with_mem(creep, closest_loc, 0, path)
+                    if move_by_path[0] == OK and move_by_path[1]:
+                        creep.memory.path = move_by_path[2]
+                    creep.say('픽업탈선:{}'.format(move_by_path[0]))
+
                 else:
                     creep.say('ERR {}'.format(moving))
 
@@ -601,19 +620,7 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
 
                 # 배정된 목표지가 있는가?
                 if not creep.memory.haul_target:
-                    # # NULLIFIED - 위에 이미 목록화 함.
-                    # # 캐리어가 갈 수 있는 컨테이너·링크 등등
-                    # haul_target_objs = []
-                    # # 전송용 링크
-                    # for l in creep.room.memory[STRUCTURE_LINK]:
-                    #     if not l[for_store]:
-                    #         haul_target_objs.append(Game.getObjectById(l.id))
-                    # # 모든 컨테이너.
-                    # for c in creep.room.memory[STRUCTURE_CONTAINER]:
-                    #     haul_target_objs.append(Game.getObjectById(l.id))
-                    # # 스토리지
-                    # if creep.room.storage:
-                    #     haul_target_objs.append(creep.room.storage)
+
                     # 링크인 동시에 내용물이 빈 애를 찾는다.
                     links = creep.memory.haul_destos\
                         .filter(lambda h: h.type == STRUCTURE_LINK
@@ -656,7 +663,12 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                 if transfer_result == ERR_NOT_IN_RANGE:
                     if creep.memory.err_full:
                         creep.memory.err_full = 0
-                    move_using_swap(creep, creeps, creep.memory.haul_target)
+                    # move_using_swap(creep, creeps, creep.memory.haul_target)
+
+                    path = _.map(creep.memory.path, lambda p: __new__(RoomPosition(p.x, p.y, creep.room.name)))
+                    move_by_path = move_with_mem(creep, Game.getObjectById(creep.memory.haul_target), 0, path)
+                    if move_by_path[0] == OK and move_by_path[1]:
+                        creep.memory.path = move_by_path[2]
                 # if done, check if there's anything left. if there isn't then priority resets.
                 elif transfer_result == ERR_INVALID_TARGET:
                     creep.memory.err_full = 0

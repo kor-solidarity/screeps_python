@@ -207,6 +207,7 @@ def pathfinder_for_creep(creep, creeps, target, ignore_creeps=True):
     pass
 
 
+# todo MUST BE NULLIFIED - outdated and inefficient
 def move_using_swap(creep, creeps, target, ignore_creeps=True, reuse_path=40,
                     avoid_id=False, avoid_role=False, ranged=0):
     """
@@ -291,7 +292,7 @@ def move_using_swap(creep, creeps, target, ignore_creeps=True, reuse_path=40,
         return OK
 
 
-def move_with_mem(creep, target, rangxo=0, path=[], path_mem='path',
+def move_with_mem(creep, target, target_range=0, path=[], path_mem='path',
                   repath=True, pathfinder=False):
     """
     저장된 패스 메모리따라 움직일 모든 코드는 여기에 들어간다.
@@ -299,12 +300,12 @@ def move_with_mem(creep, target, rangxo=0, path=[], path_mem='path',
 
     :param creep: 크립
     :param target: 갈 표적 아이디.
-    :param rangxo: range
+    :param target_range: target_range
     :param path: 최초 지정된 길. 존재하면 사용.
     :param path_mem: 메모리에 저장된 길목록 이름. 기본값은 'path'
     :param repath: 도로가 안맞을 시 다시 길찾기를 시도할건가? 기본값 True
     :param pathfinder: 패스파인더를 쓸지 여부. 안쓰면 그냥 findPathTo 쓰는거. 당장은 안넣는걸로.
-    :return: 결과값, 길이 교체됬는지 확인여부, 최종적으로 쓰인 길
+    :return: [결과값, 길이 교체됬는지 확인여부, 최종적으로 쓰인 길]
     """
 
     # 새 길을 찾아야 하는가
@@ -333,7 +334,7 @@ def move_with_mem(creep, target, rangxo=0, path=[], path_mem='path',
             pass
         # 길 새로 짜야하는 경우 짠다.
         elif need_new_path or not creep.memory[path_mem]:
-            path_array = get_findPathTo(creep.pos, target, rangxo)
+            path_array = get_findPathTo(creep.pos, target, target_range)
             path_array.insert(0, creep.pos)
 
             creep.memory[path_mem] = path_array
@@ -410,6 +411,7 @@ def move_with_mem(creep, target, rangxo=0, path=[], path_mem='path',
     return move_by_path, changed_path, path
 
 
+# TO BE NULLIFIED
 def move_with_mem_block_check(creep, path, counter=3):
     """
     move_with_mem 과 연동. 앞에 길막하는놈이랑 위치교대.

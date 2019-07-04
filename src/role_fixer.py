@@ -139,7 +139,7 @@ def run_fixer(creep, all_structures, constructions, creeps, repairs, min_wall, t
         if not Game.getObjectById(creep.memory.repair_target):
             del creep.memory.repair_target
         if creep.memory.repair_target and Game.getObjectById(creep.memory.repair_target).hits \
-            == Game.getObjectById(creep.memory.repair_target).hitsMax:
+                == Game.getObjectById(creep.memory.repair_target).hitsMax:
             del creep.memory.repair_target
         # 표적이 없으면 찾는다. 우선 가장 체력낮은걸 찾는다
         if not creep.memory.repair_target:

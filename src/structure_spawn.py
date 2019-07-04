@@ -98,7 +98,6 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                                                           and c.memory.assigned_room == spawn.pos.roomName
                                                           and (c.spawning or c.ticksToLive > 100)))
 
-        # ﷽
         # if number of close containers/links are less than that of sources.
         harvest_carry_targets = []
 
@@ -159,121 +158,119 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                     {memory: {'role': 'harvester', 'assigned_room': spawn.pos.roomName, 'size': 2}})
             else:
                 # perfect for 3000 cap
+                # 7 WORK, 200 cap.
                 regular_spawn = spawn.spawnCreep(
-                    [WORK, WORK, WORK, WORK, WORK, WORK,
-                     CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE],
+                    [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, WORK,
+                     CARRY, CARRY, CARRY, CARRY],
+                    # [WORK, WORK, WORK, WORK, WORK, WORK,
+                    #  CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE],
                     'hv_{}_{}'.format(spawn_room_low, rand_int),
                     {memory: {'role': 'harvester', 'assigned_room': spawn.pos.roomName, 'size': 2}})
             # print('what happened:', regular_spawn)
             if regular_spawn == -6:
-                # 만약 방에 수용가능한 자원이 800 미만 또는 허울러가 없을 경우에만 이거보다 더 작은 하베스터를 생산한다.
+                # 렙4부턴 이거 만들 수 있음. 워크 7짜리.
                 if spawn.spawnCreep(
-                    # [WORK, WORK, WORK, WORK, WORK, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE],
-                    [MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, CARRY],
+                    [MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, WORK, CARRY, CARRY],
                     'hv_{}_{}'.format(spawn_room_low, rand_int),
                     {memory: {'role': 'harvester', 'assigned_room': spawn.pos.roomName,
-                              'size': 2}}) == -6 and (chambro.energyCapacityAvailable < 800 or len(creep_haulers) == 0):
-                    # 3 WORK
-                    if spawn.spawnCreep([MOVE, MOVE, WORK, WORK, WORK, CARRY, CARRY],
-                                        'hv_{}_{}'.format(spawn_room_low, rand_int),
-                                        {memory: {'role': 'harvester', 'assigned_room': spawn.pos.roomName,
-                                                  'size': 1}}) == -6:
-                        # final barrier
-                        spawn.spawnCreep([MOVE, WORK, WORK, CARRY],
-                                         'hv_{}_{}'.format(spawn_room_low, rand_int),
-                                         {memory: {'role': 'harvester', 'assigned_room': spawn.pos.roomName,
-                                                   'size': 1}})
+                              'size': 2}}) == -6:
+                    # 만약 방에 수용가능한 자원이 800 미만 또는 허울러가 없을 경우에만 이거보다 더 작은 하베스터를 생산한다.
+                    if spawn.spawnCreep(
+                        [MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, CARRY],
+                        'hv_{}_{}'.format(spawn_room_low, rand_int),
+                        {memory: {'role': 'harvester', 'assigned_room': spawn.pos.roomName,
+                                  'size': 2}}) == -6 and (chambro.energyCapacityAvailable < 800 or len(creep_haulers) == 0):
+                        # 3 WORK
+                        if spawn.spawnCreep([MOVE, MOVE, WORK, WORK, WORK, CARRY, CARRY],
+                                            'hv_{}_{}'.format(spawn_room_low, rand_int),
+                                            {memory: {'role': 'harvester', 'assigned_room': spawn.pos.roomName,
+                                                      'size': 1}}) == -6:
+                            # final barrier
+                            spawn.spawnCreep([MOVE, WORK, WORK, CARRY],
+                                             'hv_{}_{}'.format(spawn_room_low, rand_int),
+                                             {memory: {'role': 'harvester', 'assigned_room': spawn.pos.roomName,
+                                                       'size': 1}})
             return
+        # 방에 만일 추가 허울러가 필요한 경우.
+        extra_hauler_pts = 0
 
-        stationed_defenders = 0
+        # 크립의 누적 사이즈 2점당 extra_hauler_pts 하나
+        accumulated_size = 0
+        for h in creep_haulers:
+            accumulated_size += h.memory.size
 
-        # 위에 컨테이너로 인한 플러스 할때 캐리어용 컨테이너로 추가됬는가?
-        carrier_plus = 0
-        # 컨테이너와 링크를 하나씩 돌려서 수확용 칸인지 확인하고 이에 plus를 추가한다.
+        # 꽉찬 컨테이너 수
+        container_full = 0
+        # 허울러가 추가로 필요한 경우는 꽉찬 컨테이너의 존재여부다. 2개까지 +1, 3개이상은 +2
         for mcont in spawn.room.memory[STRUCTURE_CONTAINER]:
+
+            # 업그레이드 용도면 안센다. 단 렙8미만일때만.
+            if spawn.room.controller.level < 8 and mcont.for_upgrade:
+                continue
+            cont_obj = Game.getObjectById(mcont.id)
+            if cont_obj and _.sum(cont_obj.store) == cont_obj.storeCapacity:
+                container_full += 1
+
+        if container_full and container_full <= 2:
+            extra_hauler_pts += 1
+        elif container_full >= 3:
+            extra_hauler_pts += 2
+            # ------------------------------------------------------------
+            # NULLIFIED - 간소화
             # 우선, 해당 컨테이너가 일반 하베스트인가?
-            if mcont.for_harvest == 1:
-                # 업그레이드 용도면 안센다. 단 렙8미만일때만.
-                if spawn.room.controller.level < 8 and mcont.for_upgrade:
-                    continue
-                # 60% 이상 차있으면 ++, 꽉차면 두배.
-                # 꽉차면 하나로 수정해본다.
-                cont_obj = Game.getObjectById(mcont.id)
-                #
-                if cont_obj and _.sum(cont_obj.store) == cont_obj.storeCapacity:
-                    # plus += 2
-                    stationed_defenders += 1
-                # elif cont_obj and _.sum(cont_obj.store) > cont_obj.storeCapacity * .6:
-                #     plus += 1
+            # if mcont.for_harvest == 1:
+            #     # 업그레이드 용도면 안센다. 단 렙8미만일때만.
+            #     if spawn.room.controller.level < 8 and mcont.for_upgrade:
+            #         continue
+            #     # 꽉차면 하나로 수정해본다.
+            #     cont_obj = Game.getObjectById(mcont.id)
+            #     if cont_obj and _.sum(cont_obj.store) == cont_obj.storeCapacity:
+            #         extra_hauler_pts += 1
+            #
+            # # 캐리어용 컨테이너인가?
+            # if mcont.for_harvest == 2:
+            #     # 꽉찬경우 새로 추가. 대상은 캐리어용 및 광물용
+            #     cont_obj = Game.getObjectById(mcont.id)
+            #     if cont_obj and _.sum(cont_obj.store) == cont_obj.storeCapacity:
+            #         # print('plus! remote', mcont.id)
+            #         carrier_plus += 1
+            #         # 초반엔 이송거리 문제도 있고 해서 허울러 혼자론 무리일수도 있음.
+            #         # 렙8 이후에야 어느정도 감당이 된다고 판단.
+            #         if chambro.controller.level == 8:
+            #             if carrier_plus == 2 or carrier_plus == 3:
+            #                 extra_hauler_pts += 1
+            #         else:
+            #             if carrier_plus == 1 or carrier_plus == 3:
+            #                 extra_hauler_pts += 1
 
-            # 캐리어용 컨테이너인가?
-            if mcont.for_harvest == 2:
-                # 꽉찬경우 새로 추가. 대상은 캐리어용 및 광물용
-                cont_obj = Game.getObjectById(mcont.id)
-                if cont_obj and _.sum(cont_obj.store) == cont_obj.storeCapacity:
-                    # print('plus! remote', mcont.id)
-                    carrier_plus += 1
-                    # 초반엔 이송거리 문제도 있고 해서 허울러 혼자론 무리일수도 있음.
-                    # 렙8 이후에야 어느정도 감당이 된다고 판단.
-                    if chambro.controller.level == 8:
-                        if carrier_plus == 2 or carrier_plus == 3:
-                            stationed_defenders += 1
-                    else:
-                        if carrier_plus == 1 or carrier_plus == 3:
-                            stationed_defenders += 1
+        # 건물이 아예 없을 시 - NULLIFIED - 왜쓴거지??
+        # if len(harvest_carry_targets) == 0:
+        #     extra_hauler_pts = -num_o_sources
 
-        # NULLIFIED - 링크에 따른 허울러 증가여부는 무시
-        # 위와 동일. 링크를 센다.
-        # for mlink in spawn.room.memory[STRUCTURE_LINK]:
-        #     # 링크는 크게 두종류가 존재한다. 받는것과 주는것.
-        #     # 주는것이 꽉찰때 추가.
-        #     if not mlink.for_store:
-        #         mlink_obj = Game.getObjectById(mlink.id)
-        #         # 링크가 꽉 차고 캐리어용이 아닌 한에 채운다.
-        #         if mlink_obj and mlink_obj.energy == mlink_obj.energyCapacity \
-        #             and mlink_obj.cooldown == 0 and not mlink.for_harvest:
-        #             plus += 1
-        #             print('plus! link {}, harvest: {}'
-        #                   .format(mlink_obj.id, mlink_obj.for_harvest))
+        # 만일 4렙이하면 하나 추가
+        if chambro.controller.level <= 4:
+            extra_hauler_pts += 1
 
-        # 건물이 아예 없을 시
-        if len(harvest_carry_targets) == 0:
-            stationed_defenders = -num_o_sources
-
-        # 만일 4렙이하면 두배
-        if chambro.controller.level < 6:
-            stationed_defenders *= 2
-
-        # 허울러 수 계산법: 방별로 지정된 허울러(기본값 2) + 위에 변수값
-        hauler_capacity = Memory.rooms[spawn.room.name].options.haulers + stationed_defenders
+        # 허울러 수 계산법: 방별로 지정된 허울러(기본값 1) + 위에 변수값
+        hauler_capacity = extra_hauler_pts
         # minimum number of haulers in the room is 1, max 4. always max when lvl 4 or less
         if hauler_capacity <= 0:
             hauler_capacity = 1
-        elif hauler_capacity > 4 or not chambro.storage:
+        elif hauler_capacity > 4:
             hauler_capacity = 4
 
         if spawn.room.terminal:
             if spawn.room.terminal.store.energy > terminal_capacity + 10000:
                 hauler_capacity += 1
 
-        if len(creep_haulers) < hauler_capacity:
+        # if len(creep_haulers) < hauler_capacity:
+        # print('accumulated_size {} hauler_capacity {}'.format(accumulated_size, hauler_capacity))
+        if accumulated_size < hauler_capacity * 2:
             # 초기화 용도.
             spawning_creep = ERR_NOT_ENOUGH_ENERGY
             # 순서는 무조건 아래와 같다. 무조건 덩치큰게 장땡.
 
-            # 만일 컨트롤러 레벨이 8일 경우 가장 WORK 높은애 우선 하나.
-            # 왜 만든거지...?? NULLIFIED
-            # if spawn.room.controller.level == 8:
-            #     spawning_creep = spawn.spawnCreep(
-            #         [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE,
-            #          MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY,
-            #          CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY,
-            #          CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY],
-            #         'hl_{}_{}'.format(spawn.pos.roomName, rand_int),
-            #         {memory: {'role': 'hauler', 'assigned_room': spawn.pos.roomName,
-            #                     'level': 8}})
-
-            # 1200
+            # 1200. 여기까지 올 일이 없긴 함.
             if len(creep_haulers) >= 2:
                 if spawning_creep == ERR_NOT_ENOUGH_ENERGY:
                     spawning_creep = spawn.spawnCreep(
@@ -283,7 +280,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                          CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY,
                          CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY],
                         'hl_{}_{}'.format(spawn_room_low, rand_int),
-                        {memory: {'role': 'hauler', 'assigned_room': spawn.pos.roomName,
+                        {memory: {'role': 'hauler', 'assigned_room': spawn.pos.roomName, 'size': 2,
                                   'level': 8}})
             else:
                 spawning_creep = ERR_NOT_ENOUGH_ENERGY
@@ -295,7 +292,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                      CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY,
                      CARRY, CARRY],
                     'hl_{}_{}'.format(spawn_room_low, rand_int),
-                    {memory: {'role': 'hauler', 'assigned_room': spawn.pos.roomName,
+                    {memory: {'role': 'hauler', 'assigned_room': spawn.pos.roomName, 'size': 2,
                               'level': 8}})
 
             if spawning_creep == ERR_NOT_ENOUGH_ENERGY:
@@ -304,7 +301,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                     [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, CARRY, CARRY, CARRY,
                      CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY],
                     'hl_{}_{}'.format(spawn_room_low, rand_int),
-                    {memory: {'role': 'hauler', 'assigned_room': spawn.pos.roomName,
+                    {memory: {'role': 'hauler', 'assigned_room': spawn.pos.roomName, 'size': 2,
                               'level': 7}})
 
             if spawning_creep == ERR_NOT_ENOUGH_ENERGY:
@@ -313,16 +310,16 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                                                    CARRY, CARRY, MOVE, MOVE, MOVE, MOVE, MOVE],
                                                   'hl_{}_{}'.format(spawn_room_low, rand_int),
                                                   {memory: {'role': 'hauler', 'assigned_room': spawn.pos.roomName,
-                                                            'level': 5}})
+                                                            'size': 1, 'level': 5}})
 
             if spawning_creep == ERR_NOT_ENOUGH_ENERGY:
                 if spawn.spawnCreep([WORK, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE],
                                     'hl_{}_{}'.format(spawn_room_low, rand_int),
-                                    {memory: {'role': 'hauler', 'assigned_room': spawn.pos.roomName,
+                                    {memory: {'role': 'hauler', 'assigned_room': spawn.pos.roomName, 'size': 1,
                                               'level': 2}}) == -6:
                     spawn.spawnCreep([MOVE, MOVE, WORK, CARRY, CARRY],
                                      'hl_{}_{}'.format(spawn_room_low, rand_int),
-                                     {memory: {'role': 'hauler', 'assigned_room': spawn.pos.roomName,
+                                     {memory: {'role': 'hauler', 'assigned_room': spawn.pos.roomName, 'size': 1,
                                                'level': 0}})
 
             return
@@ -788,7 +785,6 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                                 # counter_num += 1
                         if set_loc:
                             break
-                delete_flag = True
 
                 # 내 방이 아니면 이걸 돌리는 이유가없음....
                 if controlled:
@@ -802,7 +798,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                     print('flags[{}].room.memory.options.display {}'
                           .format(flag_name, flag_obj.room.memory.options.display))
 
-                    delete_flag = True
+                delete_flag = True
 
             # 방 내 핵채우기 트리거. 예·아니오 토글
             if flag_name.includes('-fln'):
@@ -879,7 +875,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
             # remote 배정된 방 삭제조치. 자기 방에서 했을 경우 해당 위치에 배정된 건물을 지운다.
             if flag_name.includes('-del'):
                 print("includes('-del')")
-                # 자기 방으로 잘못 찍었을 경우 찍은 위치에 뭐가 있는지 확인하고 그걸 없앤다.
+                # 자기 방으로 찍었을 경우 찍은 위치에 뭐가 있는지 확인하고 그걸 없앤다.
                 if flag_obj.room and flag_obj.room.controller \
                         and flag_obj.room.controller.my:
                     print('my room at {}'.format(flag_obj.room.name))
@@ -897,7 +893,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                                 chambro.memory.bld_plan.splice(num, 1)
                                 print('deleted!')
                             num += 1
-
+                # if its remote room
                 else:
                     # 방을 돌린다.
                     for i in Object.keys(Memory.rooms):
@@ -1249,7 +1245,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                                 opts = {'trackCreeps': False, 'refreshMatrix': True, 'pass_walls': False,
                                         'costByArea': {'objects': objs, 'size': 1, 'cost': 6}}
 
-                            path = PathFinder.search(Game.getObjectById(carrier_pickup_id).pos, spawn.pos,
+                            path_to_home = PathFinder.search(Game.getObjectById(carrier_pickup_id).pos, spawn.pos,
                                                      {'plainCost': 2, 'swampCost': 3,
                                                       'roomCallback':
                                                           lambda room_name:
@@ -1259,7 +1255,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                             # 위에 길 역순 나열.
                             path_spawn_to_pickup = []
 
-                            for p in path:
+                            for p in path_to_home:
                                 if not p.roomName == spawn.room.name:
                                     distance += 1
                                 path_spawn_to_pickup.insert(0, p)
@@ -1322,7 +1318,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                                                                   'home_room': spawn.pos.roomName,
                                                                   'pickup': carrier_pickup_id, 'work': work_chance,
                                                                   'source_num': carrier_source,
-                                                                  to_pickup: path_spawn_to_pickup, to_home: path}})
+                                                                  to_pickup: path_spawn_to_pickup, to_home: path_to_home}})
                             print('spawning', spawning)
                             if spawning == 0:
                                 continue
@@ -1353,7 +1349,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                                               'assigned_room': room_name, 'home_room': spawn.pos.roomName,
                                               'pickup': carrier_pickup_id, 'work': work_chance,
                                               'source_num': carrier_source,
-                                              to_pickup: path_spawn_to_pickup, to_home: path}})
+                                              to_pickup: path_spawn_to_pickup, to_home: path_to_home}})
 
                                 # print('spawning {}'.format(spawning))
                                 continue
@@ -1367,7 +1363,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                                 {memory: {'role': 'carrier', 'assigned_room': room_name,
                                           'work': 1, 'home_room': spawn.room.name,
                                           'source_num': carrier_source, 'frontier': 1,
-                                          to_pickup: path_spawn_to_pickup, to_home: path}})
+                                          to_pickup: path_spawn_to_pickup, to_home: path_to_home}})
                             if spawning == ERR_NOT_ENOUGH_RESOURCES:
                                 spawn.spawnCreep(
                                     [WORK, WORK, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, MOVE,
@@ -1376,11 +1372,12 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                                     {memory: {'role': 'carrier', 'assigned_room': room_name,
                                               'work': 1, home_room: spawn.room.name,
                                               'source_num': carrier_source, 'frontier': 1,
-                                              to_pickup: path_spawn_to_pickup, to_home: path}})
+                                              to_pickup: path_spawn_to_pickup, to_home: path_to_home}})
                             continue
 
-                    # 하베스터도 소스 수 만큼! 정확히는 컨테이너 건설여부에 따라 만들어줘야 하는데... 몰라 ㅅㅂ 안해
+                    # 하베스터도 소스 수 만큼! 컨테이너 건설여부에 따라 만들어줘야 할지말지 아직 미정임
                     elif len(flag_built_containers) > len(remote_harvesters):
+                    # if len(flag_energy_sources) > len(remote_harvesters):
                         # 4000 for keeper lairs
                         # todo 너무 쉽게죽음. 보강필요. and need medic for keeper remotes
                         regular_spawn = -6
@@ -1406,8 +1403,8 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                                           'size': 2}})
                         # print('what happened:', regular_spawn)
                         if regular_spawn == -6:
-                            spawn.spawnCreep([WORK, WORK, WORK, WORK, WORK,
-                                              CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE],
+                            # 구판 [WORK, WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE]
+                            spawn.spawnCreep([MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, WORK, CARRY, CARRY],
                                              "hv_{}_{}".format(room_name_low, rand_int),
                                              {memory: {'role': 'harvester', 'assigned_room': room_name,
                                                        'home_room': spawn.room.name}})
@@ -1523,16 +1520,18 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
             {'align': display_loc['align'], 'opacity': 0.8, 'color': '#EE5927'}
         )
     else:
-        # 1/3 chance healing
-        randint = random.randint(1, 4)
-        if randint != 1:
-            return
         # 이 곳에 필요한거: spawn 레벨보다 같거나 높은 애들 지나갈 때 TTL이 오백 이하면 회복시켜준다.
         # room controller lvl ± 2 에 부합한 경우에만 수리를 실시한다.
         level = spawn.room.controller.level
-        for creep in room_creeps:
-            # 방 안에 있는 크립 중에 회복대상자
-            if (100 < creep.ticksToLive < 500) and creep.memory.level >= level:
-                if spawn.pos.isNearTo(creep):
-                    result = spawn.renewCreep(creep)
-                    break
+        # todo 임시, 렙 6 이하땐 회복 자체를 안한다. 좀 더 다양한(?) 회복법 강구요망
+        if level > 6:
+            # 1/3 chance healing
+            randint = random.randint(1, 4)
+            if randint != 1:
+                return
+            for creep in room_creeps:
+                # 방 안에 있는 크립 중에 회복대상자
+                if (100 < creep.ticksToLive < 500) and creep.memory.level >= level:
+                    if spawn.pos.isNearTo(creep):
+                        result = spawn.renewCreep(creep)
+                        break

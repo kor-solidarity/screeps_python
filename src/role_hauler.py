@@ -233,11 +233,19 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                         pass
                     elif Game.getObjectById(creep.memory.upgrade_target).room.energyAvailable == \
                             Game.getObjectById(creep.memory.upgrade_target).room.energyCapacityAvailable:
+                        # 전부 차있음?
                         _full = False
                         if creep.room.memory[STRUCTURE_TOWER]:
                             for t in creep.room.memory[STRUCTURE_TOWER]:
                                 # print('Game.getObjectById({}).energy {}'.format(t, Game.getObjectById(t).energy))
                                 if Game.getObjectById(t).energyCapacity * .8 <= Game.getObjectById(t).energy:
+                                    _full = True
+                                    break
+                        elif creep.room.memory[STRUCTURE_CONTAINER] and not creep.room.controller.level == 8:
+                            for c in creep.room.memory[STRUCTURE_CONTAINER]:
+                                target = Game.getObjectById(c.id)
+                                # 80% 이상 채워져 있으면 끝.
+                                if c.for_store and _.sum(target.store) > target.storeCapacity * .8:
                                     _full = True
                                     break
                         else:
@@ -300,16 +308,8 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                     path = _.map(creep.memory.path, lambda p: __new__(RoomPosition(p.x, p.y, creep.room.name)))
                     # 메모리에 있는걸 최우선적으로 찾는다.
                     move_by_path = move_with_mem(creep, creep.memory.pickup, 0, path)
-                    if move_by_path[0] == OK:
-                        # move_with_mem_block_check 폐지
-                        # passed_block = move_with_mem_block_check(creep, path)
-                        # if not passed_block == OK:
-                        #     creep.say('막힘: {}'.format(passed_block))
-                        #     print('크립 {} {}x{}y에서 막힘: {}'
-                        #           .format(creep.name, creep.pos.x, creep.pos.y, passed_block))
-                        if move_by_path[1]:
-                            path = move_by_path[2]
-                            # print('path:', path)
+                    if move_by_path[0] == OK and move_by_path[1]:
+                        creep.memory.path = move_by_path[2]
 
                 # 여러 자원을 뽑아야 하는 경우도 있는지라 이거 한번에 laboro 를 1로 전환하지 않는다.
                 elif result == 0:
@@ -483,12 +483,12 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                     path = _.map(creep.memory.path, lambda p: __new__(RoomPosition(p.x, p.y, creep.room.name)))
                     move_by_path = move_with_mem(creep, creep.memory.haul_target, 0, path)
                     # if move_by_path[0] == OK or move_by_path[0] == ERR_TIRED:
-                    if move_by_path[0] == OK:
+                    if move_by_path[0] == OK and move_by_path[1]:
                         # passed_block = move_with_mem_block_check(creep, path)
                         # if not passed_block == OK:
                         #     creep.say('운송막힘:{}'.format(passed_block))
-                        if move_by_path[1]:
-                            path = move_by_path[2]
+                        # if move_by_path[1]:
+                        creep.memory.path = move_by_path[2]
 
                 # 바로 옆이면 시작.
                 else:
@@ -589,8 +589,7 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                 if not creep.pos.inRangeTo(Game.getObjectById(creep.memory.build_target), 6):
                     move_by_path = move_with_mem(creep, creep.memory.build_target, 3)
                     # if move_by_path[0] == OK or move_by_path[0] == ERR_TIRED:
-                    if move_by_path[0] == OK:
-                        if move_by_path[1]:
+                    if move_by_path[0] == OK and move_by_path[1]:
                             path = move_by_path[2]
                         # path = _.map(creep.memory.path, lambda p: __new__(RoomPosition(p.x, p.y, creep.room.name)))
                         # passed_block = move_with_mem_block_check(creep, path)
@@ -642,22 +641,18 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
             repair_result = creep.repair(repair)
 
             if repair_result == ERR_NOT_IN_RANGE:
+
                 if not creep.pos.inRangeTo(Game.getObjectById(creep.memory.repair_target), 6):
-                    # 현재 위치한 곳이 이전 틱에도 있던곳인지 확인하고 옮기는 등의 절차.
-                    swap_check = check_loc_and_swap_if_needed(creep, creeps, True)
-                    # 아무 문제 없으면 평소마냥 움직이는거.
-                    if swap_check == OK:
-                        movi(creep, creep.memory.repair_target, 3, 40, True)
-                    # 확인용. 아직 어찌할지 못정함....
-                    elif swap_check == ERR_NO_PATH:
-                        creep.say('ERR_NO_PATH')
-                    # 위 둘 외에 다른게 넘어왔다는 소리는 실질적으로 어느 위치를 갔다는게 아니라
-                    # 다른 크립와 위치 바꿔치기를 시전했다는 소리. 메모리 옮긴다.
-                    else:
-                        creep.memory.last_swap = swap_check
+                    move_by_path = move_with_mem(creep, creep.memory.repair_target, 3)
+                    if move_by_path[0] == OK and move_by_path[1]:
+                        creep.memory.path = move_by_path[2]
+
+                    elif not move_by_path[0] == ERR_TIRED:
+                        creep.say('공사중: {}'.format(move_by_path[0]))
+
                 else:
-                    creep.moveTo(Game.getObjectById(creep.memory.repair_target)
-                                 , {'visualizePathStyle': {'stroke': '#ffffff'}, 'range': 3, 'reusePath': 10})
+                    move_result = movi(creep, creep.memory.repair_target, 3, 5)
+
             elif repair_result == ERR_INVALID_TARGET:
                 del creep.memory.repair_target
 
@@ -675,20 +670,16 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
         elif creep.memory.priority == 4:
 
             if not creep.pos.inRangeTo(Game.getObjectById(creep.memory.upgrade_target), 6):
-                # 현재 위치한 곳이 이전 틱에도 있던곳인지 확인하고 옮기는 등의 절차.
-                swap_check = check_loc_and_swap_if_needed(creep, creeps, True)
-                # 아무 문제 없으면 평소마냥 움직이는거.
-                if swap_check == OK:
-                    movi(creep, creep.memory.upgrade_target, 3, 40, True)
-                # 확인용. 아직 어찌할지 못정함....
-                elif swap_check == ERR_NO_PATH:
-                    creep.say('ERR_NO_PATH')
-                # 위 둘 외에 다른게 넘어왔다는 소리는 실질적으로 어느 위치를 갔다는게 아니라
-                # 다른 크립와 위치 바꿔치기를 시전했다는 소리. 메모리 옮긴다.
-                else:
-                    creep.memory.last_swap = swap_check
+                move_by_path = move_with_mem(creep, creep.memory.upgrade_target, 3)
+                # if move_by_path[0] == OK or move_by_path[0] == ERR_TIRED:
+                if move_by_path[0] == OK and move_by_path[1]:
+                    creep.memory.path = move_by_path[2]
+
+                elif not move_by_path[0] == ERR_TIRED:
+                    creep.say('공사중: {}'.format(move_by_path[0]))
+
             else:
-                movi(creep, creep.memory.upgrade_target, 3, 5)
+                move_result = movi(creep, creep.memory.upgrade_target, 3, 5)
 
             repair_on_the_way(creep, repairs, constructions, True)
 

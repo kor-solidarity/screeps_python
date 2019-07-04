@@ -237,7 +237,8 @@ def main():
         if chambro.controller and chambro.controller.level < 8:
             fix_rating /= 10
 
-
+        # todo 여기 메모리 맨아래로 옮겨야함
+        # todo 방폭되면 거깄는 메모리 제거요망
         # 게임 내 수동조작을 위한 초기화 설정. 단, 방이 우리꺼일 경우에만 적용.
         if chambro.controller and chambro.controller.my:
             # 방 메모리가 아예 없을경우.
@@ -252,9 +253,12 @@ def main():
                     and not Memory.rooms[chambra_nomo][options][repair] == 0:
                 Memory.rooms[chambra_nomo][options][repair] = 1
             # 운송크립의 수. 기본수가 숫자만큼 많아진다. 물론 최대치는 무조건 4
-            if not Memory.rooms[chambra_nomo].options.haulers \
-                    and not Memory.rooms[chambra_nomo].options.haulers == 0:
-                Memory.rooms[chambra_nomo].options.haulers = 1
+            # NULLIFIED - ALL IS DONE AUTO
+            # if not Memory.rooms[chambra_nomo].options.haulers \
+            #         and not Memory.rooms[chambra_nomo].options.haulers == 0:
+            #     Memory.rooms[chambra_nomo].options.haulers = 1
+            if Memory.rooms[chambra_nomo].options.haulers:
+                del Memory.rooms[chambra_nomo].options.haulers
             # 업글크립 최대수. 기본값 12
             if not Memory.rooms[chambra_nomo].options[max_upgraders]:
                 Memory.rooms[chambra_nomo].options[max_upgraders] = 12
@@ -315,7 +319,7 @@ def main():
                             Game.rooms[r].visual.text('-def {}'.format(defendistoj), rx, ry)
 
                 # 각 메모리 옵션별 값.
-                hauler_txt = Memory.rooms[chambra_nomo].options.haulers
+                # hauler_txt = Memory.rooms[chambra_nomo].options.haulers
                 repair_txt = Memory.rooms[chambra_nomo][options][repair]
                 ramparts_txt = Memory.rooms[chambra_nomo].options.ramparts
                 ramp_open_txt = Memory.rooms[chambra_nomo].options.ramparts_open
@@ -337,8 +341,8 @@ def main():
                                     disp_x, disp_y - 2)
                 chambro.visual.text('remotes(def): {}'.format(remotes_txt),
                                     disp_x, disp_y - 1)
-                chambro.visual.text('허울러: {} | 업글러: {} | 수리: {} | 방벽(open): {}({})'
-                                    .format(hauler_txt, upg_txt, repair_txt, ramparts_txt, ramp_open_txt),
+                chambro.visual.text('업글러: {} | 수리: {} | 방벽(open): {}({})'
+                                    .format(upg_txt, repair_txt, ramparts_txt, ramp_open_txt),
                                     disp_x, disp_y)
                 chambro.visual.text('fillNuke/Labs: {}/{}, tow_atk/reset: {}/{}'
                                     .format(nuke_txt, lab_txt, tow_txt, 10000 - Game.time % 10000),
@@ -635,10 +639,6 @@ def main():
                     past_lvl = chambro.memory[room_lvl]
                     chambro.memory[room_lvl] = chambro.controller.level
 
-                # if chambro.storage:
-                #     print('chambro.storage.store[RESOURCE_ENERGY] {} > chambro.memory[options][max_energy] {}'
-                #           .format(chambro.storage.store[RESOURCE_ENERGY] , chambro.memory[options][max_energy]))
-                #     print('min_wall:', min_wall)
                 # 방 안 스토리지 자원이 꽉 찼는데 수리레벨이 남아있을 경우 한단계 올린다.
                 if chambro.storage \
                         and chambro.storage.store[RESOURCE_ENERGY] > chambro.memory[options][max_energy] \
@@ -647,7 +647,7 @@ def main():
                     chambro.memory[options][repair] += 1
 
                 # 방에 수리할 벽이 없을 경우 확인한 시간 갱신한다.
-                if not len(min_wall):
+                elif not len(min_wall):
                     chambro.memory[options][stop_fixer] = Game.time
 
                 # 만약 리페어가 너무 아래로 떨어졌을 시 리페어값을 거기에 맞게 낮춘다.
@@ -669,13 +669,13 @@ def main():
                         not past_lvl == chambro.memory[room_lvl]:
                     chambro.memory[STRUCTURE_LINK] = []
                     # 안보내는 조건은 주변 6칸거리내에 컨트롤러·스폰·스토리지가 있을 시.
-                    str_points = _.filter(all_structures, lambda s: s.structureType == STRUCTURE_STORAGE
+                    strage_points = _.filter(all_structures, lambda s: s.structureType == STRUCTURE_STORAGE
                                                                     or s.structureType == STRUCTURE_SPAWN
                                                                     or s.structureType == STRUCTURE_TERMINAL)
                                                                     # or s.structureType == STRUCTURE_EXTENSION)
                     # 만렙이 아닐 경우 컨트롤러 근처에 있는것도 센다.
                     if not chambro.controller.level == 8:
-                        str_points.append(chambro.controller)
+                        strage_points.append(chambro.controller)
 
                     # 링크는 크게 두 종류가 존재한다. 하나는 보내는거, 또하난 받는거.
                     for stl in str_links:
@@ -683,18 +683,19 @@ def main():
                         _store = 0
                         # 0이면 업글용인거.
                         _upgrade = 0
-                        closest = stl.pos.findClosestByPath(str_points, {ignoreCreeps: True})
+                        closest = stl.pos.findClosestByPath(strage_points, {ignoreCreeps: True})
                         if len(stl.pos.findPathTo(closest, {ignoreCreeps: True})) <= 6:
                             _store = 1
 
                         # 컨트롤러 근처에 있는지도 센다. 다만 렙8 아래일때만.
                         if not chambro.controller.level == 8 and \
-                                len(stl.pos.findPathTo(chambro.controller, {'ignoreCreeps': True})) <= 6:
+                                len(stl.pos.findPathTo(chambro.controller,
+                                                       {'ignoreCreeps': True, 'range': 3})) <= 6:
                             _store = 1
                             _upgrade = 1
 
                         if not _store:
-                            for stp in str_points:
+                            for stp in strage_points:
                                 if len(stl.pos.findPathTo(stp, {'ignoreCreeps': True})) <= 6:
                                     _store = 1
                                     break
@@ -748,9 +749,9 @@ def main():
                             closest_spawn_dist = len(stc.pos.findPathTo(closest_spawn, {'ignoreCreeps': True}))
                             if chambro.storage:
                                 len(stc.pos.findPathTo(chambro.storage, {'ignoreCreeps': True}))
-                            # 조건충족하면 업글용으로 분류
-                            # todo 컨트롤러와 스폰간의 거리가 가까울 경우에 대한 대책이 없음.
-                            if controller_dist <= 10 and controller_dist < closest_spawn_dist:
+
+                            # 조건충족하면 업글용으로 분류 - 5칸이내거리 + 스폰보다 가깝
+                            if controller_dist <= 5 and controller_dist < closest_spawn_dist:
                                 _upgrade = 1
                                 print('x{}y{}에 {}, 업글컨테이너로 분류'.format(stc.pos.x, stc.pos.y, stc.id))
                         chambro.memory[STRUCTURE_CONTAINER] \
