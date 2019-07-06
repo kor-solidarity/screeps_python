@@ -128,6 +128,9 @@ def draw_path(creep, path_arr, color='white'):
     points = []
 
     for p in path_arr:
+        # if creep.memory.role == 'carrier':
+        #     print('p.roomName {} == creep.pos.roomName {}'
+        #           .format(p.roomName, creep.pos.roomName))
         if not p.roomName == creep.pos.roomName:
             continue
         # 크립이 있는 곳을 찍는다.
@@ -407,6 +410,8 @@ def move_with_mem(creep, target, target_range=0, path=[], path_mem='path',
                     # print('{} 현위치 {},{}'.format(creep.name, creep.pos.x, creep.pos.y))
                     creep_located = True
     if len(path):
+        # if creep.memory.role == 'carrier':
+        #     print(creep.name, JSON.stringify(path))
         draw_path(creep, path)
     return move_by_path, changed_path, path
 

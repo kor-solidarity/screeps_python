@@ -62,7 +62,7 @@ def run_fixer(creep, all_structures, constructions, creeps, repairs, min_wall, t
         creep.memory.laboro = 0
         creep.say('🚛보급!', True)
         del creep.memory.repair_target
-        del creep.memory.last_swap
+        del creep.memory.path
 
     # laboro: 0 == pickup something.
     if creep.memory.laboro == 0:
@@ -77,8 +77,6 @@ def run_fixer(creep, all_structures, constructions, creeps, repairs, min_wall, t
             return
 
         if not creep.memory.pickup:
-            # if not creep.room.name == creep.memory.assigned_room:
-            #     all_structures = Game.rooms[creep.memory.assigned_room].find(FIND_STRUCTURES)
             # 근처에 보이는거 아무거나 집는다. 허울러와 동일.
             # find anything with any resources inside
             storages = all_structures.filter(lambda s:
@@ -93,7 +91,7 @@ def run_fixer(creep, all_structures, constructions, creeps, repairs, min_wall, t
                     .filter(lambda s: s.structureType == STRUCTURE_LAB and s.energy >= creep.carryCapacity * .5)
                 storages.extend(labs)
             pickup_id = pick_pickup(creep, creeps, storages, terminal_capacity)
-            # todo 아무것도 없는 상태에서 이 크립이 절대!! 스폰되선 안됨.... 그건 있을 수 없는 일임....
+            # 아무것도 없는 상태에서 이 크립이 절대!! 스폰되선 안됨.... 그건 있을 수 없는 일임....
             if pickup_id == ERR_INVALID_TARGET:
                 creep.say('🧟..🧠', True)
                 return
@@ -105,25 +103,17 @@ def run_fixer(creep, all_structures, constructions, creeps, repairs, min_wall, t
         # creep.say('진행중:', result)
 
         if result == ERR_NOT_IN_RANGE:
-            result = harvest_stuff.grab_energy(creep, creep.memory.pickup, True)
-            if result == ERR_NOT_IN_RANGE:
-                # 현재 위치한 곳이 이전 틱에도 있던곳인지 확인하고 옮기는 등의 절차.
-                swap_check = check_loc_and_swap_if_needed(creep, creeps, True)
-                # 아무 문제 없으면 평소마냥 움직이는거.
-                if swap_check == OK:
-                    res = movi(creep, creep.memory.pickup, ignoreCreeps=True, reusePath=40)
-                # 확인용. 아직 어찌할지 못정함....
-                elif swap_check == ERR_NO_PATH:
-                    creep.say('ERR_NO_PATH')
-                # 위 둘 외에 다른게 넘어왔다는 소리는 실질적으로 어느 위치를 갔다는게 아니라
-                # 다른 크립와 위치 바꿔치기를 시전했다는 소리. 메모리 옮긴다.
-                else:
-                    creep.memory.last_swap = swap_check
+            path = _.map(creep.memory.path, lambda p: __new__(RoomPosition(p.x, p.y, creep.room.name)))
+            # 메모리에 있는걸 최우선적으로 찾는다.
+            move_by_path = move_with_mem(creep, creep.memory.pickup, 0, path)
+            if move_by_path[0] == OK and move_by_path[1]:
+                creep.memory.path = move_by_path[2]
+
         # 집었으면 다음으로 넘어간다.
         elif result == 0:
             creep.say('최전선으로!⛟', True)
             creep.memory.laboro = 1
-            del creep.memory.last_swap
+            del creep.memory.path
             del creep.memory.pickup
         # 내용물이 없으면 삭제하고 다른거 찾아야함.
         elif result == ERR_NOT_ENOUGH_ENERGY:
@@ -161,19 +151,15 @@ def run_fixer(creep, all_structures, constructions, creeps, repairs, min_wall, t
         repair_on_the_way(creep, repairs, constructions, True, True)
 
         if not creep.pos.inRangeTo(Game.getObjectById(creep.memory.repair_target), 6):
-            # 현재 위치한 곳이 이전 틱에도 있던곳인지 확인하고 옮기는 등의 절차.
-            swap_check = check_loc_and_swap_if_needed(creep, creeps, True)
-            # 아무 문제 없으면 평소마냥 움직이는거.
-            if swap_check == OK:
-                movi(creep, creep.memory.repair_target, 3, 40, True)
-            # 확인용. 아직 어찌할지 못정함....
-            elif swap_check == ERR_NO_PATH:
-                creep.say('ERR_NO_PATH')
-            # 위 둘 외에 다른게 넘어왔다는 소리는 실질적으로 어느 위치를 갔다는게 아니라
-            # 다른 크립와 위치 바꿔치기를 시전했다는 소리. 메모리 옮긴다.
-            else:
-                creep.memory.last_swap = swap_check
+            path = _.map(creep.memory.path, lambda p: __new__(RoomPosition(p.x, p.y, creep.room.name)))
+            # 메모리에 있는걸 최우선적으로 찾는다.
+            move_by_path = move_with_mem(creep, creep.memory.repair_target, 3, path)
+            if move_by_path[0] == OK and move_by_path[1]:
+                creep.memory.path = move_by_path[2]
+
         elif creep.pos.inRangeTo(Game.getObjectById(creep.memory.repair_target), 3):
             pass
         else:
+            if creep.memory.path:
+                del creep.memory.path
             movi(creep, creep.memory.repair_target, 3, 5)

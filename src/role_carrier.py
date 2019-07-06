@@ -292,30 +292,36 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
             result = grab_energy_new(creep)
             # *******************************************************************
             if result == ERR_NOT_IN_RANGE:
-                path = \
-                    _.map(creep.memory[to_pickup],
-                          lambda p: __new__(RoomPosition(p.x, p.y, p.roomName)))
+                # path = \
+                #     _.map(creep.memory[to_pickup],
+                #           lambda p: __new__(RoomPosition(p.x, p.y, p.roomName)))
                 # for i in creep.memory[to_pickup]:
                 #     path.append(__new__(RoomPosition(i.x, i.y, i.roomName)))
-                moving = creep.moveByPath(path)
+                # moving = creep.moveByPath(path)
 
-                if moving == OK:
-                    draw_path(creep, path)
-                    check_loc_and_swap_if_needed(creep, creeps)
+                path = _.map(creep.memory.to_pickup, lambda p: __new__(RoomPosition(p.x, p.y, p.roomName)))
+                move_by_path = move_with_mem(creep, None, 0, path, 'to_pickup', False)
+                if move_by_path[0] == OK and move_by_path[1]:
+                    creep.memory.path = move_by_path[2]
+
+                # if move_by_path[0] == OK:
+                #     draw_path(creep, path)
+                #     check_loc_and_swap_if_needed(creep, creeps)
+
                 # 크립위치가 길과 안맞는 경우.
-                elif moving == ERR_NOT_FOUND:
+                elif move_by_path[0] == ERR_NOT_FOUND:
 
                     # 가장 가까이 있는 길을 찾아나선다.
                     closest = creep.pos.findClosestByRange(path)
                     print(JSON.stringify(closest))
                     creep.say('탈선x{}y{}'.format(closest.x, closest.y))
                     # movement.movi(creep, closest)
-                    path = _.map(creep.memory.path, lambda p: __new__(RoomPosition(p.x, p.y, creep.room.name)))
+                    path = _.map(creep.memory.path, lambda p: __new__(RoomPosition(p.x, p.y, p.roomName)))
                     move_by_path = move_with_mem(creep, closest, 0, path)
                     if move_by_path[0] == OK and move_by_path[1]:
                         creep.memory.path = move_by_path[2]
-                else:
-                    creep.say('ERR {}'.format(moving))
+                elif not move_by_path[0] == OK:
+                    creep.say('ERR {}'.format(move_by_path[0]))
 
                 # creep.moveTo(Game.getObjectById(creep.memory.pickup),
                 #              {'visualizePathStyle': {'stroke': '#ffffff'}, 'reusePath': 25})
@@ -379,11 +385,11 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                 moving = creep.moveByPath(path)
 
                 if moving == OK:
-                    draw_path(creep, creep.memory[to_pickup])
+                    # draw_path(creep, creep.memory[to_pickup])
                     # NULLIFIED - move_with_mem 으로 완전교체
                     # check_loc_and_swap_if_needed(creep, creeps, False, False, creep.memory[to_pickup])
 
-                    path = _.map(creep.memory.to_pickup, lambda p: __new__(RoomPosition(p.x, p.y, creep.room.name)))
+                    path = _.map(creep.memory.to_pickup, lambda p: __new__(RoomPosition(p.x, p.y, p.roomName)))
                     move_by_path = move_with_mem(creep, None, 0, path, 'to_pickup', False)
                     # if move_by_path[0] == OK and move_by_path[1]:
                     #     creep.memory.path = move_by_path[2]
@@ -393,10 +399,10 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                 # 크립위치가 길과 안맞는 경우.
                 elif moving == ERR_NOT_FOUND:
                     # 가장 가까이 있는 길을 찾아나선다.
-                    draw_path(creep, creep.memory[to_pickup], 'red')
+                    # draw_path(creep, creep.memory[to_pickup], 'red')
                     closest_loc = creep.pos.findClosestByRange(path)
                     # move = movi(creep, creep.pos.findClosestByRange(path))
-                    path = _.map(creep.memory.path, lambda p: __new__(RoomPosition(p.x, p.y, creep.room.name)))
+                    path = _.map(creep.memory.path, lambda p: __new__(RoomPosition(p.x, p.y, p.roomName)))
                     move_by_path = move_with_mem(creep, closest_loc, 0, path)
                     if move_by_path[0] == OK and move_by_path[1]:
                         creep.memory.path = move_by_path[2]
@@ -665,7 +671,7 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                         creep.memory.err_full = 0
                     # move_using_swap(creep, creeps, creep.memory.haul_target)
 
-                    path = _.map(creep.memory.path, lambda p: __new__(RoomPosition(p.x, p.y, creep.room.name)))
+                    path = _.map(creep.memory.path, lambda p: __new__(RoomPosition(p.x, p.y, p.roomName)))
                     move_by_path = move_with_mem(creep, Game.getObjectById(creep.memory.haul_target), 0, path)
                     if move_by_path[0] == OK and move_by_path[1]:
                         creep.memory.path = move_by_path[2]

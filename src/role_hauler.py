@@ -52,6 +52,10 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
     # debug = False
     hauler_path_color = 'floralWhite'
 
+    # 초기화
+    if not creep.memory.size:
+        creep.memory.size = 1
+
     # 스토리지 내 에너지값. 사실 저 엘스문 걸릴경우는 허울러가 실수로 다른방 넘어갔을 뿐....
     if creep.room.memory.options and creep.room.memory.options[max_energy]:
         max_energy_in_storage = creep.room.memory.options[max_energy]
@@ -547,9 +551,13 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                                 del creep.memory.haul_target
                             else:
                                 creep.memory.haul_target = haul_target
-                        # 스트럭쳐가 텅 비었다는건 즉 채울건 다 채웠다는 소리. 스토리지로 보낸다.
+                        # 스트럭쳐가 텅 비었다는건 채울건 다 채웠다는 소리.
                         else:
-                            if creep.room.storage:
+                            # 건설할게 있으면 공사전환, 아니면 스토리지로
+                            if len(constructions) > 0 and creep.carry[RESOURCE_ENERGY] > 0:
+                                creep.say('🚧 공사전환!', True)
+                                creep.memory.priority = 2
+                            elif creep.room.storage:
                                 creep.say('📦 저장합시다', True)
                                 creep.memory.haul_target = creep.room.storage.id
                     else:

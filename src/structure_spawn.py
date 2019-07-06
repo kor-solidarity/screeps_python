@@ -191,10 +191,10 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                                              {memory: {'role': 'harvester', 'assigned_room': spawn.pos.roomName,
                                                        'size': 1}})
             return
-        # 방에 만일 추가 허울러가 필요한 경우.
-        extra_hauler_pts = 0
+        # 배정된 허울러 기본값.
+        hauler_capacity = 1
 
-        # 크립의 누적 사이즈 2점당 extra_hauler_pts 하나
+        # 크립의 누적 사이즈 2점당 hauler_capacity 하나에 대응
         accumulated_size = 0
         for h in creep_haulers:
             accumulated_size += h.memory.size
@@ -212,48 +212,17 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                 container_full += 1
 
         if container_full and container_full <= 2:
-            extra_hauler_pts += 1
+            hauler_capacity += 1
         elif container_full >= 3:
-            extra_hauler_pts += 2
-            # ------------------------------------------------------------
-            # NULLIFIED - 간소화
-            # 우선, 해당 컨테이너가 일반 하베스트인가?
-            # if mcont.for_harvest == 1:
-            #     # 업그레이드 용도면 안센다. 단 렙8미만일때만.
-            #     if spawn.room.controller.level < 8 and mcont.for_upgrade:
-            #         continue
-            #     # 꽉차면 하나로 수정해본다.
-            #     cont_obj = Game.getObjectById(mcont.id)
-            #     if cont_obj and _.sum(cont_obj.store) == cont_obj.storeCapacity:
-            #         extra_hauler_pts += 1
-            #
-            # # 캐리어용 컨테이너인가?
-            # if mcont.for_harvest == 2:
-            #     # 꽉찬경우 새로 추가. 대상은 캐리어용 및 광물용
-            #     cont_obj = Game.getObjectById(mcont.id)
-            #     if cont_obj and _.sum(cont_obj.store) == cont_obj.storeCapacity:
-            #         # print('plus! remote', mcont.id)
-            #         carrier_plus += 1
-            #         # 초반엔 이송거리 문제도 있고 해서 허울러 혼자론 무리일수도 있음.
-            #         # 렙8 이후에야 어느정도 감당이 된다고 판단.
-            #         if chambro.controller.level == 8:
-            #             if carrier_plus == 2 or carrier_plus == 3:
-            #                 extra_hauler_pts += 1
-            #         else:
-            #             if carrier_plus == 1 or carrier_plus == 3:
-            #                 extra_hauler_pts += 1
+            hauler_capacity += 2
 
-        # 건물이 아예 없을 시 - NULLIFIED - 왜쓴거지??
-        # if len(harvest_carry_targets) == 0:
-        #     extra_hauler_pts = -num_o_sources
-
-        # 만일 4렙이하면 하나 추가
-        if chambro.controller.level <= 4:
-            extra_hauler_pts += 1
+        # 만일 4렙아래면 하나 추가
+        if chambro.controller.level < 4:
+            hauler_capacity += 1
 
         # 허울러 수 계산법: 방별로 지정된 허울러(기본값 1) + 위에 변수값
-        hauler_capacity = extra_hauler_pts
-        # minimum number of haulers in the room is 1, max 4. always max when lvl 4 or less
+        # hauler_capacity = extra_hauler_pts
+        # minimum number of haulers in the room is 1, max 4.
         if hauler_capacity <= 0:
             hauler_capacity = 1
         elif hauler_capacity > 4:
