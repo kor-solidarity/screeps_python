@@ -93,13 +93,13 @@ def run_links(link_id, spawns_and_links):
         # 만일 링크에 에너지가 있으면 표시한다. 굳이 눌러볼 필요 없게.
         if link.energy > 0:
             link.room.visual.text(' 💎{}'.format(link.energy),
-                                  link.pos.x, link.pos.y + display_loc['y'],
+                                  link.pos.x, display_loc.y,
                                   {'align': align, 'opacity': 0.8, 'font': 0.45})
         return
 
     # 여기 밑으로 내려왔으면 해당 링크는 에너지 전송용이다.
     link.room.visual.text(' 💎{}|{}'.format(link.energy, link.cooldown),
-                          link.pos.x, link.pos.y + display_loc['y'],
+                          link.pos.x, display_loc.y,
                           {'align': align, 'opacity': 0.8})
     # 에너지가 없으면 아래를 돌릴 이유가 없음.
     if not link.energy:

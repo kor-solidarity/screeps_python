@@ -25,7 +25,7 @@ def display_location(target_obj: Game.structures, other_objs, distance=5):
     :param target_obj:
     :param other_objs:
     :param distance:
-    :return: {'x': x값, 'y': y값, 'align': 어디로 쏠릴건지.}
+    :return: {'x': x값, 'y': y값, 'align': 어디로 쏠릴건지.} 오브젝트의 위치를 감안한 값임.
     """
 
     """
@@ -134,13 +134,13 @@ def display_location(target_obj: Game.structures, other_objs, distance=5):
 
     # 오른쪽에 놔도 되는가 - 가로막는게 없는가?
     if not smth_at_right:
-        return {'x': 1, 'y': 0, 'align': left}
+        return {'x': target_obj.pos.x + 1, 'y': target_obj.pos.y + 0, 'align': left}
     # 왼쪽?
     elif not smth_at_left:
-        return {'x': -1, 'y': 0, 'align': right}
+        return {'x': target_obj.pos.x - 1, 'y': target_obj.pos.y + 0, 'align': right}
     elif not smth_at_top:
-        return {'x': 0, 'y': 1, 'align': center}
+        return {'x': target_obj.pos.x + 0, 'y': target_obj.pos.y + 1, 'align': center}
     elif not smth_at_bottom:
-        return {'x': 0, 'y': -1, 'align': center}
+        return {'x': target_obj.pos.x + 0, 'y': target_obj.pos.y - 1, 'align': center}
     else:
-        return {'x': 1, 'y': 0, 'align': left}
+        return {'x': target_obj.pos.x + 1, 'y': target_obj.pos.y + 0, 'align': left}

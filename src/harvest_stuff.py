@@ -18,12 +18,10 @@ def harvest_energy(creep, source_id):
     """
     자원을 캐고 없으면 다음껄로(다음번호) 보낸다.
 
-    :param creep: the creep. do i have to tell you? intended for harvesters and upgraders.
+    :param creep: the creep. do i have to tell you? intended for harvesters.
     :param source_id: ID of the energy source.
-    :return: ain't returning shit.
+    :return: harvest-related result
     """
-    vis_key = "visualizePathStyle"
-    stroke_key = "stroke"
 
     if not creep.pos.isNearTo(Game.getObjectById(source_id)):
         harvested = ERR_NOT_IN_RANGE
@@ -36,8 +34,7 @@ def harvest_energy(creep, source_id):
     # is sources too far out?
     if harvested == ERR_NOT_IN_RANGE:
         # then go.
-        creep.moveTo(Game.getObjectById(source_id), {vis_key: {stroke_key: '#ffffff'},
-                                                      'maxOps': 5000})
+        creep.moveTo(Game.getObjectById(source_id), {'visualizePathStyle': {'stroke': '#ffffff'}, 'maxOps': 5000})
 
     # did the energy from the sources got depleted?
     # PROCEED TO NEXT PHASE IF THERE ARE ANYTHING IN CARRY

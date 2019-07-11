@@ -149,86 +149,31 @@ def filter_friend_foe(foreign_creeps):
     return [all_enemies, npc_enemies, player_enemies, friendly]
 
 
-# NULLIFIED - such filter merged altogether above
-# def filter_friends(foreign_creeps):
-#     """
-#     find allies(ones must not be killed) from FIND_HOSTILE_CREEPS
-#     :param foreign_creeps:
-#     :return:
-#     """
-#     ally_list = Memory.allianceArray
-#     friends = []
-#     for foreigns in foreign_creeps:
-#         for ally in ally_list:
-#             # if it's one of our allies add to list
-#             if foreigns.owner.username == ally:
-#                 friends.append(foreigns)
-#
-#     return friends
-
-
-def pick_pickup(creep, creeps, storages, terminal_capacity=10000, upgrade=False):
+def pick_pickup(creep, creeps, pickup_targets, terminal_capacity=10000, upgrade=False):
     """
     designate pickup memory by targeted haulers/upgraders/fixers
 
     :param terminal_capacity:
     :param creep: 크립본인
-    :param creeps: 방안에 모든 크립
-    :param storages: 대상 자원.
+    :param creeps: 방안에 모든 크립, 또는 비교대상인 모든 크립
+    :param pickup_targets: 뽑아갈 대상 자원.
     :param upgrade: 이걸 찾는 대상이 컨트롤러 업글하는애인가?
     :return storage: closest storage with energy left
     """
-
-    # creeps.
-    portist_kripoj = creeps
     # 업글 관련해서전용
     passed_upgr = False
-    # if upgrade:
-    #     print('start')
+
     # will filter for leftover energy,
     # tldr - if theres already a creep going for it, dont go unless there's some for you.
-    while not creep.memory.pickup or len(storages) > 0:
+    while not creep.memory.pickup or len(pickup_targets) > 0:
         # just init.
         stored_energy = 0
         # safety trigger
-        if len(storages) == 0:
+        if len(pickup_targets) == 0:
             break
 
-        # 필요없음.
-        # if loop_storage
-        # del loop_storage
-        # todo .이딴짓 여기서 하지말고 처음 컨테이너 잡을때 한다!! 개 헷갈림.
-        # NULLIFIED
-        # # to distinguish storage var. with storages inside while loop.
-        # # 만일 업글이면 for_upgrade 로 분류된 컨테이너에서 최우선으로 자원을 뽑는다.
-        # if creep.room.controller.level < 8 and (upgrade or not creep.room.storage) and not passed_upgr:
-        #     u_con_list = []
-        #     for cont in storages:
-        #         # 실제 보유중인 컨테이너 중에서 찾는다.
-        #         if cont.structureType == STRUCTURE_CONTAINER:
-        #             print(creep.name)
-        #             for u_cont in creep.room.memory[STRUCTURE_CONTAINER]:
-        #                 print("not creep.room.controller.level < 8"
-        #                       , bool(not creep.room.controller.level < 8))
-        #                 print('not creep.room.storage', bool(not creep.room.storage))
-        #                 # 업글용 거르기는 레벨 8 이하 + 방에 컨테이너 없을때만 적용한다.
-        #                 # 그외면 업글 아니어도 집어도 됨.
-        #                 if ((not creep.room.controller.level < 8 and not creep.room.storage)
-        #                         or u_cont.for_upgrade) \
-        #                         and (u_cont.id == cont.id):
-        #                     print('??')
-        #                     if Game.getObjectById(u_cont.id):
-        #                         print(u_cont.id)
-        #                         u_con_list.append(Game.getObjectById(u_cont.id))
-        #                         break
-        #     if len(u_con_list):
-        #         pass
-        #         # loop_storage = creep.pos.findClosestByRange(u_con_list)
-        #     passed_upgr = True
-        # if not len(loop_storage):
-
         # 가장 가까운 대상
-        loop_storage = creep.pos.findClosestByRange(storages)
+        loop_storage = creep.pos.findClosestByRange(pickup_targets)
 
         if not loop_storage:
             break
@@ -236,46 +181,13 @@ def pick_pickup(creep, creeps, storages, terminal_capacity=10000, upgrade=False)
         if loop_storage.structureType == STRUCTURE_LAB or loop_storage.structureType == STRUCTURE_LINK:
             stored_energy = loop_storage.energy
 
-        # NULLIFIED
-        # # 링크인 경우 전송용 링크면 굳이 쫓아가서 집으려 하지 않는다.
-        # elif loop_storage.structureType == STRUCTURE_LINK:
-        #     # 메모리에 있는건지 확인한다.
-        #     for lk in creep.room.memory[STRUCTURE_LINK]:
-        #         # 아이디 맞는지 확인.
-        #         if lk.id == loop_storage.id:
-        #             # 저장용 링크만 집는다.
-        #             if lk.for_store:
-        #                 stored_energy = loop_storage.energy
-
         # todo 이 컨테이너 확인을 메모리가 존재할때만 하고 거리도 실질적으로 맞게 변환해야한다.
         # 예전엔 대상을 찾아서 이게 업글용인건지(즉 소스근처가 아닌거) 확인용도였음. 이제 그건 컨테이너 메모리에 적혀있음.
         # 컨테이너인 경우
         elif loop_storage.structureType == STRUCTURE_CONTAINER:
             #
             stored_energy = _.sum(loop_storage.store)
-            # todo 이건 여기서 하지말고 처음에 컨테이너 불러올때 한다
-            # # 메모리에 있는건지 확인.
-            # # 우선 업글용도인지 확인한다.
-            # for cont in creep.room.memory[STRUCTURE_CONTAINER]:
-            #     # 아이디 맞는지 확인하고.
-            #     if cont.id == loop_storage.id:
-            #         # 크립과 컨테이너가 업글용인가?
-            #         if cont.for_upgrade and upgrade:
-            #             stored_energy = loop_storage.store[RESOURCE_ENERGY]
-            #         # 업글용이면 허울러, 건들지말것. 다만 캐리어용이면 일부 챙길 수 있음. 꽉찼을때 한정.
-            #         # 그리고 방렙 8이면 업글용이 의미가 없어짐. 맘것 가져갑시다.
-            #         elif cont.for_upgrade and cont.for_harvest == 2 \
-            #                 and (_.sum(loop_storage.store) == loop_storage.storeCapacity
-            #                      or creep.room.controller.level == 8):
-            #             # if creep.memory.role == 'hauler': print('wtf')
-            #             stored_energy = _.sum(loop_storage.store)
-            #
-            #         # 그냥 포 업그레이드가 아니면 전부 쓸 수 있음.
-            #         elif not cont.for_upgrade:
-            #             # if creep.memory.role == 'hauler': print('so what')
-            #             stored_energy = _.sum(loop_storage.store)
-            #
-            #         break
+
         elif loop_storage.structureType == STRUCTURE_STORAGE:
             if upgrade:
                 stored_energy = loop_storage.store[RESOURCE_ENERGY]
@@ -287,14 +199,14 @@ def pick_pickup(creep, creeps, storages, terminal_capacity=10000, upgrade=False)
             stored_energy = 0
 
         if stored_energy:
-            for kripo in portist_kripoj:
+            for c in creeps:
                 # if hauler dont have pickup, pass
-                if not kripo.memory.pickup:
+                if not c.memory.pickup:
                     continue
                 else:
-                    # if same id, drop the amount the kripo can carry.
-                    if loop_storage.id == kripo.memory.pickup:
-                        stored_energy -= kripo.carryCapacity
+                    # if same id, drop the amount the c can carry.
+                    if loop_storage.id == c.memory.pickup:
+                        stored_energy -= c.carryCapacity
                     else:
                         continue
         # if leftover stored_energy has enough energy for carry, set pickup.
@@ -302,8 +214,8 @@ def pick_pickup(creep, creeps, storages, terminal_capacity=10000, upgrade=False)
             return loop_storage.id
 
         else:
-            index = storages.indexOf(loop_storage)
-            storages.splice(index, 1)
+            index = pickup_targets.indexOf(loop_storage)
+            pickup_targets.splice(index, 1)
 
     # 와일문 안에서 답이 안나왔으면 망.
     return ERR_INVALID_TARGET

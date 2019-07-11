@@ -148,19 +148,7 @@ def run_upgrader(creep, creeps, all_structures, repairs, constructions):
                 move_by_path = movement.move_with_mem(creep, creep.memory.pickup, 0, path)
                 if move_by_path[0] == OK and move_by_path[1]:
                         creep.memory.path = move_by_path[2]
-                # NULLIFIED - movement.move_with_mem 으로 교체
-                # 현재 위치한 곳이 이전 틱에도 있던곳인지 확인하고 옮기는 등의 절차.
-                # swap_check = check_loc_and_swap_if_needed(creep, creeps, True)
-                # # 아무 문제 없으면 평소마냥 움직이는거.
-                # if swap_check == OK:
-                #     movi(creep, creep.memory.pickup, 0, 40, True)
-                # # 확인용. 아직 어찌할지 못정함....
-                # elif swap_check == ERR_NO_PATH:
-                #     creep.say('ERR_NO_PATH')
-                # # 위 둘 외에 다른게 넘어왔다는 소리는 실질적으로 어느 위치를 갔다는게 아니라
-                # # 다른 크립와 위치 바꿔치기를 시전했다는 소리. 메모리 옮긴다.
-                # else:
-                #     creep.memory.last_swap = swap_check
+
             elif result == 0:
                 del creep.memory.last_swap
                 del creep.memory.pickup
@@ -176,7 +164,7 @@ def run_upgrader(creep, creeps, all_structures, repairs, constructions):
 
             if move_by_path[0] == OK and move_by_path[1]:
                 path = move_by_path[2]
-            else:
+            elif not move_by_path[0] == OK and not move_by_path[0] == ERR_TIRED:
                 creep.say('업글중: {}'.format(move_by_path[0]))
             # NULLIFIED - movement.move_with_mem 으로 교체
             # # 현재 위치한 곳이 이전 틱에도 있던곳인지 확인하고 옮기는 등의 절차.
@@ -226,7 +214,7 @@ def run_reserver(creep):
 
             if move_by_path[0] == OK and move_by_path[1]:
                 path = move_by_path[2]
-            elif not move_by_path[0] == OK:
+            elif not move_by_path[0] == OK and not move_by_path[0] == ERR_TIRED:
                 creep.say('업글중: {}'.format(move_by_path[0]))
             #
         # res = creep.moveTo(Game.getObjectById(creep.memory.upgrade_target),

@@ -176,10 +176,10 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                               'size': 2}}) == -6:
                     # 만약 방에 수용가능한 자원이 800 미만 또는 허울러가 없을 경우에만 이거보다 더 작은 하베스터를 생산한다.
                     if spawn.spawnCreep(
-                        [MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, CARRY],
+                        [MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, CARRY],
                         'hv_{}_{}'.format(spawn_room_low, rand_int),
                         {memory: {'role': 'harvester', 'assigned_room': spawn.pos.roomName,
-                                  'size': 2}}) == -6 and (chambro.energyCapacityAvailable < 800 or len(creep_haulers) == 0):
+                                  'size': 1}}) == -6 and (chambro.energyCapacityAvailable < 800 or len(creep_haulers) == 0):
                         # 3 WORK
                         if spawn.spawnCreep([MOVE, MOVE, WORK, WORK, WORK, CARRY, CARRY],
                                             'hv_{}_{}'.format(spawn_room_low, rand_int),
@@ -217,8 +217,8 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
             hauler_capacity += 2
 
         # 만일 4렙아래면 하나 추가
-        if chambro.controller.level < 4:
-            hauler_capacity += 1
+        # if chambro.controller.level < 4:
+        #     hauler_capacity += 1
 
         # 허울러 수 계산법: 방별로 지정된 허울러(기본값 1) + 위에 변수값
         # hauler_capacity = extra_hauler_pts
@@ -279,13 +279,13 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                                                    CARRY, CARRY, MOVE, MOVE, MOVE, MOVE, MOVE],
                                                   'hl_{}_{}'.format(spawn_room_low, rand_int),
                                                   {memory: {'role': 'hauler', 'assigned_room': spawn.pos.roomName,
-                                                            'size': 1, 'level': 5}})
+                                                            'size': 2, 'level': 5}})
 
             if spawning_creep == ERR_NOT_ENOUGH_ENERGY:
                 if spawn.spawnCreep([WORK, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE],
                                     'hl_{}_{}'.format(spawn_room_low, rand_int),
                                     {memory: {'role': 'hauler', 'assigned_room': spawn.pos.roomName, 'size': 1,
-                                              'level': 2}}) == -6:
+                                              'level': 0}}) == -6:
                     spawn.spawnCreep([MOVE, MOVE, WORK, CARRY, CARRY],
                                      'hl_{}_{}'.format(spawn_room_low, rand_int),
                                      {memory: {'role': 'hauler', 'assigned_room': spawn.pos.roomName, 'size': 1,
@@ -374,12 +374,14 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                 # print('checkWTF')
                 upgrader_quota = 0
 
+            # if not chambro.controller.level == 8:
+            #     for con in chambro.memory.container:
+            #         if _.sum(Game.getObjectById(con.id).store) == 2000:
+            #             upgrader_quota += 2
+            #             break
             # 만약 모든 컨테이너중 꽉찬게 하나라도 있으면 업글러 수를 추가해준다.
-            if not chambro.controller.level == 8:
-                for con in chambro.memory.container:
-                    if _.sum(Game.getObjectById(con.id).store) == 2000:
-                        upgrader_quota += 2
-                        break
+            if not spawn.room.controller.level == 8 and container_full:
+                upgrader_quota += 2
             # print('upgrader_quota', upgrader_quota)
             if len(creep_upgraders) < upgrader_quota:
                 if spawn.room.controller.level != 8:
@@ -917,10 +919,11 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
 
         # 이하 진짜 리모트-------------------------------------------------
 
-        # 렙3 이하면 그냥 무시
-        if chambro.controller.level < 3:
+        # 렙4 아래면 그냥 무시
+        if chambro.controller.level < 4:
             return
 
+        # print('chambro.controller.level', chambro.controller.level)
         if len(Memory.rooms[spawn.room.name].options.remotes) > 0:
             # 깃발로 돌렸던걸 메모리로 돌린다.
             for r in Object.keys(Memory.rooms[spawn.room.name].options.remotes):
@@ -1064,11 +1067,15 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                     flag_containers.extend(flag_containers_const)
 
                     if flag_room_controller and len(remote_reservers) == 0:
+                        if chambro.controller.level < 7:
+                            reserve_cap = 400
+                        else:
+                            reserve_cap = 1000
                         # 예약되지 않은 컨트롤러거나
-                        # 컨트롤러의 예약시간이 1000 이하거나
+                        # 컨트롤러의 예약시간이 reserve_cap 값 이하거나
                         # 컨트롤러가 다른사람꺼 + 아군 주둔중일때 만든다
                         if not Game.rooms[room_name].controller.reservation \
-                            or Game.rooms[room_name].controller.reservation.ticksToEnd < 1000 \
+                            or Game.rooms[room_name].controller.reservation.ticksToEnd < reserve_cap \
                             or (Game.rooms[room_name].controller.reservation.username
                                 != spawn.room.controller.owner.username and len(remote_troops) > 0):
                             spawning_creep = spawn.spawnCreep(
@@ -1484,8 +1491,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
         spawn.room.visual.text(
             '🛠 ' + spawning_creep.memory.role + ' '
             + "{}/{}".format(spawn.spawning.remainingTime - 1, spawn.spawning.needTime),
-            spawn.pos.x + display_loc['x'],
-            spawn.pos.y + display_loc['y'],
+            display_loc['x'], display_loc['y'],
             {'align': display_loc['align'], 'opacity': 0.8, 'color': '#EE5927'}
         )
     else:

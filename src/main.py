@@ -2,7 +2,8 @@ import role_harvester
 import role_hauler
 import role_fixer
 import role_upgrader
-import structure_misc as building_action
+import structure_misc
+import structure_display
 import role_scout
 import role_carrier
 import role_soldier
@@ -257,8 +258,8 @@ def main():
             # if not Memory.rooms[chambra_nomo].options.haulers \
             #         and not Memory.rooms[chambra_nomo].options.haulers == 0:
             #     Memory.rooms[chambra_nomo].options.haulers = 1
-            if Memory.rooms[chambra_nomo].options.haulers:
-                del Memory.rooms[chambra_nomo].options.haulers
+            # if Memory.rooms[chambra_nomo].options.haulers:
+            #     del Memory.rooms[chambra_nomo].options.haulers
             # 업글크립 최대수. 기본값 12
             if not Memory.rooms[chambra_nomo].options[max_upgraders]:
                 Memory.rooms[chambra_nomo].options[max_upgraders] = 12
@@ -338,16 +339,16 @@ def main():
                 # print('mmr;', Memory.cpu_usage[-1])
                 chambro.visual.text('lastCPU {}, {} 틱당평균 {}, 버켓 {}'
                                     .format(last_cpu, len(Memory.cpu_usage), avg_cpu, Game.cpu.bucket),
-                                    disp_x, disp_y - 2)
+                                    disp_x, disp_y + 0)
                 chambro.visual.text('remotes(def): {}'.format(remotes_txt),
-                                    disp_x, disp_y - 1)
+                                    disp_x, disp_y + 1)
                 chambro.visual.text('업글러: {} | 수리: {} | 방벽(open): {}({})'
                                     .format(upg_txt, repair_txt, ramparts_txt, ramp_open_txt),
-                                    disp_x, disp_y)
+                                    disp_x, disp_y + 2)
                 chambro.visual.text('fillNuke/Labs: {}/{}, tow_atk/reset: {}/{}'
                                     .format(nuke_txt, lab_txt, tow_txt, 10000 - Game.time % 10000),
-                                    disp_x, disp_y + 1)
-                chambro.visual.text('E할당량: {} | 수리X: {}'.format(str(int(energy_txt / 1000)) + 'k', stop_fixer_txt), disp_x, disp_y + 2)
+                                    disp_x, disp_y + 3)
+                chambro.visual.text('E할당량: {} | 수리X: {}'.format(str(int(energy_txt / 1000)) + 'k', stop_fixer_txt), disp_x, disp_y + 4)
                 # chambro.visual.text(display_txt, disp_x, disp_y+2)
 
             # bld_plan - 건설예약설정.
@@ -653,6 +654,8 @@ def main():
                 # 만약 리페어가 너무 아래로 떨어졌을 시 리페어값을 거기에 맞게 낮춘다.
                 elif min_wall.hits // fix_rating < chambro.memory[options][repair] - 1:
                     chambro.memory[options][repair] = min_wall.hits // fix_rating + 1
+                    # 이때 픽서 수 하나짜리로 초기화.
+                    chambro.memory[options][stop_fixer] = Game.time - 900
 
                 # 매번 완전초기화 하면 너무 자원낭비. 수량 틀릴때만 돌린다.
                 # 타워세기.
@@ -826,7 +829,7 @@ def main():
             for i in chambro.memory[STRUCTURE_TOWER]:
                 if Game.getObjectById(i):
                     room_cpu_num += 1
-                    building_action.run_tower(Game.getObjectById(i), enemy, tow_repairs, malsana_amikoj)
+                    structure_misc.run_tower(Game.getObjectById(i), enemy, tow_repairs, malsana_amikoj)
                 else:
                     chambro.memory[STRUCTURE_TOWER].splice(for_str, 1)
                 for_str += 1
@@ -851,7 +854,7 @@ def main():
                     chambro.memory.options.reset = 1
                     continue
                 room_cpu_num += 1
-                building_action.run_links(link.id, spawns_and_links)
+                structure_misc.run_links(link.id, spawns_and_links)
 
         # check every 20 ticks.
         if Game.time % 20 == 0 and chambro.memory[STRUCTURE_CONTAINER] \
@@ -942,10 +945,15 @@ def main():
             spawn_cpu_end = Game.cpu.getUsed() - spawn_cpu
             if Memory.debug and Game.time % interval == 0:
                 print('spawn {} used {} cpu'.format(spawn.name, round(spawn_cpu_end, 2)))
-
+        # 방에 컨트롤러가 내꺼면 다음렙까지 남은 업글점수 표기
+        if chambro.controller and chambro.controller.my and not chambro.controller.level == 8:
+            disp_loc = structure_display.display_location(chambro.controller, spawns_and_links, 3)
+            chambro.visual.text(str(chambro.controller.progressTotal - chambro.controller.progress),
+                                disp_loc.x, disp_loc.y,
+                                {'align': disp_loc['align'], 'opacity': 0.8, 'color': '#EE5927'})
         # 맨 위 visual 부분 정산
         chambro.visual.text('visual size: {}'.format(Game.rooms[chambra_nomo].visual.getSize()),
-                            disp_x, disp_y + 3)
+                            disp_x, disp_y + 5)
 
     if Game.cpu.bucket < cpu_bucket_emergency:
         print('passed creeps:', passing_creep_counter)

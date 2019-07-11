@@ -362,10 +362,9 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
         if creep.memory.priority == 0:
             passed_priority_0 = True
 
-            # 전체 에너지의 90% 이상 채우지 않으면 건설은 없다. 건설보다 운송이 더 시급하기 때문.
-            if len(constructions) > 0 and creep.room.energyAvailable >= creep.room.energyCapacityAvailable * .9:
-                # for 1/3 chance going to phase 2.
-                picker = random.randint(0, 2)
+            # 전체 에너지의 99% 이상 채우지 않으면 건설은 없다. 건설보다 운송이 더 시급하기 때문.
+            if len(constructions) > 0 and creep.room.energyAvailable >= creep.room.energyCapacityAvailable * .99:
+                picker = 1
             else:
                 picker = 0
             if not picker:
@@ -488,10 +487,6 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                     move_by_path = move_with_mem(creep, creep.memory.haul_target, 0, path)
                     # if move_by_path[0] == OK or move_by_path[0] == ERR_TIRED:
                     if move_by_path[0] == OK and move_by_path[1]:
-                        # passed_block = move_with_mem_block_check(creep, path)
-                        # if not passed_block == OK:
-                        #     creep.say('운송막힘:{}'.format(passed_block))
-                        # if move_by_path[1]:
                         creep.memory.path = move_by_path[2]
 
                 # 바로 옆이면 시작.
@@ -543,7 +538,6 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                                 structures.splice(s_index, 1)
                                 break
                         del creep.memory.haul_target
-                        del creep.memory.last_swap
                         if len(structures):
                             # 목표타겟 확보.
                             haul_target = filter_haul_targets(creep, structures, creeps)
@@ -622,7 +616,6 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
             # if having anything other than energy when not on priority 1 switch to 1
             if _.sum(creep.carry) != 0 and creep.carry[RESOURCE_ENERGY] == 0:
                 creep.memory.priority = 1
-                del creep.memory.last_swap
                 del creep.memory.build_target
 
         # priority 3: repair
@@ -879,9 +872,6 @@ def init_memory(creep, init_to):
     :param init_to: 몇으로 바꾸는 것인가?? 그거에 맞게 메모리 삭제.
     :return: None
     """
-
-    # 마지막으로 위치교대 했던 크립 아이디 제거
-    del creep.memory.last_swap
 
     # 0으로 바꿀 경우.
     if init_to == 0:
