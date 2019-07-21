@@ -134,12 +134,13 @@ def grab_energy(creep, pickup, only_energy, min_capacity=.5):
             return result
 
 
-def grab_energy_new(creep, min_capacity=.5):
+def grab_energy_new(creep, resource_type, min_capacity=.5):
     """
     grabbing energy from local storages(container, storage, etc.)
 
     :param creep:
-    :param min_capacity:
+    :param resource_type: 어떤 리소스를 뽑아갈거임?
+    :param min_capacity: 뽑을 시 크립의
     :return: any creep.withdraw return codes
     """
     # we will make new script for some stuff.

@@ -1090,9 +1090,16 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                                     {memory: {'role': 'reserver', 'home_room': spawn.room.name,
                                               'assigned_room': room_name}})
                             continue
+
+                    # 캐리어 사이즈 계산: 모든 캐리어는 memory.size 가 존재한다.
+                    # 소스 하나당 누적 점수 최소 2여야함.
+                    carrier_size = 0
+                    for c in remote_carriers:
+                        carrier_size += c.memory.size
+
                     # 캐리어가 소스 수 만큼 있는가?
-                    if len(flag_energy_sources) > len(remote_carriers):
-                        # print('flag carrier?')
+                    if len(flag_energy_sources) * 2 > carrier_size:
+                        print('spawn carriers')
                         # 픽업으로 배정하는 것이 아니라 자원으로 배정한다.
                         if len(remote_carriers) == 0:
                             # 캐리어가 아예 없으면 그냥 첫 자원으로.
@@ -1101,16 +1108,28 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                         else:
                             # 캐리어가 존재할 시. 각 소스를 돌린다.
                             for s in flag_energy_sources:
+                                # 소스 하나당 누적 사이즈 2여야함
+                                carrier_size_assigned = 0
                                 for c in remote_carriers:
-                                    # 캐리어들을 돌려서 만약 캐리어의 배정소스 메모리와 일치하는게 있으면 이미 하나 배정된거니 통과.
                                     if s.id == c.memory.source_num:
-                                        continue
-                                    else:
-                                        # creep.memory.source_num
-                                        carrier_source = s.id
-                                        # Game.getObjectById(carrier_source) << 이게 너무 길어서.
-                                        target_source = Game.getObjectById(carrier_source)
-                                        break
+                                        carrier_size_assigned += c.memory.size
+                                # 다 돌려서 점수 매겼는데 2 이하면 해당 소스가 빈거임
+                                if carrier_size_assigned < 2:
+                                    # creep.memory.source_num
+                                    carrier_source = s.id
+                                    # Game.getObjectById(carrier_source) << 이게 너무 길어서.
+                                    target_source = Game.getObjectById(carrier_source)
+                                    break
+                                    # NULLIFIED - 체제변경으로 위와같게됨.
+                                    # # 캐리어들을 돌려서 만약 캐리어의 배정소스 메모리와 일치하는게 있으면 이미 하나 배정된거니 통과.
+                                    # if s.id == c.memory.source_num:
+                                    #     continue
+                                    # else:
+                                    #     # creep.memory.source_num
+                                    #     carrier_source = s.id
+                                    #     # Game.getObjectById(carrier_source) << 이게 너무 길어서.
+                                    #     target_source = Game.getObjectById(carrier_source)
+                                    #     break
 
                         # creep.memory.pickup
                         carrier_pickup_id = ''
@@ -1160,8 +1179,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                                 print('const_loc.x {}, const_loc.y {}'.format(const_loc.x, const_loc.y))
                                 print('Game.rooms[{}].name: {}'.format(room_name, Game.rooms[room_name].name))
                                 # 찍을 좌표: 이게 제대로된 pos 함수
-                                constr_pos = __new__(RoomPosition(const_loc.x, const_loc.y
-                                                                  , Game.rooms[room_name].name))
+                                constr_pos = __new__(RoomPosition(const_loc.x, const_loc.y, Game.rooms[room_name].name))
                                 print('constr_pos:', constr_pos)
                                 const_res = constr_pos.createConstructionSite(STRUCTURE_CONTAINER)
 
@@ -1221,6 +1239,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                                 opts = {'trackCreeps': False, 'refreshMatrix': True, 'pass_walls': False,
                                         'costByArea': {'objects': objs, 'size': 1, 'cost': 6}}
 
+                            # 픽업 지점부터 스폰까지의 길
                             path_to_home = PathFinder.search(Game.getObjectById(carrier_pickup_id).pos, spawn.pos,
                                                      {'plainCost': 2, 'swampCost': 3,
                                                       'roomCallback':
@@ -1228,7 +1247,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                                                           pathfinding.Costs(room_name, opts).load_matrix()
                                                       }, ).path
 
-                            # 위에 길 역순 나열.
+                            # 위에 길 역순.
                             path_spawn_to_pickup = []
 
                             for p in path_to_home:
@@ -1247,84 +1266,99 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                                 work_chance = 1
                             else:
                                 work_chance = random.randint(0, 1)
+
+                            carrier_size = distance / 2
+
+                            # 여기서 확인해야 하는 사항. 바디크기가 50 이상인가?
+                            # 이상이면 반으로 쪼개서 재계산해야한다.
+                            # todo 만약 100넘기면...에 대한 답이 아직 없음.
+                            size_level = 2
+                            carrier_body = determine_carrier_size(carrier_size, work_chance)
+
+                            if len(carrier_body) > 50:
+                                print('body exceeded 50')
+                                size_level = 1
+                                carrier_size /= 2
+                                carrier_body = determine_carrier_size(carrier_size, work_chance)
+
+                            # NULLIFIED - 계산법 개정.
                             # 굳이 따로 둔 이유: 캐리 둘에 무브 하나.
-                            carry_body_odd = [CARRY]
-                            carry_body_even = [CARRY, MOVE]
-                            work_body = [WORK, WORK, MOVE]
-                            body = []
+                            # carry_body_odd = [CARRY]
+                            # carry_body_even = [CARRY, MOVE]
+                            # work_body = [WORK, WORK, MOVE]
+                            # body = []
+                            #
+                            # carrier_size = int(distance / 2)
+                            # # 소수점 다 올림처리.
+                            # if distance % 2 > 0:
+                            #     carrier_size += 1
+                            # carrier_size += random.randint(0, 1)
+                            # # 여기서 값을 넣는다.
+                            # for i in range(carrier_size):
+                            #     # work 부분부터 넣어본다.
+                            #     if work_chance == 1:
+                            #         if i < 3:
+                            #             body.extend(work_body)
+                            #     # 이거부터 들어가야함
+                            #     if i % 2 == 0:
+                            #         body.extend(carry_body_even)
+                            #     else:
+                            #         body.extend(carry_body_odd)
+                            #
+                            # # 크기가 50을 넘기면? 50에 맞춰야함.
+                            # if len(body) > 50:
+                            #     # WORK 가 있을경우
+                            #     if work_chance:
+                            #         body = [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE,
+                            #                 MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY,
+                            #                 CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY,
+                            #                 CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY,
+                            #                 CARRY, CARRY, CARRY, CARRY]
+                            #     else:
+                            #         body = [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE,
+                            #                 MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, CARRY, CARRY, CARRY, CARRY,
+                            #                 CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY,
+                            #                 CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY,
+                            #                 CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY,
+                            #                 CARRY, CARRY]
 
-                            carrier_size = int(distance / 2)
-                            # 소수점 다 올림처리.
-                            if distance % 2 > 0:
-                                carrier_size += 1
-                            carrier_size += random.randint(0, 1)
-                            # 여기서 값을 넣는다.
-                            for i in range(carrier_size):
-                                # work 부분부터 넣어본다.
-                                if work_chance == 1:
-                                    if i < 3:
-                                        body.extend(work_body)
-                                # 이거부터 들어가야함
-                                if i % 2 == 0:
-                                    body.extend(carry_body_even)
-                                else:
-                                    body.extend(carry_body_odd)
-
-                            # 크기가 50을 넘기면? 50에 맞춰야함.
-                            if len(body) > 50:
-                                # WORK 가 있을경우
-                                if work_chance:
-                                    body = [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE,
-                                            MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY,
-                                            CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY,
-                                            CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY,
-                                            CARRY, CARRY, CARRY, CARRY]
-                                else:
-                                    body = [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE,
-                                            MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, CARRY, CARRY, CARRY, CARRY,
-                                            CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY,
-                                            CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY,
-                                            CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY,
-                                            CARRY, CARRY]
-
-                            spawning = spawn.spawnCreep(body,
+                            spawning = spawn.spawnCreep(carrier_body,
                                                         'cr_{}_{}'.format(room_name_low, rand_int),
                                                         {memory: {'role': 'carrier',
                                                                   'assigned_room': room_name,
                                                                   'home_room': spawn.pos.roomName,
                                                                   'pickup': carrier_pickup_id, 'work': work_chance,
-                                                                  'source_num': carrier_source,
+                                                                  'source_num': carrier_source, 'size': size_level,
                                                                   to_pickup: path_spawn_to_pickup, to_home: path_to_home}})
                             print('spawning', spawning)
                             if spawning == 0:
                                 continue
                             elif spawning == ERR_NOT_ENOUGH_RESOURCES:
-
-                                body = []
-
                                 # carrier_size = int(distance / 2)
                                 # # 소수점 다 올림처리.
                                 # if distance % 2 > 0:
                                 #     carrier_size += 1
                                 # 여기서 값을 넣는다.
                                 carrier_size = int(carrier_size * 5 / 6)
-                                if work_chance == 1:
-                                    body.extend(work_body)
-                                for i in range(carrier_size):
-                                    # 이거부터 들어가야함
-                                    if i % 2 == 0:
-                                        body.extend(carry_body_even)
-                                    else:
-                                        body.extend(carry_body_odd)
+                                carrier_body = determine_carrier_size(carrier_size, work_chance)
+                                # if work_chance == 1:
+                                #     body.extend(work_body)
+                                # for i in range(carrier_size):
+                                #     # 이거부터 들어가야함
+                                #     if i % 2 == 0:
+                                #         body.extend(carry_body_even)
+                                #     else:
+                                #         body.extend(carry_body_odd)
 
                                 # print('2nd body({}): {}'.format(len(body), body))
+
                                 spawning = spawn.spawnCreep(
-                                    body,
+                                    carrier_body,
                                     'cr_{}_{}'.format(room_name_low, rand_int),
                                     {memory: {'role': 'carrier',
                                               'assigned_room': room_name, 'home_room': spawn.pos.roomName,
                                               'pickup': carrier_pickup_id, 'work': work_chance,
-                                              'source_num': carrier_source,
+                                              'source_num': carrier_source, 'size': 1,
                                               to_pickup: path_spawn_to_pickup, to_home: path_to_home}})
 
                                 # print('spawning {}'.format(spawning))
@@ -1338,7 +1372,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                                 'cr_{}_{}'.format(room_name_low, rand_int),
                                 {memory: {'role': 'carrier', 'assigned_room': room_name,
                                           'work': 1, 'home_room': spawn.room.name,
-                                          'source_num': carrier_source, 'frontier': 1,
+                                          'source_num': carrier_source, 'frontier': 1, 'size': 2,
                                           to_pickup: path_spawn_to_pickup, to_home: path_to_home}})
                             if spawning == ERR_NOT_ENOUGH_RESOURCES:
                                 spawn.spawnCreep(
@@ -1347,7 +1381,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                                     'cr_{}_{}'.format(room_name_low, rand_int),
                                     {memory: {'role': 'carrier', 'assigned_room': room_name,
                                               'work': 1, home_room: spawn.room.name,
-                                              'source_num': carrier_source, 'frontier': 1,
+                                              'source_num': carrier_source, 'frontier': 1, 'size': 2,
                                               to_pickup: path_spawn_to_pickup, to_home: path_to_home}})
                             continue
 
@@ -1510,3 +1544,36 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                     if spawn.pos.isNearTo(creep):
                         result = spawn.renewCreep(creep)
                         break
+
+
+def determine_carrier_size(criteria, work_chance=0):
+    """
+    캐리어 바디 계산용 스크립트.
+
+    :param criteria: 몇짜리 크기인지 확인
+    :param work_chance: WORK 바디를 넣을지 말지 확인
+    :return: [size]
+    """
+    # 굳이 따로 둔 이유: 캐리 둘에 무브 하나.
+    carry_body_odd = [CARRY]
+    carry_body_even = [CARRY, MOVE]
+    work_body = [WORK, WORK, MOVE]
+    body = []
+
+    # 소수점 다 올림처리.
+    if criteria % int(criteria) > 0:
+        criteria += 1
+    criteria += random.randint(0, 1)
+    # 여기서 값을 넣는다.
+    for i in range(criteria):
+        # work 부분부터 넣어본다.
+        if work_chance:
+            if i < 3:
+                body.extend(work_body)
+        # 이거부터 들어가야함
+        if i % 2 == 0:
+            body.extend(carry_body_even)
+        else:
+            body.extend(carry_body_odd)
+
+    return body

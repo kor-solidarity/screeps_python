@@ -306,7 +306,7 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                     else:
                         creep.memory[haul_resource] = haul_all
 
-                result = grab_energy_new(creep)
+                result = grab_energy_new(creep, creep.memory.haul_resource)
                 # creep.say(result)
                 if result == ERR_NOT_IN_RANGE:
                     path = _.map(creep.memory.path, lambda p: __new__(RoomPosition(p.x, p.y, creep.room.name)))

@@ -59,49 +59,13 @@ def run_harvester(creep, all_structures, constructions, room_creeps, dropped_all
         sources = []
         for r in Game.rooms[creep.memory.assigned_room].memory.resources.energy:
             sources.append(r)
-        my_room = creep.memory.assigned_room
+        my_room_name = creep.memory.assigned_room
         # 같은 방에 있는 모든 하베스터를 찾는다.
         rikoltist_kripoj = _.filter(Game.creeps,
                                     lambda c: (c.spawning or c.ticksToLive > 100)
                                                and c.memory.role == 'harvester'
                                                and not c.name == creep.name
                                                and creep.memory.assigned_room == c.memory.assigned_room)
-        # 소속된 방 내 모든 스트럭쳐.
-        # structures = Game.rooms[creep.memory.assigned_room]
-        # 방 안에 있는 모든 컨테이너들. 슬슬 의미가 없어지는듯
-        # remote_containers = _.filter(structures, lambda s: s.structureType == STRUCTURE_CONTAINER)
-
-        # -------------------------------------------------------
-
-        # NULLIFIED
-        # if creep.memory.assigned_room and creep.room.name != creep.memory.assigned_room:
-        #     try:
-        #         # normale, kripos ne devus havi .find() en la skripto, sed ĉi tio estas por malproksima regiono do...
-        #         # sources = Game.flags[creep.memory.flag_name].room.find(FIND_SOURCES)
-        #         sources = Game.rooms[creep.memory.assigned_room].find(FIND_SOURCES)
-        #         # my_room = Game.flags[creep.memory.flag_name].room.name
-        #         my_room = creep.memory.assigned_room
-        #         # room_creeps = Game.flags[creep.memory.flag_name].room.find(FIND_MY_CREEPS)
-        #         room_creeps = Game.rooms[creep.memory.assigned_room].find(FIND_MY_CREEPS)
-        #         rikoltist_kripoj = _.filter(room_creeps,
-        #                                     lambda c: (c.spawning or c.ticksToLive > 100)
-        #                                               and c.memory.role == 'harvester'
-        #                                               and not c.name == creep.name)
-        #         remote_structures = my_room.find(FIND_STRUCTURES)
-        #         remote_containers = _.filter(remote_structures, lambda s: s.structureType == STRUCTURE_CONTAINER)
-        #         # print('???', remote_structures )
-        #     except:
-        #         print('no room_creeps in the remote at room {}!'.format(creep.memory.assigned_room))
-        #         return
-        # else:
-        #     sources = creep.room.find(FIND_SOURCES)
-        #     my_room = creep.room.name
-        #     rikoltist_kripoj = _.filter(room_creeps,
-        #                                 lambda c: (c.spawning or c.ticksToLive > 100)
-        #                                           and c.memory.role == 'harvester'
-        #                                           and not c.name == creep.name)
-        #     if creep.memory.flag_name:
-        #         remote_containers = _.filter(all_structures, lambda s: s.structureType == STRUCTURE_CONTAINER)
 
         # tie estas 3 kazojn en ĉi tie:
         # 1 - no room_creeps at all.
@@ -115,42 +79,20 @@ def run_harvester(creep, all_structures, constructions, room_creeps, dropped_all
             #     se tie ne estas iu kripoj simple asignu 0
             creep.memory.source_num = sources[0]
 
-            # 멀티방용 배정
-            # NULLIFIED - 의도는 컨테이너가 근처에 있는 자원을 우선적으로 건든다는건데... 솔까 의미있나? ㄲㅈ
-            # else:
-            #     # 에너지 일일히 돌린다.
-            #     for energy in sources:
-            #         done = False
-            #         print('remote_containers', remote_containers)
-            #         # 컨테이너 거리 측정해서 4칸이내에 존재하는게 있으면 그걸로 붙는다.
-            #         for s in remote_containers:
-            #             print('energy', energy)
-            #             if s.pos.inRangeTo(energy, 4):
-            #                 print('inrange', energy.id)
-            #                 creep.memory.source_num = energy.id
-            #                 done = True
-            #                 break
-            #         if done:
-            #             break
-            #     # 있어야 하는게 정상인데 진짜 없으면 그냥 맨 첫번째꺼 배정
-            #     if not creep.memory.source_num:
-            #         creep.memory.source_num = sources[0].id
-
         # kazo 2
         elif len(rikoltist_kripoj) < len(sources):
             # to check for sources not overlapping
             for i in range(len(sources)):
                 source_assigned = False
-                # print('-----', i, '-----', sources[i])
+
                 for kripo in rikoltist_kripoj:
                     # if the creep is same with current creep, or dont have memory assigned, pass.
                     if not kripo.memory.source_num:
                         continue
-                    # print('creep:{} || TTL: {}'.format(kripo, kripo.ticksToLive))
-                    # print('creep.memory.source_num:', kripo.memory.source_num)
+
                     # if memory.source_num == i, means it's already taken. pass.
                     if kripo.memory.source_num == sources[i]:
-                        # print('kripo.memory.source_num({}) == i({})'.format(kripo.memory.source_num, i))
+
                         source_assigned = True
                         break
                         # add the number to check.
@@ -254,6 +196,7 @@ def run_harvester(creep, all_structures, constructions, room_creeps, dropped_all
                 del creep.memory.dropped
 
         if _.sum(creep.carry) > creep.carryCapacity - 10:
+            creep.say('🚜 대충 찼다', True)
             creep.memory.laboro = 1
         else:
             harvest = harvest_stuff.harvest_energy(creep, creep.memory.source_num)
