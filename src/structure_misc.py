@@ -59,7 +59,7 @@ def run_tower(tower, hostile_creeps, repairs, malsana_amikoj):
             tower.repair(repair)
 
 
-def run_links(link_id, spawns_and_links):
+def run_links(link_id, spawns_and_links, creeps):
     """
     distributing energy to links
 
@@ -81,7 +81,7 @@ def run_links(link_id, spawns_and_links):
     me = _.filter(Game.getObjectById(link_id).room.memory[STRUCTURE_LINK],
                   lambda l: l.id == link_id)[0]
 
-    display_loc = display_location(link, spawns_and_links)
+    display_loc = display_location(link, spawns_and_links, 3)
     align = display_loc['align']
     # if link.pos.x > 44:
     #     align = 'right'
@@ -92,15 +92,15 @@ def run_links(link_id, spawns_and_links):
     if me.for_store:
         # 만일 링크에 에너지가 있으면 표시한다. 굳이 눌러볼 필요 없게.
         if link.energy > 0:
-            link.room.visual.text(' 💎{}'.format(link.energy),
+            link.room.visual.text(' {}'.format(link.energy),
                                   link.pos.x, display_loc.y,
-                                  {'align': align, 'opacity': 0.8, 'font': 0.45})
+                                  {'align': align, 'color': '#EE5927'})
         return
 
     # 여기 밑으로 내려왔으면 해당 링크는 에너지 전송용이다.
-    link.room.visual.text(' 💎{}|{}'.format(link.energy, link.cooldown),
+    link.room.visual.text('{}|{}'.format(link.energy, link.cooldown),
                           link.pos.x, display_loc.y,
-                          {'align': align, 'opacity': 0.8})
+                          {'align': align, 'color': '#EE5927'})
     # 에너지가 없으면 아래를 돌릴 이유가 없음.
     if not link.energy:
         return
@@ -116,6 +116,14 @@ def run_links(link_id, spawns_and_links):
 
     # 쏠준비 됨? 그럼 날려!
     if link.cooldown == 0 and link.energy >= amount_to_shoot and len(inside_links) > 0:
+        # todo 가장 가까운 허울러가 있는 곳으로 날린다.
+        # haulers = _.filter(creeps, lambda c: c.memory.role == 'hauler')
+        # if len(haulers):
+        #     links = []
+        #     for i in inside_links:
+        #         links.append(Game.getObjectById(i.id))
+        #     haulers[0].pos.findClosestByRange()
+
         # 내부(테두리 5칸 이상 이내)에 있는 링크 중 무작위 하나를 고르고 거기에 보낸다.
         # 만일 없으면? 애초부터 이 설계와 안맞게 만든거. 몰라ㅆㅂ
         random_int = random.randint(0, len(inside_links) - 1)

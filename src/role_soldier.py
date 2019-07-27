@@ -16,6 +16,7 @@ __pragma__('noalias', 'update')
 def run_remote_defender(all_structures, creep, creeps, hostile_creeps, lairs=None):
     """
     blindly search and kills npc invaders
+
     :param all_structures:
     :param creep:
     :param creeps: creep.room.find(FIND_MY_CREEPS)
@@ -119,6 +120,20 @@ def run_remote_defender(all_structures, creep, creeps, hostile_creeps, lairs=Non
             # 아무것도 없으면 대기탄다
             if not creep.pos.inRangeTo(__new__(RoomPosition(25, 25, creep.memory.assigned_room)), 22):
                 miscellaneous.get_to_da_room(creep, creep.memory.assigned_room, False)
+
+
+# todo 키퍼방 키퍼제거용
+def keeper_defender(all_structures, creep, creeps, hostile_creeps):
+    """
+    키퍼방 내 키퍼 엔피시 척살용 크립
+
+    :param all_structures:
+    :param creep:
+    :param creeps:
+    :param hostile_creeps:
+    :return:
+    """
+
 
 
 def remote_healer(creep, creeps, hostile_creeps):

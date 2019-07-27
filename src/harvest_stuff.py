@@ -33,8 +33,14 @@ def harvest_energy(creep, source_id):
 
     # is sources too far out?
     if harvested == ERR_NOT_IN_RANGE:
-        # then go.
-        creep.moveTo(Game.getObjectById(source_id), {'visualizePathStyle': {'stroke': '#ffffff'}, 'maxOps': 5000})
+        if not creep.pos.inRangeTo(Game.getObjectById(source_id), 6):
+            move_by_path = move_with_mem(creep, source_id)
+            if move_by_path[0] == OK and move_by_path[1]:
+                    path = move_by_path[2]
+            else:
+                creep.say('🌾 move{}'.format(move_by_path[0]))
+        else:
+            creep.moveTo(Game.getObjectById(source_id), {'visualizePathStyle': {'stroke': '#ffffff'}, 'maxOps': 5000})
 
     # did the energy from the sources got depleted?
     # PROCEED TO NEXT PHASE IF THERE ARE ANYTHING IN CARRY
@@ -273,8 +279,7 @@ def pick_drops(creep, only_energy=False):
     :param only_energy: 에너지만 줍는가? 기본값 거짓
     :return:
     """
-    # print('++++++++++++++++++++++++++++++++++++')
-    # print('pick {}'.format(creep.name))
+
     # creep.memory.dropped 이건 떨군거 집을때 모든 크립 공통
     pickup_obj = Game.getObjectById(creep.memory.dropped)
     # 존재하는가?
@@ -293,7 +298,6 @@ def pick_drops(creep, only_energy=False):
 
     # 두 경우만 존재한다. 떨궈졌냐? 무덤이냐. 스토어 있음 무덤
     if pickup_obj.store:
-        # print('store')
         # 에너지만 잡는거면 에너지만 본다.
         if only_energy:
             if pickup_obj.store[RESOURCE_ENERGY]:
@@ -301,7 +305,6 @@ def pick_drops(creep, only_energy=False):
             else:
                 return ERR_NOT_ENOUGH_ENERGY
         else:
-            # print('els')
             # 에너지가 안에 있는지 확인.
             if len(Object.keys(pickup_obj.store)) > 1:
                 for resource in Object.keys(pickup_obj.store):
@@ -314,8 +317,6 @@ def pick_drops(creep, only_energy=False):
                 return creep.withdraw(pickup_obj, RESOURCE_ENERGY)
     # 떨군거
     else:
-        print('nStore')
-        print(only_energy, pickup_obj.resourceType)
         if only_energy and pickup_obj.resourceType != RESOURCE_ENERGY:
             return ERR_INVALID_TARGET
         else:

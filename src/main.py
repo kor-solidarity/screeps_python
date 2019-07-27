@@ -56,7 +56,8 @@ creep.memory.flag:
 """
 
 js_global._costs = {'base': {}, 'rooms': {}, 'creeps': {}}
-# js_global.yolo = yolo()
+# js_global.yolo = lambda a: print(a)
+#
 #
 #
 # def yolo():
@@ -175,10 +176,13 @@ def main():
                 if not creep.spawning:
                     if not creep.memory.birthday:
                         creep.memory.birthday = Game.time
-                    if (Game.time - creep.memory.birthday) % 1500 == 0 and creep.ticksToLive > 50 \
-                            and Game.time - creep.memory.birthday:
+                    if (Game.time - creep.memory.birthday) % 1500 < 2 and creep.ticksToLive > 50 \
+                            and Game.time - creep.memory.birthday > 10:
                         age = (Game.time - creep.memory.birthday) // 1500
                         creep.say("{}차생일!🎂🎉".format(age), True)
+                    # 100만틱마다 경축빰빠레!
+                    elif Game.time % 1000000 < 1000:
+                        creep.say('{}Mticks🎉🍾'.format(int(Game.time / 1000000)), True)
                     # creep.memory.age += 1
                     # if creep.memory.age % 1500 == 0 and creep.ticksToLive > 50:
                     #     creep.say("{}차생일!🎂🎉".format(int(creep.memory.age / 1500)), True)
@@ -733,7 +737,6 @@ def main():
                         # print(room_sources)
                         for rs in room_sources:
                             # 컨테이너 주변 4칸이내에 소스가 있는지 확인한다.
-                            # print('컨테이너 주변 4칸이내에 소스가 있는지 확인한다.', rs)
                             if len(stc.pos.findPathTo(rs, {'ignoreCreeps': True})) <= 4:
                                 # 있으면 이 컨테이너는 하베스터 저장용.
                                 _harvest = 1
@@ -854,7 +857,7 @@ def main():
                     chambro.memory.options.reset = 1
                     continue
                 room_cpu_num += 1
-                structure_misc.run_links(link.id, spawns_and_links)
+                structure_misc.run_links(link.id, spawns_and_links, room_creeps)
 
         # check every 20 ticks.
         if Game.time % 20 == 0 and chambro.memory[STRUCTURE_CONTAINER] \

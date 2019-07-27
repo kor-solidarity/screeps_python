@@ -150,6 +150,7 @@ def draw_path(creep, path_arr, color='white'):
 def get_findPathTo(start, target, range=0, ignore_creeps=True):
     """
     findPathTo 를 이용한 길찾기
+    todo 이거 패스파인딩으로 완전히 바꿉시다.
 
     :param start: 출발지. 아이디여도 되고 포지션 오브젝트도 됨
     :param target: 목적지. 출발지와 동일
@@ -168,6 +169,7 @@ def get_findPathTo(start, target, range=0, ignore_creeps=True):
 
     path = start.findPathTo(target,
                             {'maxOps': 5000, ignoreCreeps: ignore_creeps, 'range': range})
+    # print('path from {} to {}: {}'.format(JSON.stringify(start), JSON.stringify(target), JSON.stringify(path)))
     return _.map(path, lambda p: __new__(RoomPosition(p.x, p.y, start.roomName)))
 
 
@@ -302,7 +304,7 @@ def move_with_mem(creep, target, target_range=0, path=[], path_mem='path',
     움직이려 하는데 안움직이면 앞자리 애랑 교대까지.
 
     :param creep: 크립
-    :param target: 갈 표적 아이디.
+    :param target: 갈 표적 아이디 또는 RoomPosition
     :param target_range: target_range
     :param path: 최초 지정된 길. 존재하면 사용.
     :param path_mem: 메모리에 저장된 길목록 이름. 기본값은 'path'
@@ -319,9 +321,13 @@ def move_with_mem(creep, target, target_range=0, path=[], path_mem='path',
     else:
         changed_path = False
 
-    # creep.memory.old_target == 이전 목적지. 이동중 목적지 등이 바뀌는 경우를 위해 필요.
+    # 타겟이 아이디인 경우 pos만 추출
+    if typeof(target) == 'string':
+        target = Game.getObjectById(target).pos
+
+    # creep.memory.old_target == 이전 목적지의 pos 값. 이동중 목적지 등이 바뀌는 경우를 위해 필요.
     # 크립의 구 목표가 없거나 구 목표와 현 목표 아이디가 일치하지 않는 경우 새 길을 파야 한다.
-    if not creep.memory.old_target or not creep.memory.old_target == target:
+    if not creep.memory.old_target or not JSON.stringify(creep.memory.old_target) == JSON.stringify(target):
         need_new_path = True
         creep.memory.old_target = target
     # 도로가 없음 만들어야하니.
@@ -336,8 +342,11 @@ def move_with_mem(creep, target, target_range=0, path=[], path_mem='path',
         if not repath:
             pass
         # 길 새로 짜야하는 경우 짠다.
+        # todo 만약 다른 방까지 가야 하는 경우에 대한 대비가 없음 - 이상한데로 감.
         elif need_new_path or not creep.memory[path_mem]:
+            # print(creep.name, 'repathing from', JSON.stringify(creep.pos), 'to', JSON.stringify(target))
             path_array = get_findPathTo(creep.pos, target, target_range)
+            # print(JSON.stringify(path_array))
             path_array.insert(0, creep.pos)
 
             creep.memory[path_mem] = path_array
@@ -347,9 +356,9 @@ def move_with_mem(creep, target, target_range=0, path=[], path_mem='path',
         # 여기까지 새 도로가 필요없으면 가지고 있는거 돌려본다.
         move_by_path = creep.moveByPath(path)
         if move_by_path == ERR_NOT_FOUND or move_by_path == ERR_INVALID_ARGS:
-            print('typeof(path): {}, move_by_path: {}'
-                  .format(bool(typeof(path) == 'object'), move_by_path))  # True
-            print(creep.name, 'ERR_NOT_FOUND {}'.format(Game.time))
+            # print('typeof(path): {}, move_by_path: {}'
+            #       .format(bool(typeof(path) == 'object'), move_by_path))  # True
+            print(creep.name, 'ERR_NOT_FOUND {} {}x{}y'.format(creep.pos.roomName, creep.pos.x, creep.pos.y))
             # 도로 새로 찾는게 아니면 여기서 끝
             if not repath:
                 return move_by_path, False, path

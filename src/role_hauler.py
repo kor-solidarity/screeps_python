@@ -4,6 +4,7 @@ from harvest_stuff import *
 import random
 from miscellaneous import *
 from _custom_constants import *
+from debug import *
 
 __pragma__('noalias', 'name')
 __pragma__('noalias', 'undefined')
@@ -107,6 +108,10 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
          or _.sum(creep.carry) == creep.carryCapacity):
 
         init_memory(creep, 1)
+
+    if creep.memory.debug:
+        if creep.memory.path:
+            debugging_path(creep, 'path', 'white', 'dashed')
 
     # laboro: 0 == pickup something.
     if creep.memory.laboro == 0:
@@ -326,8 +331,6 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                 # other errors? just delete 'em
                 else:
                     creep.say('ERR {}'.format(result))
-                    # print('{} the {} in  {} - grab_energy() ELSE ERROR: {}'.format(creep.name, creep.memory.role
-                    #                                                                , creep.room.name, result))
                     del creep.memory.pickup
                     del creep.memory.path
 

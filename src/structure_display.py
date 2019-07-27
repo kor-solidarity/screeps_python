@@ -47,11 +47,11 @@ def display_location(target_obj: Game.structures, other_objs, distance=5):
     # print('target_obj.pos', JSON.stringify(target_obj.pos))
 
     # 본체가 x축 오른쪽 끝에 있어서 오른쪽에 표기를 못한다.
-    if target_obj.pos.x > 44:
+    if target_obj.pos.x > 49 - distance:
         # print('target_obj.pos.x > 44 smth_at_right')
         smth_at_right = True
     # 왼쪽 끝에 있음.
-    elif target_obj.pos.x < 5:
+    elif target_obj.pos.x < 0 + distance:
         # print('target_obj.pos.x < 5 smth_at_left')
         smth_at_left = True
     # print('check1')
