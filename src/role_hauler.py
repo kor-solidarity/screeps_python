@@ -190,7 +190,7 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                 # 방 안에 에너지수용량이 총량의 30% 이하면 픽업대상에 스토리지도 포함한다.
                 # 물론 안에 에너지가 있어야겠지.
                 # todo 미네랄 옮기는것도 해야함.
-                if creep.room.energyAvailable <= creep.room.energyCapacityAvailable * .30 \
+                if creep.room.energyAvailable <= creep.room.energyCapacityAvailable * .3 \
                         and creep.room.storage and creep.room.storage.store[RESOURCE_ENERGY] > 600:
                     to_storage_chance = 1
                 else:
@@ -240,25 +240,37 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                     # 건설장 있나?
                     if len(constructions):
                         pass
+                    # 꽉찬건지 확인
                     elif Game.getObjectById(creep.memory.upgrade_target).room.energyAvailable == \
                             Game.getObjectById(creep.memory.upgrade_target).room.energyCapacityAvailable:
                         # 전부 차있음?
-                        _full = False
+                        _full = True
+                        # 아래 조건문에 하나라도 걸리면 굳이 채울 필요가 없는거.
+                        # 타워중에 덜 찬게 있나 확인
                         if creep.room.memory[STRUCTURE_TOWER]:
                             for t in creep.room.memory[STRUCTURE_TOWER]:
                                 # print('Game.getObjectById({}).energy {}'.format(t, Game.getObjectById(t).energy))
-                                if Game.getObjectById(t).energyCapacity * .8 <= Game.getObjectById(t).energy:
-                                    _full = True
+                                if Game.getObjectById(t).energy < Game.getObjectById(t).energyCapacity * .8:
+                                    print('tower not full')
+                                    _full = False
                                     break
-                        elif creep.room.memory[STRUCTURE_CONTAINER] and not creep.room.controller.level == 8:
+                        # 업글러용 컨테이너가 있는지, 그리고 이게 80% 이상 채워진건지 확인
+                        if _full and creep.room.memory[STRUCTURE_CONTAINER] and not creep.room.controller.level == 8:
                             for c in creep.room.memory[STRUCTURE_CONTAINER]:
                                 target = Game.getObjectById(c.id)
                                 # 80% 이상 채워져 있으면 끝.
-                                if c.for_store and _.sum(target.store) > target.storeCapacity * .8:
-                                    _full = True
+                                if c.for_store and _.sum(target.store) < target.storeCapacity * .8:
+                                    print('upgrader container not full')
+                                    _full = False
                                     break
-                        else:
-                            _full = True
+                        # 핵 채우기
+                        if creeps.room.options and creep.room.options.fill_nuke:
+                            nuker = all_structures.filter(lambda s: s.structureType == STRUCTURE_NUKER)
+                            if len(nuker):
+                                nuker = nuker[0]
+                                if nuker.energy < nuker.energyCapacity:
+                                    _full = False
+
                         # print('_full', _full)
                         # 채울게 없으면 잉여롭게 계속 뭐 뽑으려 하지 말고 활동중단
                         if _full:
@@ -696,17 +708,17 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                 return
 
 
-def filter_haul_targets(creep, ujoj, haulers):
+def filter_haul_targets(creep, haul_targets, haulers):
     """
     위에 허울러가 에너지 채울 컨테이너 등을 선택하는 함수.
 
     :param creep: 크립(..)
-    :param ujoj: 에너지 채울 대상.
+    :param haul_targets: 에너지 채울 대상.
     :param haulers: 허울러라 써있지만 실질적으로는 모든 크립.
     :return: creep.memory.haul_target 에 들어갈 아이디.
     """
 
-    if len(ujoj) == 0:
+    if len(haul_targets) == 0:
         return ERR_INVALID_TARGET
 
     # 애초에 이게 있으면 여기오면 안되지만...
@@ -719,16 +731,17 @@ def filter_haul_targets(creep, ujoj, haulers):
     # 목표 컨테이너 초기화 용도.
     target = None
 
-    while not found or len(ujoj) > 0:
+    while not found or len(haul_targets) > 0:
         # size_counter is used to determines the number of creeps that can be added to the haul_target.
         size_counter = 0
 
         # if theres no structures to haul to, then no reason to do this loop
-        if len(ujoj) == 0:
+        if len(haul_targets) == 0:
             break
 
         # 가장 가까운 건물.
-        structure = creep.pos.findClosestByRange(ujoj)
+        # structure = creep.pos.findClosestByRange(haul_targets)
+        structure = creep.pos.findClosestByPath(haul_targets, {ignoreCreeps: True})
 
         for kripo in haulers:
             # 크립이름이 똑같거나 운송표적이 없으면 건너뛴다. 볼필요없음.
@@ -796,8 +809,8 @@ def filter_haul_targets(creep, ujoj, haulers):
             break
 
         else:
-            index = ujoj.indexOf(structure)
-            ujoj.splice(index, 1)
+            index = haul_targets.indexOf(structure)
+            haul_targets.splice(index, 1)
 
     if found:
         return target

@@ -167,6 +167,11 @@ def get_findPathTo(start, target, range=0, ignore_creeps=True):
     # if target.pos:
     #     target = target.pos
 
+    # if start.pos.roomName == target.pos.roomName:
+    #     path = start.findPathTo(target,
+    #                             {'maxOps': 5000, ignoreCreeps: ignore_creeps, 'range': range})
+    # else:
+
     path = start.findPathTo(target,
                             {'maxOps': 5000, ignoreCreeps: ignore_creeps, 'range': range})
     # print('path from {} to {}: {}'.format(JSON.stringify(start), JSON.stringify(target), JSON.stringify(path)))
@@ -358,7 +363,8 @@ def move_with_mem(creep, target, target_range=0, path=[], path_mem='path',
         if move_by_path == ERR_NOT_FOUND or move_by_path == ERR_INVALID_ARGS:
             # print('typeof(path): {}, move_by_path: {}'
             #       .format(bool(typeof(path) == 'object'), move_by_path))  # True
-            print(creep.name, 'ERR_NOT_FOUND {} {}x{}y'.format(creep.pos.roomName, creep.pos.x, creep.pos.y))
+            if creep.memory.debug:
+                print(creep.name, 'ERR_NOT_FOUND {} {}x{}y'.format(creep.pos.roomName, creep.pos.x, creep.pos.y))
             # 도로 새로 찾는게 아니면 여기서 끝
             if not repath:
                 return move_by_path, False, path

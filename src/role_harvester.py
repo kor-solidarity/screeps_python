@@ -52,6 +52,9 @@ def run_harvester(creep, all_structures, constructions, room_creeps, dropped_all
         """
         creep.memory.laboro = 0
 
+    if creep.memory.debug:
+        print(creep.name, 'sourceNum:', creep.memory.source_num, bool(creep.memory.source_num))
+
     # if there's no source_num, need to distribute it.
     if not creep.memory.source_num:
 
@@ -59,7 +62,7 @@ def run_harvester(creep, all_structures, constructions, room_creeps, dropped_all
         sources = []
         for r in Game.rooms[creep.memory.assigned_room].memory.resources.energy:
             sources.append(r)
-        my_room_name = creep.memory.assigned_room
+        # my_room_name = creep.memory.assigned_room
         # 같은 방에 있는 모든 하베스터를 찾는다.
         rikoltist_kripoj = _.filter(Game.creeps,
                                     lambda c: (c.spawning or c.ticksToLive > 100)
@@ -134,6 +137,7 @@ def run_harvester(creep, all_structures, constructions, room_creeps, dropped_all
         # needs to be done: 아래.
         # 이게 또 뜨는 경우가 아예 없는거 외에 이미 꽉찬건데 이 경우에는 아직 살아있는애가 있어서 겹치는 경우인데
         # 이럴때는 우선 크립의 ttl, 그리고 크립의 담당 수확지역을 찾는다.
+
         if not creep.memory.source_num:
             my_creeps = room_creeps
             harvester_that_is_gonna_die_soon = _.filter(my_creeps, lambda c: c.memory.role == 'harvester'

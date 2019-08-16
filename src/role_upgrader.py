@@ -4,6 +4,7 @@ import random
 from miscellaneous import *
 # from movement import *
 import movement
+import pathfinding
 
 __pragma__('noalias', 'name')
 __pragma__('noalias', 'undefined')
@@ -152,33 +153,37 @@ def run_upgrader(creep, creeps, all_structures, repairs, constructions):
             elif result == 0:
                 del creep.memory.last_swap
                 del creep.memory.pickup
+                del creep.memory.path
                 creep.memory.laboro = 1
             elif result == ERR_NOT_ENOUGH_ENERGY or result == ERR_INVALID_TARGET:
                 del creep.memory.pickup
 
     # laboro: 1 == UPGRADE
     if creep.memory.laboro == 1:
-
+        # 6칸이내 안들어왔으면 이거
         if not creep.pos.inRangeTo(Game.getObjectById(creep.memory.upgrade_target), 6):
+            # todo 엉킬걸 대비해서 패스파인딩을 할때 컨트롤러 주변에 있는 업글러도 장애물로 간주하고 거른다
+            # if not creep.memory.path:
+            #     creep.memory.path = get_path(creep, creeps, creep.memory.upgrade_target)
+            # path = _.map(creep.memory.path, lambda p: __new__(RoomPosition(p.x, p.y, p.roomName)))
+            # move_by_path = movement.move_with_mem(creep, creep.memory.upgrade_target, 3, path, 'path', False)
             move_by_path = movement.move_with_mem(creep, creep.memory.upgrade_target, 3)
 
             if move_by_path[0] == OK and move_by_path[1]:
                 path = move_by_path[2]
             elif not move_by_path[0] == OK and not move_by_path[0] == ERR_TIRED:
                 creep.say('업글중: {}'.format(move_by_path[0]))
-            # NULLIFIED - movement.move_with_mem 으로 교체
-            # # 현재 위치한 곳이 이전 틱에도 있던곳인지 확인하고 옮기는 등의 절차.
-            # swap_check = check_loc_and_swap_if_needed(creep, creeps, True)
-            # # 아무 문제 없으면 평소마냥 움직이는거.
-            # if swap_check == OK:
-            #     movement.movi(creep, creep.memory.upgrade_target, 3, 40, True)
-            # # 확인용. 아직 어찌할지 못정함....
-            # elif swap_check == ERR_NO_PATH:
-            #     creep.say('ERR_NO_PATH')
-            # # 위 둘 외에 다른게 넘어왔다는 소리는 실질적으로 어느 위치를 갔다는게 아니라
-            # # 다른 크립와 위치 바꿔치기를 시전했다는 소리. 메모리 옮긴다.
-            # else:
-            #     creep.memory.last_swap = swap_check
+            # 이걸 여기서 거르는 이유는 상기한대로... 독자 패스파인딩을 써서 그런거.
+            # elif move_by_path[0] == ERR_NOT_FOUND:
+            #     creep.memory.path = get_path(creep, creeps, creep.memory.upgrade_target)
+            #     path = _.map(creep.memory.path, lambda p: __new__(RoomPosition(p.x, p.y, p.roomName)))
+            #     move_by_path = movement.move_with_mem(creep, creep.memory.upgrade_target, 3, path, 'path', False)
+            #     creep.say('걸렀다!')
+            #     if move_by_path[0] == OK and move_by_path[1]:
+            #         path = move_by_path[2]
+            #     elif not move_by_path[0] == OK and not move_by_path[0] == ERR_TIRED:
+            #         creep.say('2업글중: {}'.format(move_by_path[0]))
+
         else:
             movement.movi(creep, creep.memory.upgrade_target, 3, 5)
 
@@ -237,33 +242,36 @@ def run_reserver(creep):
     else:
         creep.say(creep_action)
 
-    # try:
-    #
-    #     # if creep is not in it's flag's room.
-    #     if creep.room.name != creep.memory.assigned_room:
-    #         get_to_da_room(creep, creep.memory.assigned_room, False)
-    #     # if in.
-    #     else:
-    #         # reserve the room
-    #         creep_action = creep.reserveController(creep.room.controller)
-    #         if creep_action == ERR_NOT_IN_RANGE:
-    #             res = creep.moveTo(creep.room.controller, {'visualizePathStyle': {'stroke': '#ffffff'}, 'reusePath': 20})
-    #             creep.say(res)
-    #         elif creep_action == OK:
-    #             if Game.time % 2 == 0:
-    #                 creep.say('🇰🇵 🇰🇷', True)
-    #             else:
-    #                 creep.say('ONWARD!!', True)
-    #         # not my controller == attack
-    #         elif creep_action == ERR_INVALID_TARGET:
-    #             creep.attackController(creep.room.controller)
-    #             if Game.time % 2 == 0:
-    #                 creep.say('🔥🔥🔥🔥', True)
-    #             else:
-    #                 creep.say('몰아내자!!', True)
-    #         else:
-    #             creep.say(creep_action)
-    #
-    # except:
-    #     print("ERR!!!")
-    #     creep.moveTo(Game.flags[creep.memory.flag_name], {'visualizePathStyle': {'stroke': '#ffffff'}, 'reusePath': 20})
+
+def get_path(creep, creeps, target):
+    """
+    크립이 엉킬걸 대비해서 패스파인딩을 할때 컨트롤러 주변에 있는
+    업글러도 장애물로 간주하고 거르기 하기 위한 독자 패스파인딩
+
+    :param creep: 크립 오브젝트
+    :param creeps: 방 안 모든 크립스
+    :param target: 타겟 오브젝트, 거의 100% 컨트롤러일듯
+    :return:
+    """
+    print(creep.name, 'get_path')
+    # 오브젝트가 아니면 로딩
+    if typeof(target) == 'string':
+        target = Game.getObjectById(target)
+    # 업글러 중에 컨트롤러 범위 내에 있는애들 전부
+    upgraders = _.filter(creeps, lambda c: c.memory.role == 'upgrader' and c.pos.inRangeTo(target, 3))
+    opts = {'trackCreeps': True, 'refreshMatrix': True, 'pass_walls': False,
+                                            'costByArea': {'objects': upgraders, 'size': 1, 'cost': 6}}
+    print('target', target.pos)
+    goal = {'pos': target.pos, 'range': 3}
+    # 돌아올 패스 어레이
+    path_arr = PathFinder.search(creep, goal,
+                                 {'plainCost': 2, 'swampCost': 3,
+                                  'roomCallback':
+                                       # lambda room_name:
+                                       # pathfinding.Costs(room_name, opts).load_matrix()}, ).path
+                                      lambda roomName:
+                                      pathfinding.Costs(roomName, opts).load_matrix()}, ).path
+                                      # lambda room_name: print(room_name)}, )
+    print(path_arr)
+    return path_arr
+

@@ -24,14 +24,23 @@ __pragma__('noalias', 'update')
 """
 
 
-def refresh_stats(roomName, all_structures, fix_rating, min_wall, spawns):
+# 본진 관련
+def refresh_base_stats(chambro, all_structures, fix_rating, min_wall, spawns):
+    """
 
-    chambro = Game.rooms[roomName]
+    :param chambro: 오브젝트화된 방
+    :param all_structures: 방 안 모든 스트럭쳐
+    :param fix_rating: 방 안 수리등급
+    :param min_wall: 방 안에 가장 낮은 체력의 방벽
+    :param spawns: 방 안에 모든 스폰
+    :return:
+    """
 
     # 방 안 건물/소스현황 갱신.
     structure_cpu = Game.cpu.getUsed()
 
     # 내 방이 아닌데 내 방마냥 현황이 적혀있으면 초기화한다.
+    # todo 방에 대한 기초신상 다 턴다.
     if chambro.controller and not chambro.controller.my and chambro.memory[options]:
         chambro.memory = {}
 
@@ -185,7 +194,8 @@ def refresh_stats(roomName, all_structures, fix_rating, min_wall, spawns):
                         len(stc.pos.findPathTo(chambro.storage, {'ignoreCreeps': True}))
 
                     # 조건충족하면 업글용으로 분류 - 5칸이내거리 + 스폰보다 가깝
-                    if controller_dist <= 5 and controller_dist < closest_spawn_dist:
+                    # 렙4까지 무시.
+                    if chambro.controller.level > 4 and controller_dist <= 5 and controller_dist < closest_spawn_dist:
                         _upgrade = 1
                         print('x{}y{}에 {}, 업글컨테이너로 분류'.format(stc.pos.x, stc.pos.y, stc.id))
                 chambro.memory[STRUCTURE_CONTAINER] \

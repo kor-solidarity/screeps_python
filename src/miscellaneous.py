@@ -110,9 +110,12 @@ def filter_friend_foe(foreign_creeps):
     :return: [[적 전부], [적 NPC], [적 플레이어], [동맹]]
     """
 
-    ally_list = Memory.allianceArray
+    ally_list = _.clone(Memory.allianceArray)
+    # ally_list.extend(Memory.friendly)
+    # print(ally_list)
     if Memory.friendly and len(Memory.friendly) > 0:
         ally_list.extend(Memory.friendly)
+
     # 모든 적
     all_enemies = []
     # 엔피시
@@ -173,7 +176,8 @@ def pick_pickup(creep, creeps, pickup_targets, terminal_capacity=10000, upgrade=
             break
 
         # 가장 가까운 대상
-        loop_storage = creep.pos.findClosestByRange(pickup_targets)
+        # loop_storage = creep.pos.findClosestByRange(pickup_targets)
+        loop_storage = creep.pos.findClosestByPath(pickup_targets, {ignoreCreeps: True})
 
         if not loop_storage:
             break

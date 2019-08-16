@@ -4,6 +4,7 @@ import pathfinding
 from miscellaneous import *
 from _custom_constants import *
 import movement
+import random
 from debug import *
 
 __pragma__('noalias', 'name')
@@ -52,6 +53,9 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
     elif _.sum(creep.carry) == 0 and creep.ticksToLive < end_is_near:
         creep.suicide()
         return
+    elif _.sum(creep.carry) >= creep.carryCapacity * .5:
+        creep.memory.laboro = 1
+
     elif not creep.memory.upgrade_target:
         creep.memory.upgrade_target = creep.room.controller['id']
     elif not creep.memory.home_room:
@@ -128,7 +132,7 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
         # memory.refill 로 확인한다 0이면 컨테이너가 아예없는거, 1이면 확인해야함. 2면 이미 확인함.
         # 확인을 아직 안했고 크립이 본진이며, 링크 ID를 저장해두고 있는가?
 
-        if creep.memory.refill == 1 and creep.room.name == creep.memory.home_room:
+        if creep.memory.refill == 1 and creep.room.name == creep.memory.home_room and creep.memory.haul_destos:
 
             # print(creep.name, 'refill')
             # 여기서 컨테이너가 있긴 한지 한번 확인.
@@ -262,7 +266,7 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                     # 복구지점이 없거나 지점과 크립의 방이 동일하지 않으면 새로 찾는다
                     if not creep.memory.return_point \
                             or not creep.memory.return_point.roomName == creep.pos.roomName:
-                        print(creep.name, "NOT IN SAME ROOM!!")
+                        # print(creep.name, "NOT IN SAME ROOM!!")
                         target_changed = True
                         closest = creep.pos.findClosestByRange(path)
                     # 안뜨면 이러는게 애초에 이상하긴 한데... 우선 해봅시다.
@@ -270,8 +274,14 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                         creep.memory.return_point = closest
                     # 너무 길어서.
                     rp = creep.memory.return_point
-                    closest = __new__(RoomPosition(rp.x, rp.y, rp.roomName))
-                    if target_changed:
+                    try:
+                        closest = __new__(RoomPosition(rp.x, rp.y, rp.roomName))
+                    except:  # 여기 걸리면 완전 다른 방으로 갔다는거.
+                        # 보통 다른 방 들어가자마자 걸리고 바로 돌아오는지라 큰문제는 없을듯.
+                        print("ERROR - {} {}에 경로이탈".format(creep.name, JSON.stringify(creep.pos)))
+                        return
+                    # 우선 디버깅용으로 전환시킨다. 이제 문제 안생기는듯.
+                    if target_changed and creep.memory.debug:
                         print(creep.name, 'not closest',
                               bool(not closest), closest, 'at {}'.format(JSON.stringify(creep.pos)))
                         print(JSON.stringify(closest))
@@ -519,18 +529,15 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                     creep.memory.path = move_by_path[2]
                 # 만일 길에서 벗어났을 경우 가장 가까운 곳으로 이동. 안걸리는게 정상
                 elif move_by_path[0] == ERR_NOT_FOUND:
-                    move = movement.movi(creep, creep.pos.findClosestByRange(path))
+                    closest = creep.pos.findClosestByRange(path)
+                    # print('closest', closest)
+                    # 이게 안뜬다는건 그냥 방이 없다는건데...
+                    try:
+                        move = movement.movi(creep, __new__(RoomPosition(closest.x, closest.y, closest.roomName)))
+                    except:
+                        # 보통 다른 방 들어가자마자 걸리고 바로 돌아오는지라 큰문제는 없을듯.
+                        print("ERROR - {} {}에 경로이탈".format(creep.name, JSON.stringify(creep.pos)))
                     creep.say('집 탈선:{}'.format(move))
-
-                # NULLIFIED - OLD
-                # if move_by_path[0] == OK:
-                #     passed_block = movement.move_with_mem_block_check(creep, path)
-                #     if not passed_block == OK:
-                #         creep.say('막힘: {}'.format(passed_block))
-                # # 만일 길에서 벗어났을 경우 가장 가까운 곳으로 이동.
-                # elif move_by_path[0] == ERR_NOT_FOUND:
-                #     move = movi(creep, creep.pos.findClosestByRange(path))
-                #     creep.say('집 탈선:{}'.format(move))
 
             # 본진도착
             else:
@@ -625,18 +632,22 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                             target_objs.append(Game.getObjectById(l.id))
 
                     # print(creep.name, target_objs)
-                    creep.memory.haul_target = creep.pos.findClosestByRange(target_objs).id
+                    if len(target_objs):
+                        creep.memory.haul_target = creep.pos.findClosestByRange(target_objs).id
                     # creep.memory.haul_target = link_or_container.id
                 # 여기까지 왔는데 없으면 중대한 오류임....
                 # 공격으로 부셔졌던가 만들고 있는 중이거나 둘중하나
                 if not creep.memory.haul_target:
-                    # creep.say('목표가없다!')
+                    creep.say('목표가없다!')
                     # 여튼 없으면 가장 가까운거 집어야함 별 수 없음.
                     creep.memory.no_desto = 1
                     if creep.room.storage:
                         haul_target_objs.append(creep.room.storage)
-
+                    # try:
+                    #     print(creep.name, creep.pos)
                     creep.memory.haul_target = creep.pos.findClosestByRange(haul_target_objs).id
+                    # except:
+                    #     print('ERROR for {} in {}'.format(creep.name, creep.pos))
 
                 # 허울타겟 인스턴스화
                 haul_obj = Game.getObjectById(creep.memory.haul_target)
@@ -712,6 +723,8 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                                 if creep.memory.haul_target == h.id:
                                     continue
                                 d_obj = Game.getObjectById(h.id)
+                                if not d_obj:
+                                    continue
                                 # print(h.type)
                                 # 링크 + 안에 빈공간 존재.
                                 if h.type == STRUCTURE_LINK and not d_obj.energy == d_obj.energyCapacity:

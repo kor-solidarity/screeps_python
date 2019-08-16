@@ -76,6 +76,69 @@ def run_fixer(creep, all_structures, constructions, creeps, repairs, min_wall, t
             get_to_da_room(creep, creep.memory.assigned_roomm, False)
             return
 
+        # todo 떨궈진거 줍기
+
+        # # if there is a dropped target and it's there.
+        # if creep.memory.dropped:
+        #     if not Game.rooms[creep.memory.assigned_room].storage:
+        #         energy_only = True
+        #     else:
+        #         energy_only = False
+        #
+        #     item_pickup_res = harvest_stuff.pick_drops(creep, energy_only)
+        #
+        #     item = Game.getObjectById(creep.memory.dropped)
+        #     # 오브젝트가 아예없음
+        #     if item_pickup_res == ERR_INVALID_TARGET:
+        #         creep.say("삐빅, 없음", True)
+        #         del creep.memory.dropped
+        #     # 내용물 없음
+        #     elif item_pickup_res == ERR_NOT_ENOUGH_ENERGY:
+        #         creep.say("💢 텅 비었잖아!", True)
+        #         del creep.memory.dropped
+        #     # 멀리있음
+        #     elif item_pickup_res == ERR_NOT_IN_RANGE:
+        #         movi(creep, creep.memory.dropped, 0, 10, False, 2000, '#0000FF')
+        #
+        #     elif item_pickup_res == OK:
+        #         creep.say('♻♻♻', True)
+        #         return
+        # # if there's no dropped but there's dropped_all
+        # if not creep.memory.dropped and len(dropped_all) > 0:
+        #     # 떨어진거 확인 범위.
+        #     drop_range = 5
+        #     if creep.memory.all_full:
+        #         drop_range = 20
+        #     for drop in dropped_all:
+        #         # if there's a dropped resources near 5
+        #         if creep.pos.inRangeTo(drop, drop_range):
+        #             # 스토리지가 없으면 에너지 외엔 못넣어서 엉킴. 통과.
+        #             if not creep.room.storage:
+        #                 if drop.store and not drop.store[RESOURCE_ENERGY]:
+        #                     continue
+        #                 elif drop.resourceType != RESOURCE_ENERGY:
+        #                     continue
+        #                 energy_only = True
+        #             else:
+        #                 energy_only = False
+        #             # todo 크립당 자기 수용량을 넘지 못한다. 나중에 하는걸로.
+        #             # for c in creeps:
+        #             #     if c.memory.dropped == drop['id']:
+        #
+        #             creep.memory.dropped = drop['id']
+        #
+        #             item_pickup_res = pick_drops(creep, energy_only)
+        #             creep.say('⛏BITCOINS!', True)
+        #             if item_pickup_res == ERR_NOT_IN_RANGE:
+        #                 movi(creep, creep.memory.dropped, 0, 10, False, 2000, '#0000FF')
+        #             elif item_pickup_res == OK:
+        #                 pass
+        #             else:
+        #                 creep.say('drpERR {}'.format(item_pickup_res))
+        #             break
+        #     if creep.memory.all_full:
+        #         del creep.memory.all_full
+
         if not creep.memory.pickup:
             # 근처에 보이는거 아무거나 집는다. 허울러와 동일.
             # find anything with any resources inside
