@@ -244,11 +244,14 @@ def main():
         chambro_cpu = Game.cpu.getUsed()
         chambro = Game.rooms[chambra_nomo]
 
-        # stop_fixer 급수별 램파트 수리 양.
-        fix_rating = 5000000
-        # 레벨8 진입전까진 10%대 유지
+        # fix_rating = stop_fixer 급수별 램파트 수리 양.
+        # 레벨8 진입전까진 렙 하나당 100k씩 추가, 최대 500k, 리페어렙 1 유지.
         if chambro.controller and chambro.controller.level < 8:
-            fix_rating /= 10
+            fix_rating = 100000 * chambro.controller.level
+            if fix_rating > 500000:
+                fix_rating = 500000
+        else:
+            fix_rating = 5000000
 
         # todo 여기 메모리 맨아래로 옮겨야함
         # todo 방폭되면 거깄는 메모리 제거요망
@@ -265,19 +268,16 @@ def main():
             if not Memory.rooms[chambra_nomo].options.repair \
                     and not Memory.rooms[chambra_nomo][options][repair] == 0:
                 Memory.rooms[chambra_nomo][options][repair] = 1
-            # 운송크립의 수. 기본수가 숫자만큼 많아진다. 물론 최대치는 무조건 4
-            # NULLIFIED - ALL IS DONE AUTO
-            # if not Memory.rooms[chambra_nomo].options.haulers \
-            #         and not Memory.rooms[chambra_nomo].options.haulers == 0:
-            #     Memory.rooms[chambra_nomo].options.haulers = 1
-            # if Memory.rooms[chambra_nomo].options.haulers:
-            #     del Memory.rooms[chambra_nomo].options.haulers
+
+            # NULLIFIED - 업글러 수 제한 해제
             # 업글크립 최대수. 기본값 12
-            if not Memory.rooms[chambra_nomo].options[max_upgraders]:
-                Memory.rooms[chambra_nomo].options[max_upgraders] = 12
-            # 스토리지 안 채울 최대 에너지량. 기본값 육십만
+            # if not Memory.rooms[chambra_nomo].options[max_upgraders]:
+            #     Memory.rooms[chambra_nomo].options[max_upgraders] = 12
+            if Memory.rooms[chambra_nomo].options[max_upgraders]:
+                del Memory.rooms[chambra_nomo].options[max_upgraders]
+            # 스토리지 안 채울 최대 에너지량. 기본값 5만
             if not Memory.rooms[chambra_nomo].options[max_energy]:
-                Memory.rooms[chambra_nomo].options[max_energy] = 600000
+                Memory.rooms[chambra_nomo].options[max_energy] = 50000
             # 타워 공격시킬건가? 1이면 공격. 또한 매 1만턴마다 리셋한다.
             if (not Memory.rooms[chambra_nomo].options.tow_atk
                 and not Memory.rooms[chambra_nomo].options.tow_atk == 0) \
@@ -339,7 +339,7 @@ def main():
                 nuke_txt = Memory.rooms[chambra_nomo].options.fill_nuke
                 lab_txt = Memory.rooms[chambra_nomo].options.fill_labs
                 tow_txt = Memory.rooms[chambra_nomo].options.tow_atk
-                upg_txt = Memory.rooms[chambra_nomo].options[max_upgraders]
+                # upg_txt = Memory.rooms[chambra_nomo].options[max_upgraders]
                 energy_txt = Memory.rooms[chambra_nomo].options[max_energy]
                 stop_fixer_txt = Game.time - chambro.memory[options][stop_fixer]
 
@@ -354,14 +354,23 @@ def main():
                                     disp_x, disp_y + 0)
                 chambro.visual.text('remotes(def): {}'.format(remotes_txt),
                                     disp_x, disp_y + 1)
-                chambro.visual.text('업글러: {} | 수리: {} | 방벽(open): {}({})'
-                                    .format(upg_txt, repair_txt, ramparts_txt, ramp_open_txt),
+                chambro.visual.text('수리: {} | 방벽(open): {}({})'
+                                    .format(repair_txt, ramparts_txt, ramp_open_txt),
                                     disp_x, disp_y + 2)
                 chambro.visual.text('fillNuke/Labs: {}/{}, tow_atk/reset: {}/{}'
                                     .format(nuke_txt, lab_txt, tow_txt, 10000 - Game.time % 10000),
                                     disp_x, disp_y + 3)
                 chambro.visual.text('E할당량: {} | 수리X: {}'.format(str(int(energy_txt / 1000)) + 'k', stop_fixer_txt), disp_x, disp_y + 4)
                 # chambro.visual.text(display_txt, disp_x, disp_y+2)
+
+            # 컨테이너 안에 물건들 총합
+            if len(chambro.memory[STRUCTURE_CONTAINER]):
+                for c in chambro.memory[STRUCTURE_CONTAINER]:
+                    the_container = Game.getObjectById(c.id)
+                    if the_container and _.sum(the_container.store):
+                        chambro.visual.text(str(_.sum(the_container.store)), the_container.pos,
+                                            {'color': '#EE5927', 'font': 0.5})
+
 
             # bld_plan - 건설예약설정.
             if not chambro.memory.bld_plan:

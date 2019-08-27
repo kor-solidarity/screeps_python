@@ -128,9 +128,7 @@ def draw_path(creep, path_arr, color='white'):
     points = []
 
     for p in path_arr:
-        # if creep.memory.role == 'carrier':
-        #     print('p.roomName {} == creep.pos.roomName {}'
-        #           .format(p.roomName, creep.pos.roomName))
+
         if not p.roomName == creep.pos.roomName:
             continue
         # 크립이 있는 곳을 찍는다.
@@ -174,6 +172,7 @@ def get_findPathTo(start, target, range=0, ignore_creeps=True):
 
     path = start.findPathTo(target,
                             {'maxOps': 5000, ignoreCreeps: ignore_creeps, 'range': range})
+    # path = PathFinder.search()
     # print('path from {} to {}: {}'.format(JSON.stringify(start), JSON.stringify(target), JSON.stringify(path)))
     return _.map(path, lambda p: __new__(RoomPosition(p.x, p.y, start.roomName)))
 
@@ -315,7 +314,7 @@ def move_with_mem(creep, target, target_range=0, path=[], path_mem='path',
     :param path_mem: 메모리에 저장된 길목록 이름. 기본값은 'path'
     :param repath: 도로가 안맞을 시 다시 길찾기를 시도할건가? 기본값 True
     :param pathfinder: 패스파인더를 쓸지 여부. 안쓰면 그냥 findPathTo 쓰는거. 당장은 안넣는걸로.
-    :return: [결과값, 길이 교체됬는지 확인여부, 최종적으로 쓰인 길]
+    :return: [결과값(int), 길이 교체됬는지 확인여부(bool), 최종적으로 쓰인 길(list)]
     """
 
     # 새 길을 찾아야 하는가
@@ -394,16 +393,6 @@ def move_with_mem(creep, target, target_range=0, path=[], path_mem='path',
 
         # 세번 못움직이면 바로 길 앞 크립과 위치교체 간다.
         if creep.memory.move_ticks > 3:
-
-            # 길 목록에 크립의 현위치가 없으면 안되기에 추가한다.
-            mem_in_path = False
-            for p in path:
-                if JSON.stringify(creep.pos) == JSON.stringify(p):
-                    mem_in_path = True
-                    break
-            if not mem_in_path:
-                path.insert(0, __new__(RoomPosition(creep.pos.x, creep.pos.y, creep.pos.roomName)))
-
             creep_located = False
             for p in path:
                 # 이전 길 위에 본 크립 위치를 찾았는지?
@@ -418,80 +407,23 @@ def move_with_mem(creep, target, target_range=0, path=[], path_mem='path',
                             creep.say('교대좀', True)
                             break
                     break
-                # print('p: {}, creep: {}, same:{}'
-                #       .format(p, creep.pos, bool(JSON.stringify(p) == JSON.stringify(creep.pos))))
+
                 # 현재 포문상 위치가 이 크립의 위치와 동일한가? 그럼 이 위치 다음 크립과 교체하는거임.
                 if JSON.stringify(p) == JSON.stringify(creep.pos):
-                    # print('{} 현위치 {},{}'.format(creep.name, creep.pos.x, creep.pos.y))
                     creep_located = True
-    if len(path):
-        # if creep.memory.role == 'carrier':
-        #     print(creep.name, JSON.stringify(path))
-        draw_path(creep, path)
-    return move_by_path, changed_path, path
 
-
-# TO BE NULLIFIED
-def move_with_mem_block_check(creep, path, counter=3):
-    """
-    move_with_mem 과 연동. 앞에 길막하는놈이랑 위치교대.
-    현재 check_loc_and_swap_if_needed 랑 겹치는 부분이 있긴 한데 궁극적으론 다 여기로 보낸다.
-
-    :param creep: 크립
-    :param path: 길 목록. RoomPosition 이어야함.
-    :param counter: 몇번까지 교체허용?
-    :return: 뭘 쓸까.... 오케이 외엔 딱히없긴 할듯.
-    """
-
-    # 길 목록에 크립의 현위치가 없으면 안되기에 추가한다.
-    mem_in_path = False
-    for p in path:
-        if JSON.stringify(creep.pos) == JSON.stringify(p):
-            mem_in_path = True
-            break
-    if not mem_in_path:
-        path.insert(0, __new__(RoomPosition(creep.pos.x, creep.pos.y, creep.pos.roomName)))
-
-    # 없으면 1로 초기화.
-    if not creep.memory.move_ticks:
-        creep.memory.move_ticks = 1
-
-    # checking current location - only needed when check in par with move_ticks
-    if not creep.memory.cur_loc:
-        creep.memory.cur_loc = creep.pos
-    if not creep.fatigue == 0:
-        pass
-    # 현재 크립위치와 대조해본다. 동일하면 move_ticks 에 1 추가 아니면 1로 초기화.
-    elif JSON.stringify(creep.memory.cur_loc) == JSON.stringify(creep.pos):
-        creep.memory.move_ticks += 1
-    else:
-        # 안 동일하면 초기화.
-        creep.memory.move_ticks = 1
-        creep.memory.cur_loc = creep.pos
-
-    # 5보다 더 올라갔다는건 앞에 뭔가에 걸렸다는 소리. 그 앞에 뭔가랑 교체한다.
-    if creep.memory.move_ticks > 5 and creep.fatigue == 0:
-        creep_located = False
+        # 혹시 패스가 크립위가 아니라 바로 옆에 있어서 패스 안겹치는 경우가 있으면 맨 앞에 크립위치 패스에 추가함.
+        mem_in_path = False
         for p in path:
-            # 길위에 크립 위치를 찾았는지?
-            if creep_located:
-                # print('creep_located')
-                for i in p.look():
-                    # print(JSON.stringify(i))
-                    # 앞에 크립이 존재하고 그게 내꺼면 교대.
-                    if i.type == 'creep' and i.creep.my:
-                        Game.getObjectById(i.creep.id).moveTo(creep)
-                        creep.moveTo(Game.getObjectById(i.creep.id))
-                        creep.say('교대좀', True)
-                        return OK
+            if JSON.stringify(creep.pos) == JSON.stringify(p):
+                mem_in_path = True
                 break
-            # print('p: {}, creep: {}, same:{}'
-            #       .format(p, creep.pos, bool(JSON.stringify(p) == JSON.stringify(creep.pos))))
-            if JSON.stringify(p) == JSON.stringify(creep.pos):
-                # print('{} 현위치 {},{}'.format(creep.name, creep.pos.x, creep.pos.y))
-                creep_located = True
-        # 포문 밖으로 나오면 안됨..
-        return ERR_NO_PATH
-
-    else:
-        return OK
+        if not mem_in_path:
+            if creep.pos.isNearTo(__new__(RoomPosition(path[0].x, path[0].y, path[0].roomName))):
+                path.insert(0, __new__(RoomPosition(creep.pos.x, creep.pos.y, creep.pos.roomName)))
+    if len(path):
+        path_res = draw_path(creep, path)
+        # if creep.memory.role == 'upgrader':
+        #     print(creep.name, creep.pos, JSON.stringify(path))
+        #     print(creep.name, creep.pos, JSON.stringify(path_res))
+    return move_by_path, changed_path, path

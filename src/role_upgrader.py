@@ -162,29 +162,32 @@ def run_upgrader(creep, creeps, all_structures, repairs, constructions):
     if creep.memory.laboro == 1:
         # 6칸이내 안들어왔으면 이거
         if not creep.pos.inRangeTo(Game.getObjectById(creep.memory.upgrade_target), 6):
-            # todo 엉킬걸 대비해서 패스파인딩을 할때 컨트롤러 주변에 있는 업글러도 장애물로 간주하고 거른다
-            # if not creep.memory.path:
-            #     creep.memory.path = get_path(creep, creeps, creep.memory.upgrade_target)
-            # path = _.map(creep.memory.path, lambda p: __new__(RoomPosition(p.x, p.y, p.roomName)))
-            # move_by_path = movement.move_with_mem(creep, creep.memory.upgrade_target, 3, path, 'path', False)
-            move_by_path = movement.move_with_mem(creep, creep.memory.upgrade_target, 3)
+            # 엉킬걸 대비해서 패스파인딩을 할때 컨트롤러 주변에 있는 업글러도 장애물로 간주하고 거른다
+            if not creep.memory.path:
+                # print(creep.name, 'no creep.memory.path')
+                creep.memory.path = get_path(creep, creeps, creep.memory.upgrade_target)
+            path = _.map(creep.memory.path, lambda p: __new__(RoomPosition(p.x, p.y, p.roomName)))
+            move_by_path = movement.move_with_mem(creep, creep.memory.upgrade_target, 3, path, 'path', False)
+            # move_by_path = movement.move_with_mem(creep, creep.memory.upgrade_target, 3)
 
             if move_by_path[0] == OK and move_by_path[1]:
                 path = move_by_path[2]
+            elif move_by_path[0] == ERR_NOT_FOUND:
+                creep.memory.path = get_path(creep, creeps, creep.memory.upgrade_target)
+                path = _.map(creep.memory.path, lambda p: __new__(RoomPosition(p.x, p.y, p.roomName)))
+                move_by_path = movement.move_with_mem(creep, creep.memory.upgrade_target, 3, path, 'path', False)
+                creep.say('걸렀다!')
+                if move_by_path[0] == OK and move_by_path[1]:
+                    path = move_by_path[2]
+                elif not move_by_path[0] == OK and not move_by_path[0] == ERR_TIRED:
+                    creep.say('2업글중: {}'.format(move_by_path[0]))
             elif not move_by_path[0] == OK and not move_by_path[0] == ERR_TIRED:
                 creep.say('업글중: {}'.format(move_by_path[0]))
             # 이걸 여기서 거르는 이유는 상기한대로... 독자 패스파인딩을 써서 그런거.
-            # elif move_by_path[0] == ERR_NOT_FOUND:
-            #     creep.memory.path = get_path(creep, creeps, creep.memory.upgrade_target)
-            #     path = _.map(creep.memory.path, lambda p: __new__(RoomPosition(p.x, p.y, p.roomName)))
-            #     move_by_path = movement.move_with_mem(creep, creep.memory.upgrade_target, 3, path, 'path', False)
-            #     creep.say('걸렀다!')
-            #     if move_by_path[0] == OK and move_by_path[1]:
-            #         path = move_by_path[2]
-            #     elif not move_by_path[0] == OK and not move_by_path[0] == ERR_TIRED:
-            #         creep.say('2업글중: {}'.format(move_by_path[0]))
 
         else:
+            if creep.memory.path:
+                del creep.memory.path
             movement.movi(creep, creep.memory.upgrade_target, 3, 5)
 
         repair_on_the_way(creep, repairs, constructions, True)
@@ -221,9 +224,7 @@ def run_reserver(creep):
                 path = move_by_path[2]
             elif not move_by_path[0] == OK and not move_by_path[0] == ERR_TIRED:
                 creep.say('업글중: {}'.format(move_by_path[0]))
-            #
-        # res = creep.moveTo(Game.getObjectById(creep.memory.upgrade_target),
-        #                    {'visualizePathStyle': {'stroke': '#ffffff'}, 'reusePath': 20})
+
         else:
             res = movement.movi(creep, creep.memory.upgrade_target)
         # creep.say(res)
@@ -253,25 +254,22 @@ def get_path(creep, creeps, target):
     :param target: 타겟 오브젝트, 거의 100% 컨트롤러일듯
     :return:
     """
-    print(creep.name, 'get_path')
+
     # 오브젝트가 아니면 로딩
     if typeof(target) == 'string':
         target = Game.getObjectById(target)
     # 업글러 중에 컨트롤러 범위 내에 있는애들 전부
-    upgraders = _.filter(creeps, lambda c: c.memory.role == 'upgrader' and c.pos.inRangeTo(target, 3))
-    opts = {'trackCreeps': True, 'refreshMatrix': True, 'pass_walls': False,
-                                            'costByArea': {'objects': upgraders, 'size': 1, 'cost': 6}}
-    print('target', target.pos)
-    goal = {'pos': target.pos, 'range': 3}
-    # 돌아올 패스 어레이
-    path_arr = PathFinder.search(creep, goal,
-                                 {'plainCost': 2, 'swampCost': 3,
-                                  'roomCallback':
-                                       # lambda room_name:
-                                       # pathfinding.Costs(room_name, opts).load_matrix()}, ).path
-                                      lambda roomName:
-                                      pathfinding.Costs(roomName, opts).load_matrix()}, ).path
-                                      # lambda room_name: print(room_name)}, )
-    print(path_arr)
-    return path_arr
+    upgraders = _.filter(creeps,
+                         lambda c: (c.memory.role == 'upgrader' or c.memory.role == 'hauler')
+                         and c.memory.assigned_room == creep.room.name and c.pos.inRangeTo(target, 4))
+    # print(upgraders)
+    opts = {'trackCreeps': False, 'refreshMatrix': True, 'pass_walls': False,
+            'costByArea': {'objects': upgraders, 'size': 0, 'cost': 100}}
 
+    # 돌아올 패스 어레이
+    path_arr = creep.pos.findPathTo(target,
+                                 {'plainCost': 2, 'swampCost': 3, 'ignoreCreeps': True, 'range': 3,
+                                  'costCallback':
+                                      lambda room_name: pathfinding.Costs(room_name, opts).load_matrix()})
+
+    return _.map(path_arr, lambda p: __new__(RoomPosition(p.x, p.y, creep.pos.roomName)))

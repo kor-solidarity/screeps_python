@@ -57,9 +57,13 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
     if not creep.memory.size:
         creep.memory.size = 1
 
-    # 스토리지 내 에너지값. 사실 저 엘스문 걸릴경우는 허울러가 실수로 다른방 넘어갔을 뿐....
+    # 스토리지 내 허용되는 최대 수용 에너지값. == 스토리지 전체량에서 에너지 아닌걸 제외한 값에서 max_energy를 뺀 값
+    # 사실 저 엘스문 걸릴경우는 허울러가 실수로 다른방 넘어갔을 뿐....
     if creep.room.memory.options and creep.room.memory.options[max_energy]:
-        max_energy_in_storage = creep.room.memory.options[max_energy]
+        max_energy_in_storage = \
+            creep.room.storage.storeCapacity \
+            - (_.sum(creep.room.storage.store) - creep.room.storage.store[RESOURCE_ENERGY]) \
+            - creep.room.memory.options[max_energy]
     else:
         max_energy_in_storage = 600000
 
@@ -264,7 +268,7 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                                     _full = False
                                     break
                         # 핵 채우기
-                        if creeps.room.options and creep.room.options.fill_nuke:
+                        if creep.room.memory.options and creep.room.memory.options.fill_nuke:
                             nuker = all_structures.filter(lambda s: s.structureType == STRUCTURE_NUKER)
                             if len(nuker):
                                 nuker = nuker[0]
@@ -339,6 +343,7 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                 elif result == ERR_NOT_ENOUGH_ENERGY:
                     del creep.memory.pickup
                     del creep.memory.path
+                    del creep.memory[haul_resource]
                     return
                 # other errors? just delete 'em
                 else:
@@ -389,6 +394,7 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
             else:
                 structures = []
             # print('picker {} and len(structures) {}'.format(picker, len(structures)))
+            #
             if not picker and len(structures) > 0:
                 creep.say('🔄물류,염려말라!', True)
                 creep.memory.priority = 1
@@ -640,7 +646,30 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                 if repair.hits == repair.hitsMax:
                     del creep.memory.repair_target
                     # 당장 수리대상이 수리완료했을 때 채워야 하는 대상이 있으면 바로 전환한다.
+                    hauling_need = False
+
+                    # 에너지가 부족하거나 건설대상이 있는지 확인
                     if creep.room.energyAvailable < creep.room.energyCapacityAvailable or len(constructions):
+                        hauling_need = True
+
+                    if not hauling_need:
+                        # 핵이 있고 채움대상인지 확인.
+                        nuker = all_structures.filter(lambda s: s.structureType == STRUCTURE_NUKER)
+                        if len(nuker):
+                            nuker = nuker[0]
+                        else:
+                            nuker = None
+                        if creep.room.memory.options.fill_nuke and nuker and nuker.energy < nuker.energyCapacity:
+                            hauling_need = True
+
+                        # 연구소도 확인
+                        labs = all_structures.filter(lambda s: s.structureType == STRUCTURE_LAB)
+                        if not hauling_need and creep.room.memory.options.fill_labs and len(labs):
+                            for l in labs:
+                                if l.energy < l.energyCapacity:
+                                    hauling_need = True
+                                    break
+                    if hauling_need:
                         creep.memory.priority = 1
                         creep.say('다시 채우러~', True)
                         return
@@ -748,7 +777,7 @@ def filter_haul_targets(creep, haul_targets, haulers):
             if creep.name == kripo or not kripo.memory.haul_target:
                 continue
 
-            # se kripo.memory.haul_target estas sama kun structure.id, ankaŭ transsaltu.
+            # kripo.memory.haul_target == structure.id, 건너뛴다
             if kripo.memory.haul_target == structure.id:
                 # SED se structure estas tower(turo) aŭ spawn(nesto), kalkulu la grandeco(size).
                 if structure.structureType != STRUCTURE_EXTENSION:
@@ -842,10 +871,13 @@ def grab_haul_list(creep, roomName, totalStructures, add_storage=False):
                                                   or (s.structureType == STRUCTURE_TERMINAL
                                                       and s.store[RESOURCE_ENERGY] < 10000))
 
+    # 스토리지에 넣을 양이 있을때 추가하는거임.
+    # 기준: 스토리지에 남은 양이 max_energy 값 이상일 경우
     if add_storage:
         structures.extend(totalStructures.filter
                           (lambda s: s.structureType == STRUCTURE_STORAGE
-                           and s.store[RESOURCE_ENERGY] < Game.rooms[roomName].memory.options[max_energy]))
+                           # and s.store[RESOURCE_ENERGY] < Game.rooms[roomName].memory.options[max_energy]))
+                           and s.storeCapacity - _.sum(s.store) >= Game.rooms[roomName].memory.options[max_energy]))
 
     # 핵에 에너지 넣는걸로 함?
     if Memory.rooms[roomName].options and Memory.rooms[roomName].options.fill_nuke:

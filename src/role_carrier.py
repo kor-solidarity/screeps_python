@@ -278,7 +278,7 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                         closest = __new__(RoomPosition(rp.x, rp.y, rp.roomName))
                     except:  # 여기 걸리면 완전 다른 방으로 갔다는거.
                         # 보통 다른 방 들어가자마자 걸리고 바로 돌아오는지라 큰문제는 없을듯.
-                        print("ERROR - {} {}에 경로이탈".format(creep.name, JSON.stringify(creep.pos)))
+                        print("ERROR - {} {}에 경로이탈 {}".format(creep.name, JSON.stringify(creep.pos), rp))
                         return
                     # 우선 디버깅용으로 전환시킨다. 이제 문제 안생기는듯.
                     if target_changed and creep.memory.debug:
