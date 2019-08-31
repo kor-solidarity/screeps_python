@@ -431,7 +431,8 @@ def main():
 
         malsana_amikoj = _.filter(room_creeps, lambda c: c.hits < c.hitsMax)
 
-        constructions = chambro.find(FIND_MY_CONSTRUCTION_SITES)
+        enemy_constructions = chambro.find(FIND_HOSTILE_CONSTRUCTION_SITES)
+        my_constructions = chambro.find(FIND_MY_CONSTRUCTION_SITES)
         dropped_all = chambro.find(FIND_DROPPED_RESOURCES)
         tomes = chambro.find(FIND_TOMBSTONES)
         if tomes:
@@ -531,7 +532,7 @@ def main():
                 role_soldier_h_defender.h_defender(all_structures, creep, room_creeps, hostile_creeps)
 
             elif creep.memory.role == 'harvester':
-                role_harvester.run_harvester(creep, all_structures, constructions, room_creeps, dropped_all)
+                role_harvester.run_harvester(creep, all_structures, my_constructions, room_creeps, dropped_all)
                 """
                 Runs a creep as a generic harvester.
                 :param creep: The creep to run
@@ -542,7 +543,7 @@ def main():
                 """
 
             elif creep.memory.role == 'hauler':
-                role_hauler.run_hauler(creep, all_structures, constructions,
+                role_hauler.run_hauler(creep, all_structures, my_constructions,
                                        room_creeps, dropped_all, all_repairs, terminal_capacity)
                 """
                 :param creep:
@@ -553,7 +554,7 @@ def main():
                 :return:
                 """
             elif creep.memory.role == 'fixer':
-                role_fixer.run_fixer(creep, all_structures, constructions,
+                role_fixer.run_fixer(creep, all_structures, my_constructions,
                                      room_creeps, all_repairs, min_wall, terminal_capacity)
                 """
                 :param creep:
@@ -563,7 +564,7 @@ def main():
                 :return:
                 """
             elif creep.memory.role == 'carrier':
-                role_carrier.run_carrier(creep, room_creeps, all_structures, constructions, dropped_all, all_repairs)
+                role_carrier.run_carrier(creep, room_creeps, all_structures, my_constructions, dropped_all, all_repairs)
                 """
                 technically same with hauler, but more concentrated in carrying itself.
                     and it's for remote mining ONLY.
@@ -584,12 +585,12 @@ def main():
                     continue
 
             if creep.memory.role == 'upgrader':
-                role_upgrader.run_upgrader(creep, room_creeps, all_structures, all_repairs, constructions)
+                role_upgrader.run_upgrader(creep, room_creeps, all_structures, all_repairs, my_constructions)
 
             elif creep.memory.role == 'miner':
                 role_harvester.run_miner(creep, all_structures)
             elif creep.memory.role == 'scout':
-                role_scout.run_scout(creep)
+                role_scout.run_scout(creep, enemy_constructions)
             elif creep.memory.role == 'reserver':
                 role_upgrader.run_reserver(creep)
             elif creep.memory.role == 'demolition':

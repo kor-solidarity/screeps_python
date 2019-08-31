@@ -1,6 +1,7 @@
 from defs import *
 import random
 import miscellaneous
+import movement
 
 __pragma__('noalias', 'name')
 __pragma__('noalias', 'undefined')
@@ -36,12 +37,12 @@ def run_remote_defender(all_structures, creep, creeps, hostile_creeps, lairs=Non
                     e = creep.pos.findClosestByRange(close_enemy)
                     creep.rangedAttack(e)
             creep.heal(Game.getObjectById(creep.id))
-            miscellaneous.get_to_da_room(creep, creep.memory.assigned_room, False)
+            movement.get_to_da_room(creep, creep.memory.assigned_room, False)
             return
     except:
         if creep.hits != creep.hitsMax:
             creep.heal(Game.getObjectById(creep.id))
-        miscellaneous.get_to_da_room(creep, creep.memory.assigned_room, False)
+        movement.get_to_da_room(creep, creep.memory.assigned_room, False)
         return
 
     if not creep.memory.keeper_lair and not creep.memory.keeper_lair == 0:
@@ -119,7 +120,7 @@ def run_remote_defender(all_structures, creep, creeps, hostile_creeps, lairs=Non
         else:
             # 아무것도 없으면 대기탄다
             if not creep.pos.inRangeTo(__new__(RoomPosition(25, 25, creep.memory.assigned_room)), 22):
-                miscellaneous.get_to_da_room(creep, creep.memory.assigned_room, False)
+                movement.get_to_da_room(creep, creep.memory.assigned_room, False)
 
 
 # todo 키퍼방 키퍼제거용

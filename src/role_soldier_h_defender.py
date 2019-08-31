@@ -2,6 +2,7 @@ from defs import *
 import harvest_stuff
 import random
 import miscellaneous
+import movement
 
 __pragma__('noalias', 'name')
 __pragma__('noalias', 'undefined')
@@ -28,7 +29,7 @@ def h_defender(all_structures, creep, creeps, hostile_creeps):
     listo = ['Charge!', "KILL!!", "Ypa!", 'CodeIn 🐍!', 'Python 🤘!']
 
     if creep.memory.assigned_room != creep.room.name:
-        miscellaneous.get_to_da_room(creep, creep.memory.assigned_room, False)
+        movement.get_to_da_room(creep, creep.memory.assigned_room, False)
         return
 
     # find the goddamn enemies
@@ -44,4 +45,4 @@ def h_defender(all_structures, creep, creeps, hostile_creeps):
             creep.moveTo(enemy,
                          {'visualizePathStyle': {'stroke': '#FF0000'}, 'ignoreCreeps': False})
     else:
-        miscellaneous.get_to_da_room(creep, creep.memory.assigned_room, False)
+        movement.get_to_da_room(creep, creep.memory.assigned_room, False)

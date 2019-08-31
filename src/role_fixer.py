@@ -1,8 +1,8 @@
 from defs import *
-from movement import *
+import movement
 import harvest_stuff
 import random
-from miscellaneous import *
+import miscellaneous
 from _custom_constants import *
 
 __pragma__('noalias', 'name')
@@ -73,7 +73,7 @@ def run_fixer(creep, all_structures, constructions, creeps, repairs, min_wall, t
             del creep.memory.pickup
 
         if not creep.room.name == creep.memory.assigned_room and not creep.memory.pickup:
-            get_to_da_room(creep, creep.memory.assigned_roomm, False)
+            movement.get_to_da_room(creep, creep.memory.assigned_roomm, False)
             return
 
         # todo 떨궈진거 줍기
@@ -153,7 +153,7 @@ def run_fixer(creep, all_structures, constructions, creeps, repairs, min_wall, t
                 labs = all_structures \
                     .filter(lambda s: s.structureType == STRUCTURE_LAB and s.energy >= creep.carryCapacity * .5)
                 storages.extend(labs)
-            pickup_id = pick_pickup(creep, creeps, storages, terminal_capacity)
+            pickup_id = miscellaneous.pick_pickup(creep, creeps, storages, terminal_capacity)
             # 아무것도 없는 상태에서 이 크립이 절대!! 스폰되선 안됨.... 그건 있을 수 없는 일임....
             if pickup_id == ERR_INVALID_TARGET:
                 creep.say('🧟..🧠', True)
@@ -168,7 +168,7 @@ def run_fixer(creep, all_structures, constructions, creeps, repairs, min_wall, t
         if result == ERR_NOT_IN_RANGE:
             path = _.map(creep.memory.path, lambda p: __new__(RoomPosition(p.x, p.y, creep.room.name)))
             # 메모리에 있는걸 최우선적으로 찾는다.
-            move_by_path = move_with_mem(creep, creep.memory.pickup, 0, path)
+            move_by_path = movement.move_with_mem(creep, creep.memory.pickup, 0, path)
             if move_by_path[0] == OK and move_by_path[1]:
                 creep.memory.path = move_by_path[2]
 
@@ -182,9 +182,11 @@ def run_fixer(creep, all_structures, constructions, creeps, repairs, min_wall, t
         elif result == ERR_NOT_ENOUGH_ENERGY:
             creep.say('💢 없잖음!', True)
             del creep.memory.pickup
+            del creep.memory.path
             return
         else:
             del creep.memory.pickup
+            del creep.memory.path
             return
 
     # 1 == 본격적인 수리작업 시작.
@@ -211,18 +213,32 @@ def run_fixer(creep, all_structures, constructions, creeps, repairs, min_wall, t
 
         if creep.pos.inRangeTo(Game.getObjectById(creep.memory.repair_target), 3):
             repairs = [Game.getObjectById(creep.memory.repair_target)]
-        repair_on_the_way(creep, repairs, constructions, True, True)
+        miscellaneous.repair_on_the_way(creep, repairs, constructions, True, True)
 
         if not creep.pos.inRangeTo(Game.getObjectById(creep.memory.repair_target), 6):
+            if not creep.memory.path:
+                creep.memory.path = movement.get_bld_upg_path(creep, creeps, creep.memory.repair_target)
+            # 메모리 안 패스는 RoomPosition 오브젝트가 아니기 때문에 꼭 맵 걸러야함
             path = _.map(creep.memory.path, lambda p: __new__(RoomPosition(p.x, p.y, creep.room.name)))
             # 메모리에 있는걸 최우선적으로 찾는다.
-            move_by_path = move_with_mem(creep, creep.memory.repair_target, 3, path)
+            move_by_path = movement.\
+                move_with_mem(creep, creep.memory.repair_target, 3, path, 'path', False)
             if move_by_path[0] == OK and move_by_path[1]:
                 creep.memory.path = move_by_path[2]
+            # 솔까 이거 걸리는게 이상한거임...
+            elif move_by_path[0] == ERR_NOT_FOUND:
+                creep.say('noPath')
+                print(creep.memory.path)
+                creep.memory.path = movement.get_bld_upg_path(creep, creeps, creep.memory.repair_target)
+                path = _.map(creep.memory.path, lambda p: __new__(RoomPosition(p.x, p.y, p.roomName)))
+                move_by_path = movement. \
+                    move_with_mem(creep, creep.memory.repair_target, 3, path, 'path', False)
 
-        elif creep.pos.inRangeTo(Game.getObjectById(creep.memory.repair_target), 3):
-            pass
+        # else:
+        # elif creep.pos.inRangeTo(Game.getObjectById(creep.memory.repair_target), 3):
+        #     if creep.memory.path:
+        #         del creep.memory.path
         else:
             if creep.memory.path:
                 del creep.memory.path
-            movi(creep, creep.memory.repair_target, 3, 5)
+            movement.movi(creep, creep.memory.repair_target, 3, 5)

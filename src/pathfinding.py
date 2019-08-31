@@ -57,7 +57,7 @@ class Costs:
                 'costByArea': {'objects': [controller], 'size': 1, 'cost': 255}}
         costs = Costs(room_name, opts).load_matrix()
         """
-
+        # print('add_area')
         if not self.room:
             return matrix
 
@@ -82,6 +82,7 @@ class Costs:
         """Modifies clone of matrix found at self.costs.rooms[self.id] to
         reflect creep positions in room.  If the target room is undefined, the
         base matrix found in self.rooms is returned"""
+        # print('add_creeps')
 
         if self.id in self.costs.creeps:
             return self.costs.creeps[self.id]
@@ -98,7 +99,7 @@ class Costs:
     def add_structures(self, matrix):
         """Modifies matrix object to reflect structures in room; if the room
         doesn't exist in Game.rooms, ERR_INVALID_TARGET is returned"""
-
+        # print('add_structures')
         if not self.room:
             return ERR_INVALID_TARGET
 
@@ -133,7 +134,7 @@ class Costs:
 
         Costs set in this method override previously set cost values for a tile
         if that cost is < 255"""
-
+        # print('add_walls')
         """
         opts = {'trackCreeps': True, 'refreshMatrix': True, 'pass_walls': True,
                 'costByArea': {'objects': [controller], 'size': 1, 'cost': 255}}
@@ -177,7 +178,7 @@ class Costs:
         Regardless of whether or not the room is visible, the result is stored
         for use in the current tick.
         """
-
+        # print('generate_new_matrix')
         new_matrix = __new__(PathFinder.CostMatrix)
 
         if self.opts.pass_walls:
@@ -206,6 +207,9 @@ class Costs:
         `rooms` and `creeps` are emptied at the end of each tick
         """
 
+        if not self.room:
+            return False
+
         if (self.id not in self.costs.base) or self.opts.refreshMatrix:
             self.generate_new_matrix()
 
@@ -219,13 +223,13 @@ class Costs:
 
     def pack(self, matrix):
         """Returns serialized form of matrix that can be cached"""
-
+        # print('pack')
         return JSON.stringify(matrix.serialize())
 
     def unpack(self, matrix):
         """Returns a deserialized form of matrix that can be used by
         PathFinder.search()"""
-
+        # print('unpack')
         return PathFinder.CostMatrix.deserialize(JSON.parse(matrix))
 
     # 신버전 transcrypt에서만 작동함.

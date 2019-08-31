@@ -44,6 +44,39 @@ def movi(creep, target, range_to=0, reusePath=20, ignore_creeps=False, maxOps=30
                                      'reusePath': reusePath, 'maxOps': maxOps})
 
 
+# noinspection PyPep8Naming
+def get_to_da_room(creep, roomName, ignoreRoads=False):
+    """
+    특정 방으로 무작정 보내기.
+    갈때는 시리얼화된 길 타고 간다
+
+    :param creep:
+    :param roomName: 가려고 하는 방이름.
+    :param ignoreRoads: 기본값 참.
+    :return:
+    """
+    # 이 명령이 목적 방에서도 도는 경우 단순히 시야확보 등의 발령목적으로 보내버리는거기 때문에
+    # 방 안에 있으면 무조건 ignoreRoads가 참이여야함
+    if creep.room.name == roomName:
+        ignoreRoads = True
+    # 방 안에 없는 경우 길 저장해서 간다
+    else:
+        path = []
+        if creep.memory.path:
+            path = _.map(creep.memory.path, lambda p: __new__(RoomPosition(p.x, p.y, p.roomName)))
+        return move_with_mem(creep, __new__(RoomPosition(25, 25, roomName)), 20, path)
+
+    if creep.room.name == roomName and creep.pos.inRangeTo(creep.room.controller, 5):
+        # return ERR_NO_PATH
+        return 'yolo'
+
+    result = creep.moveTo(__new__(RoomPosition(25, 25, roomName)),
+    # result = creep.moveTo(Game.rooms[roomName].controller,
+                          {'visualizePathStyle': {'stroke': '#ffffff'}, 'reusePath': 15,
+                           'range': 21, 'maxOps': 1000, 'ignoreRoads': ignoreRoads})
+    return result
+
+
 def check_loc_and_swap_if_needed(creep, creeps, avoid_id=False, avoid_role=False, path=[]):
     """
     크립이 현위치에 계속 있는지 확인.
@@ -125,10 +158,11 @@ def draw_path(creep, path_arr, color='white'):
     :return:
     """
     creep_pos_checked = False
+    # 줄이 찍힐 RoomPosition 목록
     points = []
 
     for p in path_arr:
-
+        # 같은 방에 있는거만 그린다
         if not p.roomName == creep.pos.roomName:
             continue
         # 크립이 있는 곳을 찍는다.
@@ -162,19 +196,22 @@ def get_findPathTo(start, target, range=0, ignore_creeps=True):
         target = Game.getObjectById(target)
     if start.pos:
         start = start.pos
-    # if target.pos:
-    #     target = target.pos
+    if target.pos:
+        target = target.pos
 
-    # if start.pos.roomName == target.pos.roomName:
-    #     path = start.findPathTo(target,
-    #                             {'maxOps': 5000, ignoreCreeps: ignore_creeps, 'range': range})
-    # else:
+    # 같은 방일 경우 이걸 쓰고, 아니면 패스파인더 호출한다.
+    if start.roomName == target.roomName:
+        path = start.findPathTo(target,
+                                {'maxOps': 5000, ignoreCreeps: ignore_creeps, 'range': range})
+        path = _.map(path, lambda p: __new__(RoomPosition(p.x, p.y, start.roomName)))
+    else:
+        path = PathFinder.search(start, target,
+                                 {'plainCost': 2, 'swampCost': 6,
+                                  'roomCallback':
+                                      lambda room_name:
+                                      Costs(room_name, {}).load_matrix()},).path
 
-    path = start.findPathTo(target,
-                            {'maxOps': 5000, ignoreCreeps: ignore_creeps, 'range': range})
-    # path = PathFinder.search()
-    # print('path from {} to {}: {}'.format(JSON.stringify(start), JSON.stringify(target), JSON.stringify(path)))
-    return _.map(path, lambda p: __new__(RoomPosition(p.x, p.y, start.roomName)))
+    return path
 
 
 def swapping(creep, creeps, avoid_id='', avoid_role=''):
@@ -301,30 +338,46 @@ def move_using_swap(creep, creeps, target, ignore_creeps=True, reuse_path=40,
         return OK
 
 
-def move_with_mem(creep, target, target_range=0, path=[], path_mem='path',
-                  repath=True, pathfinder=False):
+# todo path=[] 부분 제거요망
+def move_with_mem(creep, target, target_range=0, path=[], path_mem='path', repath=True, pathfinder=False):
     """
     저장된 패스 메모리따라 움직일 모든 코드는 여기에 들어간다.
     움직이려 하는데 안움직이면 앞자리 애랑 교대까지.
 
     :param creep: 크립
     :param target: 갈 표적 아이디 또는 RoomPosition
-    :param target_range: target_range
-    :param path: 최초 지정된 길. 존재하면 사용.
+    :param target_range: 설명 필요없을듯
+    :param path: 최초 지정된 길. 존재하면 사용. 보통 creep.memory.path 에서 알아서 뽑아감
     :param path_mem: 메모리에 저장된 길목록 이름. 기본값은 'path'
     :param repath: 도로가 안맞을 시 다시 길찾기를 시도할건가? 기본값 True
     :param pathfinder: 패스파인더를 쓸지 여부. 안쓰면 그냥 findPathTo 쓰는거. 당장은 안넣는걸로.
     :return: [결과값(int), 길이 교체됬는지 확인여부(bool), 최종적으로 쓰인 길(list)]
     """
 
+    # creep.memory[path_mem] 에 저장되있는 RoomPosition 어레이값
+    path = []
+    # path 반환 용도
+    changed_path = False
     # 새 길을 찾아야 하는가
     need_new_path = False
-    if not len(path):
-        changed_path = True
-    # path 반환 용도
-    else:
-        changed_path = False
 
+    # path_mem 메모리가 있나 확인해보고 path값에 대입해 넣는다
+    if creep.memory[path_mem]:
+        path = _.map(creep.memory[path_mem], lambda p: __new__(RoomPosition(p.x, p.y, p.roomName)))
+    # 없으면 새 길 파야함.
+    else:
+        need_new_path = True
+    # NULLIFIED - 패스가 없으면 무작정 넘기는게 아님
+    # 새 길을 찾아야 하는가
+    # need_new_path = False
+    # if not len(path):
+    #     changed_path = True
+    # # path 반환 용도
+    # else:
+    #     changed_path = False
+
+    # if creep.memory.path:
+    #     print(creep.name, 'creep.memory.path[0]', creep.memory.path[0], typeof(creep.memory.path[0]), typeof(path[0]))
     # 타겟이 아이디인 경우 pos만 추출
     if typeof(target) == 'string':
         target = Game.getObjectById(target).pos
@@ -346,9 +399,7 @@ def move_with_mem(creep, target, target_range=0, path=[], path_mem='path',
         if not repath:
             pass
         # 길 새로 짜야하는 경우 짠다.
-        # todo 만약 다른 방까지 가야 하는 경우에 대한 대비가 없음 - 이상한데로 감.
         elif need_new_path or not creep.memory[path_mem]:
-            # print(creep.name, 'repathing from', JSON.stringify(creep.pos), 'to', JSON.stringify(target))
             path_array = get_findPathTo(creep.pos, target, target_range)
             # print(JSON.stringify(path_array))
             path_array.insert(0, creep.pos)
@@ -423,7 +474,39 @@ def move_with_mem(creep, target, target_range=0, path=[], path_mem='path',
                 path.insert(0, __new__(RoomPosition(creep.pos.x, creep.pos.y, creep.pos.roomName)))
     if len(path):
         path_res = draw_path(creep, path)
-        # if creep.memory.role == 'upgrader':
-        #     print(creep.name, creep.pos, JSON.stringify(path))
-        #     print(creep.name, creep.pos, JSON.stringify(path_res))
+
     return move_by_path, changed_path, path
+
+
+def get_bld_upg_path(creep, creeps, target):
+    """
+    크립이 엉킬걸 대비해서 패스파인딩을 할때 컨트롤러 주변에 있는
+    크립들도 장애물로 간주하고 거르기 하기 위한 독자 패스파인딩.
+    건설·업글 등 3칸이내로 들어가야 하는 모든 역할이 대상.
+
+    :param creep: 크립 오브젝트
+    :param creeps: 방 안 모든 크립스
+    :param target: 타겟 오브젝트, 보통은 ID
+    :return:
+    """
+
+    # 오브젝트가 아니면 로딩
+    if typeof(target) == 'string':
+        target = Game.getObjectById(target)
+    # 표적 범위 내에 있는 크립들 중 역할특성상 한곳에 머무는 애 전부
+    upgraders = _.filter(creeps,
+                         lambda c: c.memory.assigned_room == creep.room.name
+                         and (c.memory.role == 'upgrader' or c.memory.role == 'hauler'
+                              or c.memory.role == 'fixer' or c.memory.role == 'harvester')
+                         and c.pos.inRangeTo(target, 4))
+    # print(upgraders)
+    opts = {'trackCreeps': False, 'refreshMatrix': True, 'pass_walls': False,
+            'costByArea': {'objects': upgraders, 'size': 0, 'cost': 100}}
+
+    # 돌아올 패스 어레이
+    path_arr = creep.pos.findPathTo(target,
+                                 {'plainCost': 2, 'swampCost': 3, 'ignoreCreeps': True, 'range': 3,
+                                  'costCallback':
+                                      lambda room_name: Costs(room_name, opts).load_matrix()})
+
+    return _.map(path_arr, lambda p: __new__(RoomPosition(p.x, p.y, creep.pos.roomName)))

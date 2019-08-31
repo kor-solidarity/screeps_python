@@ -1,5 +1,5 @@
 from defs import *
-from movement import *
+import movement
 from _custom_constants import *
 
 __pragma__('noalias', 'name')
@@ -30,11 +30,11 @@ def harvest_energy(creep, source_id):
     # activate the harvest cmd.
     else:
         harvested = creep.harvest(Game.getObjectById(source_id))
-
+    # print(creep.name, creep.pos, harvested, Game.getObjectById(source_id))
     # is sources too far out?
     if harvested == ERR_NOT_IN_RANGE:
         if not creep.pos.inRangeTo(Game.getObjectById(source_id), 6):
-            move_by_path = move_with_mem(creep, source_id)
+            move_by_path = movement.move_with_mem(creep, source_id)
             if move_by_path[0] == OK and move_by_path[1]:
                     path = move_by_path[2]
             else:

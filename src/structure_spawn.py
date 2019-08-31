@@ -493,15 +493,6 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                     # dividend_by_repairs = len(wall_repairs) // 10
                     max_num_fixers = _.min([storage_dividend, elapsed_fixer_dividend])
 
-                # NULLIFIED
-                # 스토리지 에너지양 / 3만의 정수 vs 수리할게 생긴 시점부터의 시간 / 3천의 정수
-                # 둘 중 적은 숫자를 택한다.
-                # elif int(chambro.storage.store[RESOURCE_ENERGY] / 30000) < int(elapsed_fixer_time / 3000):
-                #
-                #     max_num_fixers = int(elapsed_fixer_time / 30000)
-                # else:
-                #     # 시간이 지나면서 계속 수리할게 있으면 누적시키는 방식.
-                #     max_num_fixers += int(elapsed_fixer_time / 3000)
                 # 최대값. 임시조치임.
                 if max_num_fixers > 5:
                     max_num_fixers = 5
@@ -518,7 +509,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                     fixer_spawn = spawn.spawnCreep(
                         [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE,
                          WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK,
-                         WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY,
+                         WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY, CARRY, CARRY,
                          CARRY,
                          CARRY], 'fx_{}_{}'.format(spawn_room_low, rand_int),
                         {memory: {'role': 'fixer', 'assigned_room': spawn.pos.roomName, 'level': 8}})
@@ -1089,8 +1080,8 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
 
                     flag_built_containers = flag_containers
 
-                    # flag_lairs = _.filter(flag_structures,
-                    #                       lambda s: s.structureType == STRUCTURE_KEEPER_LAIR)
+                    flag_lairs = _.filter(flag_structures,
+                                          lambda s: s.structureType == STRUCTURE_KEEPER_LAIR)
                     flag_mineral = Game.rooms[room_name].find(FIND_MINERALS)
                     flag_constructions = Game.rooms[room_name].find(FIND_CONSTRUCTION_SITES)
 

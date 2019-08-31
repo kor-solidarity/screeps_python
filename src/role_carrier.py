@@ -466,7 +466,7 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                 # dont have a build_target and not in proper room - get there firsthand.
                 if creep.memory.assigned_room != creep.room.name and not creep.memory.build_target:
 
-                    get_to_da_room(creep, creep.memory.assigned_room, False)
+                    movement.get_to_da_room(creep, creep.memory.assigned_room, False)
 
                     return
             except:

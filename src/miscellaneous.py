@@ -335,38 +335,6 @@ def clear_orders():
         Game.market.cancelOrder(order)
 
 
-# noinspection PyPep8Naming
-def get_to_da_room(creep, roomName, ignoreRoads=True):
-    """
-    특정 방으로 무작정 보내기.
-
-    :param creep:
-    :param roomName: 가려고 하는 방이름.
-    :param ignoreRoads: 기본값 참.
-    :return:
-    """
-    # 이 명령은 단순히 시야확보 등의 발령목적으로 보내버리는거기 때문에
-    # 방 안에 있으면 무조건 ignoreRoads가 참이여야함
-    if creep.room.name == roomName:
-        ignoreRoads = True
-    # 방안에 있으면 추가로 돌릴 필요가 없으니.
-    # todo 엉킴...
-    # if creep.room.name == roomName and creep.pos.inRangeTo(creep.room.controller, 5)\
-    #         or (creep.room.name == roomName and
-    #             (creep.pos.x < 3 or 47 < creep.pos.x
-    #              and creep.pos.y < 3 or 47 < creep.pos.y)):
-    #     return ERR_NO_PATH
-    if creep.room.name == roomName and creep.pos.inRangeTo(creep.room.controller, 5):
-        # return ERR_NO_PATH
-        return 'yolo'
-
-    result = creep.moveTo(__new__(RoomPosition(25, 25, roomName)),
-    # result = creep.moveTo(Game.rooms[roomName].controller,
-                          {'visualizePathStyle': {'stroke': '#ffffff'}, 'reusePath': 15,
-                           'range': 21, 'maxOps': 1000, 'ignoreRoads': ignoreRoads})
-    return result
-
-
 def swapping(creep, creeps, avoid_id=0, avoid_role=''):
     """
     길막할 경우 위치변환.

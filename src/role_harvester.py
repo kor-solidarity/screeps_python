@@ -1,8 +1,8 @@
 from defs import *
 import harvest_stuff
-from miscellaneous import *
+import miscellaneous
 from _custom_constants import *
-from movement import *
+import movement
 
 __pragma__('noalias', 'name')
 __pragma__('noalias', 'undefined')
@@ -40,8 +40,9 @@ def run_harvester(creep, all_structures, constructions, room_creeps, dropped_all
     vis_key = "visualizePathStyle"
     stroke_key = "stroke"
     # 할당된 방에 없으면 방으로 우선 가고 본다.
-    if not creep.memory.source_num and creep.room.name != creep.memory.assigned_room:
-        get_to_da_room(creep, creep.memory.assigned_room, False)
+    # if not creep.memory.source_num and creep.room.name != creep.memory.assigned_room:
+    if creep.room.name != creep.memory.assigned_room:
+        movement.get_to_da_room(creep, creep.memory.assigned_room, False)
         return
 
     # no memory.laboro? make one.
@@ -225,7 +226,7 @@ def run_harvester(creep, all_structures, constructions, room_creeps, dropped_all
                 # 4칸이내에 스토리지가 있으면 거기로 옮긴다
                 if len(creep.pos.findPathTo(creep.room.storage, {ignoreCreeps: True})) < 5:
                     creep.memory.container = creep.room.storage.id
-            # print(creep.name, containers)
+            # print(creep.name, creep.pos, containers, Game.getObjectById(creep.memory.source_num))
             closest = \
                 Game.getObjectById(creep.memory.source_num).pos.findClosestByPath(containers, {ignoreCreeps: True})
 
@@ -398,7 +399,7 @@ def run_miner(creep, all_structures):
             print('id:', storage.id)
             creep.memory.container = storage.id
             # for_harvest 설정 바꾼다.
-            check_for_carrier_setting(creep, creep.memory.container)
+            miscellaneous.check_for_carrier_setting(creep, creep.memory.container)
 
         if creep.memory.container:
             # runs for each type of resources. you know the rest.

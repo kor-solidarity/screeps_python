@@ -81,14 +81,22 @@ def refresh_base_stats(chambro, all_structures, fix_rating, min_wall, spawns):
             past_lvl = chambro.memory[room_lvl]
             chambro.memory[room_lvl] = chambro.controller.level
 
+        # 만일 스토리지 용량이 부족한데 랩 채우게끔 되있으면 뽑아간다.
+        if chambro.memory[options].fill_labs and chambro.storage and chambro.storage.store.energy < 1000:
+            chambro.memory[options].fill_labs = 0
+        # 역으로 스토리지가 꽉 찼는데 안채우게 되있으면 넣는다.
+        if not chambro.memory[options].fill_labs and chambro.storage \
+                and chambro.storage.storeCapacity - _.sum(chambro.storage.store) < chambro.memory[options][max_energy]:
+            chambro.memory[options].fill_labs = 1
+
         # 방 안 스토리지 자원이 꽉 찼는데 수리레벨이 남아있을 경우 한단계 올린다.
         # max energy 계산법:
         # 스토리지 내 남은 공간이 max_energy 보다 적으면 발동하는거임.
         # 이름이 좀 꼬였는데 별수없음...
         if chambro.storage \
-            and chambro.storage.storeCapacity - _.sum(chambro.storage.store) < chambro.memory[options][max_energy] + 10000 \
-            and not len(min_wall) and chambro.memory[options][repair] < 60 \
-            and chambro.controller.level == 8:
+                and chambro.storage.storeCapacity - _.sum(chambro.storage.store) < chambro.memory[options][max_energy] + 10000 \
+                and not len(min_wall) and chambro.memory[options][repair] < 60 \
+                and chambro.controller.level == 8:
             chambro.memory[options][repair] += 1
 
         # 방에 수리할 벽이 없을 경우 확인한 시간 갱신한다.

@@ -1,7 +1,7 @@
 from defs import *
 import harvest_stuff
 import random
-from miscellaneous import *
+import miscellaneous
 # from movement import *
 import movement
 import pathfinding
@@ -33,7 +33,7 @@ def run_upgrader(creep, creeps, all_structures, repairs, constructions):
 
     # in case it's gonna die soon. this noble act is only allowed if there's a storage in the room.
     if creep.ticksToLive < 30 and _.sum(creep.carry) != 0 and creep.room.storage:
-        repair_on_the_way(creep, repairs, constructions)
+        miscellaneous.repair_on_the_way(creep, repairs, constructions)
         creep.say('endIsNear')
         for minerals in Object.keys(creep.carry):
             # print('minerals:', minerals)
@@ -106,7 +106,7 @@ def run_upgrader(creep, creeps, all_structures, repairs, constructions):
                                 la_containers.append(obj)
 
                 # 가장 먼져 전용 컨테이너를 찾는다.
-                pickup_id = pick_pickup(creep, creeps, la_containers, 10000, True)
+                pickup_id = miscellaneous.pick_pickup(creep, creeps, la_containers, 10000, True)
                 # print('ch1 pickup_id', pickup_id)
 
             # 전용 컨테이너에서 뽑아올게 없는 경우: 그럼 모든곳에서 뽑아버린다.
@@ -116,7 +116,7 @@ def run_upgrader(creep, creeps, all_structures, repairs, constructions):
 
                 if creep.room.storage:
                     total_containers.append(creep.room.storage)
-                pickup_id = pick_pickup(creep, creeps, total_containers, 10000, True)
+                pickup_id = miscellaneous.pick_pickup(creep, creeps, total_containers, 10000, True)
 
             # 픽업 가져올게 없는 경우.
             # 위에 찾는게 없는 경우:
@@ -164,18 +164,19 @@ def run_upgrader(creep, creeps, all_structures, repairs, constructions):
         if not creep.pos.inRangeTo(Game.getObjectById(creep.memory.upgrade_target), 6):
             # 엉킬걸 대비해서 패스파인딩을 할때 컨트롤러 주변에 있는 업글러도 장애물로 간주하고 거른다
             if not creep.memory.path:
-                # print(creep.name, 'no creep.memory.path')
-                creep.memory.path = get_path(creep, creeps, creep.memory.upgrade_target)
+                creep.memory.path = movement.get_bld_upg_path(creep, creeps, creep.memory.upgrade_target)
+            # 메모리 안 패스는 RoomPosition 오브젝트가 아니기 때문에 꼭 맵 걸러야함
             path = _.map(creep.memory.path, lambda p: __new__(RoomPosition(p.x, p.y, p.roomName)))
-            move_by_path = movement.move_with_mem(creep, creep.memory.upgrade_target, 3, path, 'path', False)
-            # move_by_path = movement.move_with_mem(creep, creep.memory.upgrade_target, 3)
+            move_by_path = movement.\
+                move_with_mem(creep, creep.memory.upgrade_target, 3, path, 'path', False)
 
             if move_by_path[0] == OK and move_by_path[1]:
                 path = move_by_path[2]
             elif move_by_path[0] == ERR_NOT_FOUND:
-                creep.memory.path = get_path(creep, creeps, creep.memory.upgrade_target)
+                creep.memory.path = movement.get_bld_upg_path(creep, creeps, creep.memory.upgrade_target)
                 path = _.map(creep.memory.path, lambda p: __new__(RoomPosition(p.x, p.y, p.roomName)))
-                move_by_path = movement.move_with_mem(creep, creep.memory.upgrade_target, 3, path, 'path', False)
+                move_by_path = movement.\
+                    move_with_mem(creep, creep.memory.upgrade_target, 3, path, 'path', False)
                 creep.say('걸렀다!')
                 if move_by_path[0] == OK and move_by_path[1]:
                     path = move_by_path[2]
@@ -190,7 +191,7 @@ def run_upgrader(creep, creeps, all_structures, repairs, constructions):
                 del creep.memory.path
             movement.movi(creep, creep.memory.upgrade_target, 3, 5)
 
-        repair_on_the_way(creep, repairs, constructions, True)
+        miscellaneous.repair_on_the_way(creep, repairs, constructions, True)
     return
 
 
@@ -201,15 +202,18 @@ def run_reserver(creep):
     """
 
     # 메모리에 표적을 만들어둔다.
-    if not creep.memory.upgrade_target:
+    # if not creep.memory.upgrade_target:
         # print('rooms[creep.memory.assigned_room]', Game.rooms[creep.memory.assigned_room])
-        if not Game.rooms[creep.memory.assigned_room]:
-            get_to_da_room(creep, creep.memory.assigned_room, False)
-            return
-        elif Game.rooms[creep.memory.assigned_room].controller:
-            creep.memory.upgrade_target = Game.rooms[creep.memory.assigned_room].controller.id
-        else:
-            creep.suicide()
+    # 방이 안보이면 우선 갑시다.
+    if not Game.rooms[creep.memory.assigned_room]:
+        if Game.time % 2 == 0:
+            creep.say('👁️', True)
+        movement.get_to_da_room(creep, creep.memory.assigned_room, False)
+        return
+    elif Game.rooms[creep.memory.assigned_room].controller:
+        creep.memory.upgrade_target = Game.rooms[creep.memory.assigned_room].controller.id
+    else:
+        creep.suicide()
 
     # reserve the room
     creep_action = creep.reserveController(creep.room.controller)
@@ -217,7 +221,9 @@ def run_reserver(creep):
     if creep_action == ERR_NOT_IN_RANGE:
         # 5칸이내 들어가기 전까진 패스파인딩 갑시다.
         if not creep.pos.inRangeTo(Game.getObjectById(creep.memory.upgrade_target), 5):
-            path = _.map(creep.memory.path, lambda p: __new__(RoomPosition(p.x, p.y, creep.room.name)))
+            path = []
+            if creep.memory.path:
+                path = _.map(creep.memory.path, lambda p: __new__(RoomPosition(p.x, p.y, p.roomName)))
             move_by_path = movement.move_with_mem(creep, creep.memory.upgrade_target, 0, path)
 
             if move_by_path[0] == OK and move_by_path[1]:

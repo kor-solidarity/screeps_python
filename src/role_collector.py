@@ -55,7 +55,7 @@ def collector(creep, creeps, dropped_all, all_structures):
     if creep.memory.laboro == 0:
         # 채취대상방에 있는지 확인한다. 없으면 우선 이동한다.
         if creep.room.name != creep.memory.assigned_room:
-            miscellaneous.get_to_da_room(creep, creep.memory.assigned_room)
+            movement.get_to_da_room(creep, creep.memory.assigned_room)
             return
         else:
             # 방에 빈 자원이 있는지 확인한다.
@@ -87,7 +87,7 @@ def collector(creep, creeps, dropped_all, all_structures):
                     move = movement.movi(creep, creep.memory.target, reusePath=20)
 
                 if move == ERR_INVALID_TARGET:
-                    miscellaneous.get_to_da_room(creep, creep.memory.assigned_room)
+                    movement.get_to_da_room(creep, creep.memory.assigned_room)
 
     # 1이면 복귀한다.
     elif creep.memory.laboro == 1:
@@ -95,7 +95,7 @@ def collector(creep, creeps, dropped_all, all_structures):
         if not creep.memory.haul_target:
             # 원래 방으로 돌아가고 본다.
             if creep.room.name != creep.memory.home_room:
-                miscellaneous.get_to_da_room(creep, creep.memory.home_room)
+                movement.get_to_da_room(creep, creep.memory.home_room)
             else:
                 # 만일 가지고 있는게 에너지 뿐일 경우 - 링크로 가도 됨.
                 if _.sum(creep.carry) == creep.carry[RESOURCE_ENERGY]:
