@@ -145,8 +145,8 @@ def run_upgrader(creep, creeps, all_structures, repairs, constructions):
         if creep.memory.pickup:
             result = harvest_stuff.grab_energy(creep, creep.memory.pickup, True)
             if result == ERR_NOT_IN_RANGE:
-                path = _.map(creep.memory.path, lambda p: __new__(RoomPosition(p.x, p.y, creep.room.name)))
-                move_by_path = movement.move_with_mem(creep, creep.memory.pickup, 0, path)
+                # path = _.map(creep.memory.path, lambda p: __new__(RoomPosition(p.x, p.y, creep.room.name)))
+                move_by_path = movement.move_with_mem(creep, creep.memory.pickup, 0)
                 if move_by_path[0] == OK and move_by_path[1]:
                         creep.memory.path = move_by_path[2]
 
@@ -160,36 +160,38 @@ def run_upgrader(creep, creeps, all_structures, repairs, constructions):
 
     # laboro: 1 == UPGRADE
     if creep.memory.laboro == 1:
+
+        movement.ranged_move(creep, creep.memory.upgrade_target, creeps)
         # 6칸이내 안들어왔으면 이거
-        if not creep.pos.inRangeTo(Game.getObjectById(creep.memory.upgrade_target), 6):
-            # 엉킬걸 대비해서 패스파인딩을 할때 컨트롤러 주변에 있는 업글러도 장애물로 간주하고 거른다
-            if not creep.memory.path:
-                creep.memory.path = movement.get_bld_upg_path(creep, creeps, creep.memory.upgrade_target)
-            # 메모리 안 패스는 RoomPosition 오브젝트가 아니기 때문에 꼭 맵 걸러야함
-            path = _.map(creep.memory.path, lambda p: __new__(RoomPosition(p.x, p.y, p.roomName)))
-            move_by_path = movement.\
-                move_with_mem(creep, creep.memory.upgrade_target, 3, path, 'path', False)
-
-            if move_by_path[0] == OK and move_by_path[1]:
-                path = move_by_path[2]
-            elif move_by_path[0] == ERR_NOT_FOUND:
-                creep.memory.path = movement.get_bld_upg_path(creep, creeps, creep.memory.upgrade_target)
-                path = _.map(creep.memory.path, lambda p: __new__(RoomPosition(p.x, p.y, p.roomName)))
-                move_by_path = movement.\
-                    move_with_mem(creep, creep.memory.upgrade_target, 3, path, 'path', False)
-                creep.say('걸렀다!')
-                if move_by_path[0] == OK and move_by_path[1]:
-                    path = move_by_path[2]
-                elif not move_by_path[0] == OK and not move_by_path[0] == ERR_TIRED:
-                    creep.say('2업글중: {}'.format(move_by_path[0]))
-            elif not move_by_path[0] == OK and not move_by_path[0] == ERR_TIRED:
-                creep.say('업글중: {}'.format(move_by_path[0]))
-            # 이걸 여기서 거르는 이유는 상기한대로... 독자 패스파인딩을 써서 그런거.
-
-        else:
-            if creep.memory.path:
-                del creep.memory.path
-            movement.movi(creep, creep.memory.upgrade_target, 3, 5)
+        # if not creep.pos.inRangeTo(Game.getObjectById(creep.memory.upgrade_target), 6):
+        #     # 엉킬걸 대비해서 패스파인딩을 할때 컨트롤러 주변에 있는 업글러도 장애물로 간주하고 거른다
+        #     if not creep.memory.path:
+        #         creep.memory.path = movement.get_bld_upg_path(creep, creeps, creep.memory.upgrade_target)
+        #     # 메모리 안 패스는 RoomPosition 오브젝트가 아니기 때문에 꼭 맵 걸러야함
+        #     # path = _.map(creep.memory.path, lambda p: __new__(RoomPosition(p.x, p.y, p.roomName)))
+        #     move_by_path = movement.\
+        #         move_with_mem(creep, creep.memory.upgrade_target, 3, 'path', False)
+        #
+        #     if move_by_path[0] == OK and move_by_path[1]:
+        #         path = move_by_path[2]
+        #     elif move_by_path[0] == ERR_NOT_FOUND:
+        #         creep.memory.path = movement.get_bld_upg_path(creep, creeps, creep.memory.upgrade_target)
+        #         # path = _.map(creep.memory.path, lambda p: __new__(RoomPosition(p.x, p.y, p.roomName)))
+        #         move_by_path = movement.\
+        #             move_with_mem(creep, creep.memory.upgrade_target, 3, 'path', False)
+        #         creep.say('걸렀다!')
+        #         if move_by_path[0] == OK and move_by_path[1]:
+        #             path = move_by_path[2]
+        #         elif not move_by_path[0] == OK and not move_by_path[0] == ERR_TIRED:
+        #             creep.say('2업글중: {}'.format(move_by_path[0]))
+        #     elif not move_by_path[0] == OK and not move_by_path[0] == ERR_TIRED:
+        #         creep.say('업글중: {}'.format(move_by_path[0]))
+        #     # 이걸 여기서 거르는 이유는 상기한대로... 독자 패스파인딩을 써서 그런거.
+        #
+        # else:
+        #     if creep.memory.path:
+        #         del creep.memory.path
+        #     movement.movi(creep, creep.memory.upgrade_target, 3, 5)
 
         miscellaneous.repair_on_the_way(creep, repairs, constructions, True)
     return
@@ -201,13 +203,10 @@ def run_reserver(creep):
     :return:
     """
 
-    # 메모리에 표적을 만들어둔다.
-    # if not creep.memory.upgrade_target:
-        # print('rooms[creep.memory.assigned_room]', Game.rooms[creep.memory.assigned_room])
     # 방이 안보이면 우선 갑시다.
     if not Game.rooms[creep.memory.assigned_room]:
         if Game.time % 2 == 0:
-            creep.say('👁️', True)
+            creep.say('👁', True)
         movement.get_to_da_room(creep, creep.memory.assigned_room, False)
         return
     elif Game.rooms[creep.memory.assigned_room].controller:
@@ -221,10 +220,10 @@ def run_reserver(creep):
     if creep_action == ERR_NOT_IN_RANGE:
         # 5칸이내 들어가기 전까진 패스파인딩 갑시다.
         if not creep.pos.inRangeTo(Game.getObjectById(creep.memory.upgrade_target), 5):
-            path = []
-            if creep.memory.path:
-                path = _.map(creep.memory.path, lambda p: __new__(RoomPosition(p.x, p.y, p.roomName)))
-            move_by_path = movement.move_with_mem(creep, creep.memory.upgrade_target, 0, path)
+            # path = []
+            # if creep.memory.path:
+            #     path = _.map(creep.memory.path, lambda p: __new__(RoomPosition(p.x, p.y, p.roomName)))
+            move_by_path = movement.move_with_mem(creep, creep.memory.upgrade_target, 1)
 
             if move_by_path[0] == OK and move_by_path[1]:
                 path = move_by_path[2]
@@ -232,8 +231,9 @@ def run_reserver(creep):
                 creep.say('업글중: {}'.format(move_by_path[0]))
 
         else:
-            res = movement.movi(creep, creep.memory.upgrade_target)
-        # creep.say(res)
+            res = movement.movi(creep, creep.memory.upgrade_target, 1)
+            del creep.memory.path
+            creep.say(res)
     elif creep_action == OK:
         if Game.time % 2 == 0:
             creep.say('🇰🇵 🇰🇷', True)

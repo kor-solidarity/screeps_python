@@ -71,10 +71,8 @@ def run_links(link_id, spawns_and_links, creeps):
     link = Game.getObjectById(link_id)
 
     # 방렙이 몇이냐에 따라 쏘기 시작하는 최저수량을 규정한다.
-    # 7 이상이면 400 아니면 200
     if link.room.controller.level >= 7:
-        # 최소 416이 돼야 400으로 도착함. 나머진 알바아니고.
-        amount_to_shoot = 416
+        amount_to_shoot = 800
     else:
         amount_to_shoot = 200
 
@@ -119,12 +117,21 @@ def run_links(link_id, spawns_and_links, creeps):
     if link.cooldown == 0 and link.energy >= amount_to_shoot and len(inside_links) > 0:
         # 내부(테두리 5칸 이상 이내)에 있는 링크 중 무작위 하나를 고르고 거기에 보낸다.
         # 만일 없으면? 애초부터 이 설계와 안맞게 만든거. 몰라ㅆㅂ
-        random_int = random.randint(0, len(inside_links) - 1)
+        # random_int = random.randint(0, len(inside_links) - 1)
+        # 가장 에너지를 안가지고 있는 링크에 던진다.
+        # todo 만약 중복이면 가장 가까운거에 던진다.
+        if not len(inside_links) == 1:
+            # print(JSON.stringify(inside_links))
+            inside_links = _.min(inside_links,
+                             lambda l: Game.getObjectById(l.id).energy)
+        else:
+            inside_links = inside_links[0]
+            # print('min_link', min_link)
         # 해당 링크가 에너지를 받은 시간 갱신. 링크의 전송시간을 낭비하지 않게 하기 위해 고안.
-        if not inside_links[random_int].received_time or \
-            not inside_links[random_int].received_time == Game.time :
-            transfer_result = link.transferEnergy(Game.getObjectById(inside_links[random_int].id))
+        if not inside_links.received_time or \
+                not inside_links.received_time == Game.time:
+            transfer_result = link.transferEnergy(Game.getObjectById(inside_links.id))
 
             if transfer_result == OK:
-                inside_links[random_int].received_time = Game.time
+                inside_links.received_time = Game.time
 

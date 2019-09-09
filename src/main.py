@@ -268,13 +268,6 @@ def main():
             if not Memory.rooms[chambra_nomo].options.repair \
                     and not Memory.rooms[chambra_nomo][options][repair] == 0:
                 Memory.rooms[chambra_nomo][options][repair] = 1
-
-            # NULLIFIED - 업글러 수 제한 해제
-            # 업글크립 최대수. 기본값 12
-            # if not Memory.rooms[chambra_nomo].options[max_upgraders]:
-            #     Memory.rooms[chambra_nomo].options[max_upgraders] = 12
-            if Memory.rooms[chambra_nomo].options[max_upgraders]:
-                del Memory.rooms[chambra_nomo].options[max_upgraders]
             # 스토리지 안 채울 최대 에너지량. 기본값 5만
             if not Memory.rooms[chambra_nomo].options[max_energy]:
                 Memory.rooms[chambra_nomo].options[max_energy] = 50000
@@ -413,15 +406,12 @@ def main():
                         # 만일 타겟이
                         # if place_plan == ERR_INVALID_ARGS or place_plan == ERR_INVALID_ARGS:
 
-                        # todo 건설 완료하기 전까지 계속 기록 남긴다.
+                        # 건설 완료하기 전까지 계속 기록 남긴다. - 무기한 연기
                         # if not place_plan == ERR_RCL_NOT_ENOUGH:
                         #     del plan
                     except:
                         chambro.memory.bld_plan.splice(num, 1)
                     num += 1
-
-
-
 
         # ALL .find() functions are done in here. THERE SHOULD BE NONE INSIDE CREEP FUNCTIONS!
         # filters are added in between to lower cpu costs.
@@ -555,7 +545,7 @@ def main():
                 """
             elif creep.memory.role == 'fixer':
                 role_fixer.run_fixer(creep, all_structures, my_constructions,
-                                     room_creeps, all_repairs, min_wall, terminal_capacity)
+                                     room_creeps, all_repairs, min_wall, terminal_capacity, dropped_all)
                 """
                 :param creep:
                 :param all_structures: creep.room.find(FIND_STRUCTURES)
@@ -629,7 +619,7 @@ def main():
             for link in chambro.memory[STRUCTURE_LINK]:
                 spawns_and_links.append(Game.getObjectById(link.id))
 
-        # running tower, links
+        # STRUCTURE_TOWER
         if chambro.memory[STRUCTURE_TOWER] and len(chambro.memory[STRUCTURE_TOWER]) > 0:
             # 수리는 크게 두종류만 한다. 도로와 컨테이너 빼면 전부 즉각수리. 나머지는 시급할때만.
             tow_repairs = repairs.filter(lambda s: (s.structureType != STRUCTURE_ROAD
@@ -659,7 +649,7 @@ def main():
                     chambro.memory[STRUCTURE_TOWER].splice(for_str, 1)
                 for_str += 1
 
-        # run links
+        # STRUCTURE_LINK
         if chambro.memory[STRUCTURE_LINK] and len(chambro.memory[STRUCTURE_LINK]) > 0:
             # for_str = 0
             # 링크가 없는게 있는지 먼져 확인.

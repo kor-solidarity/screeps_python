@@ -379,7 +379,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                 # 계산을 해봤는데 렙3에서 업글러 6마리면 워크 18 - 에너지 차는 속도 감안.
                 # 건물 꽉찬거 아니면 무조건 뽑지 않는다
                 if (chambro.controller.level == 2 and chambro.energyCapacityAvailable == 550) \
-                    or (chambro.controller.level == 3 and chambro.energyCapacityAvailable == 800):
+                        or (chambro.controller.level == 3 and chambro.energyCapacityAvailable == 800):
                     upgrader_quota = int(max_num_upgraders / 2)
                 else:
                     upgrader_quota = int(max_num_upgraders / 3)
@@ -428,7 +428,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                     if spawn.room.controller.ticksToDowngrade < CONTROLLER_DOWNGRADE[8] - 100000 \
                         or (spawn.room.controller.ticksToDowngrade < CONTROLLER_DOWNGRADE[8] - 4900
                             and len(hostile_creeps) > 0):
-                        spawn.spawnCreep([WORK, WORK, CARRY, CARRY, MOVE, MOVE],
+                        spawn.spawnCreep([MOVE, WORK, CARRY],
                                          'up_{}_{}'.format(spawn_room_low, rand_int),
                                          {memory: {'role': 'upgrader', 'assigned_room': spawn.pos.roomName}})
                 elif big == -6:

@@ -15,7 +15,7 @@ __pragma__('noalias', 'type')
 __pragma__('noalias', 'update')
 
 
-def run_fixer(creep, all_structures, constructions, creeps, repairs, min_wall, terminal_capacity):
+def run_fixer(creep, all_structures, constructions, creeps, repairs, min_wall, terminal_capacity, dropped_all):
     """
     기본적으로 허울러 수리와 동일하다. 다만 차이는 그거만 한다는거. 그리고 램파트 중심이다.
     상황에 따라 건설도 건든다.
@@ -27,6 +27,7 @@ def run_fixer(creep, all_structures, constructions, creeps, repairs, min_wall, t
     :param repairs: look at main.
     :param min_wall: 최저 방벽.
     :param terminal_capacity: 방 안의 터미널 내 에너지 최소값.
+    :param dropped_all:
     :return:
     """
 
@@ -64,6 +65,9 @@ def run_fixer(creep, all_structures, constructions, creeps, repairs, min_wall, t
         del creep.memory.repair_target
         del creep.memory.path
 
+    if _.sum(creep.carry) > creep.carryCapacity / 2 and creep.memory.laboro == 0:
+        creep.memory.laboro = 1
+
     # laboro: 0 == pickup something.
     if creep.memory.laboro == 0:
 
@@ -76,68 +80,20 @@ def run_fixer(creep, all_structures, constructions, creeps, repairs, min_wall, t
             movement.get_to_da_room(creep, creep.memory.assigned_roomm, False)
             return
 
-        # todo 떨궈진거 줍기
+        if creep.memory.dropped and not Game.getObjectById(creep.memory.dropped):
+            del creep.memory.dropped
 
-        # # if there is a dropped target and it's there.
-        # if creep.memory.dropped:
-        #     if not Game.rooms[creep.memory.assigned_room].storage:
-        #         energy_only = True
-        #     else:
-        #         energy_only = False
-        #
-        #     item_pickup_res = harvest_stuff.pick_drops(creep, energy_only)
-        #
-        #     item = Game.getObjectById(creep.memory.dropped)
-        #     # 오브젝트가 아예없음
-        #     if item_pickup_res == ERR_INVALID_TARGET:
-        #         creep.say("삐빅, 없음", True)
-        #         del creep.memory.dropped
-        #     # 내용물 없음
-        #     elif item_pickup_res == ERR_NOT_ENOUGH_ENERGY:
-        #         creep.say("💢 텅 비었잖아!", True)
-        #         del creep.memory.dropped
-        #     # 멀리있음
-        #     elif item_pickup_res == ERR_NOT_IN_RANGE:
-        #         movi(creep, creep.memory.dropped, 0, 10, False, 2000, '#0000FF')
-        #
-        #     elif item_pickup_res == OK:
-        #         creep.say('♻♻♻', True)
-        #         return
-        # # if there's no dropped but there's dropped_all
-        # if not creep.memory.dropped and len(dropped_all) > 0:
-        #     # 떨어진거 확인 범위.
-        #     drop_range = 5
-        #     if creep.memory.all_full:
-        #         drop_range = 20
-        #     for drop in dropped_all:
-        #         # if there's a dropped resources near 5
-        #         if creep.pos.inRangeTo(drop, drop_range):
-        #             # 스토리지가 없으면 에너지 외엔 못넣어서 엉킴. 통과.
-        #             if not creep.room.storage:
-        #                 if drop.store and not drop.store[RESOURCE_ENERGY]:
-        #                     continue
-        #                 elif drop.resourceType != RESOURCE_ENERGY:
-        #                     continue
-        #                 energy_only = True
-        #             else:
-        #                 energy_only = False
-        #             # todo 크립당 자기 수용량을 넘지 못한다. 나중에 하는걸로.
-        #             # for c in creeps:
-        #             #     if c.memory.dropped == drop['id']:
-        #
-        #             creep.memory.dropped = drop['id']
-        #
-        #             item_pickup_res = pick_drops(creep, energy_only)
-        #             creep.say('⛏BITCOINS!', True)
-        #             if item_pickup_res == ERR_NOT_IN_RANGE:
-        #                 movi(creep, creep.memory.dropped, 0, 10, False, 2000, '#0000FF')
-        #             elif item_pickup_res == OK:
-        #                 pass
-        #             else:
-        #                 creep.say('drpERR {}'.format(item_pickup_res))
-        #             break
-        #     if creep.memory.all_full:
-        #         del creep.memory.all_full
+        # print(creep.name, 'dropped_all', dropped_all, creep.memory.dropped)
+        # if there's no dropped but there's dropped_all
+        if not creep.memory.dropped and len(dropped_all) > 0:
+            # print(creep.name, dropped_all)
+            dropped_target = harvest_stuff.filter_drops(creep, dropped_all, 5, True)
+
+        # if there is a dropped target and it's there.
+        if creep.memory.dropped:
+            item_pickup_res = harvest_stuff.pick_drops_act(creep, True)
+            if item_pickup_res == ERR_NOT_IN_RANGE or item_pickup_res == OK:
+                return
 
         if not creep.memory.pickup:
             # 근처에 보이는거 아무거나 집는다. 허울러와 동일.
@@ -166,9 +122,9 @@ def run_fixer(creep, all_structures, constructions, creeps, repairs, min_wall, t
         # creep.say('진행중:', result)
 
         if result == ERR_NOT_IN_RANGE:
-            path = _.map(creep.memory.path, lambda p: __new__(RoomPosition(p.x, p.y, creep.room.name)))
+            # path = _.map(creep.memory.path, lambda p: __new__(RoomPosition(p.x, p.y, creep.room.name)))
             # 메모리에 있는걸 최우선적으로 찾는다.
-            move_by_path = movement.move_with_mem(creep, creep.memory.pickup, 0, path)
+            move_by_path = movement.move_with_mem(creep, creep.memory.pickup, 0)
             if move_by_path[0] == OK and move_by_path[1]:
                 creep.memory.path = move_by_path[2]
 
@@ -191,7 +147,7 @@ def run_fixer(creep, all_structures, constructions, creeps, repairs, min_wall, t
 
     # 1 == 본격적인 수리작업 시작.
     if creep.memory.laboro == 1:
-        if not Game.getObjectById(creep.memory.repair_target):
+        if creep.memory.repair_target and not Game.getObjectById(creep.memory.repair_target):
             del creep.memory.repair_target
         if creep.memory.repair_target and Game.getObjectById(creep.memory.repair_target).hits \
                 == Game.getObjectById(creep.memory.repair_target).hitsMax:
@@ -210,35 +166,30 @@ def run_fixer(creep, all_structures, constructions, creeps, repairs, min_wall, t
 
                     creep.memory.die = 1
                     return
-
+        # 수리대상이 3칸이내에 있으면 기존 목록 다 없애고 수리대상만 넣고 수리 실시
         if creep.pos.inRangeTo(Game.getObjectById(creep.memory.repair_target), 3):
             repairs = [Game.getObjectById(creep.memory.repair_target)]
         miscellaneous.repair_on_the_way(creep, repairs, constructions, True, True)
 
-        if not creep.pos.inRangeTo(Game.getObjectById(creep.memory.repair_target), 6):
-            if not creep.memory.path:
-                creep.memory.path = movement.get_bld_upg_path(creep, creeps, creep.memory.repair_target)
-            # 메모리 안 패스는 RoomPosition 오브젝트가 아니기 때문에 꼭 맵 걸러야함
-            path = _.map(creep.memory.path, lambda p: __new__(RoomPosition(p.x, p.y, creep.room.name)))
-            # 메모리에 있는걸 최우선적으로 찾는다.
-            move_by_path = movement.\
-                move_with_mem(creep, creep.memory.repair_target, 3, path, 'path', False)
-            if move_by_path[0] == OK and move_by_path[1]:
-                creep.memory.path = move_by_path[2]
-            # 솔까 이거 걸리는게 이상한거임...
-            elif move_by_path[0] == ERR_NOT_FOUND:
-                creep.say('noPath')
-                print(creep.memory.path)
-                creep.memory.path = movement.get_bld_upg_path(creep, creeps, creep.memory.repair_target)
-                path = _.map(creep.memory.path, lambda p: __new__(RoomPosition(p.x, p.y, p.roomName)))
-                move_by_path = movement. \
-                    move_with_mem(creep, creep.memory.repair_target, 3, path, 'path', False)
-
+        movement.ranged_move(creep, creep.memory.repair_target, creeps)
+        # if not creep.pos.inRangeTo(Game.getObjectById(creep.memory.repair_target), 6):
+        #     if not creep.memory.path:
+        #         creep.memory.path = movement.get_bld_upg_path(creep, creeps, creep.memory.repair_target)
+        #     # 메모리에 있는걸 최우선적으로 찾는다.
+        #     move_by_path = movement.\
+        #         move_with_mem(creep, creep.memory.repair_target, 3, 'path', False)
+        #     if move_by_path[0] == OK and move_by_path[1]:
+        #         creep.memory.path = move_by_path[2]
+        #     # 솔까 이거 걸리는게 이상한거임...
+        #     elif move_by_path[0] == ERR_NOT_FOUND:
+        #         creep.say('noPath')
+        #         print(creep.memory.path)
+        #         creep.memory.path = movement.get_bld_upg_path(creep, creeps, creep.memory.repair_target)
+        #         move_by_path = movement. \
+        #             move_with_mem(creep, creep.memory.repair_target, 3, 'path', False)
+        #
         # else:
-        # elif creep.pos.inRangeTo(Game.getObjectById(creep.memory.repair_target), 3):
+        #     # 6칸 이내로 들어가면 그때부턴 시리얼화된 길 말고 일반 이동 실시
         #     if creep.memory.path:
         #         del creep.memory.path
-        else:
-            if creep.memory.path:
-                del creep.memory.path
-            movement.movi(creep, creep.memory.repair_target, 3, 5)
+        #     movement.movi(creep, creep.memory.repair_target, 3, 5)

@@ -270,6 +270,76 @@ def transfer_stuff(creep):
     """
 
 
+def filter_drops(creep, _drops, target_range, only_energy=False):
+    """
+    떨궈진거 주울때 여럿이 안몰리게끔.
+    허울러의 grab_haul_list 함수와 거의 비슷함
+
+    :param creep:
+    :param drops: creep.room.find(FIND_DROPPED_RESOURCES) + creep.room.find(FIND_TOMBSTONES) 여기서 다 필터 거친다. 굳이 필터한 상태로 가져올필요 없음.
+    :param target_range: 찾을 최대거리
+    :param only_energy:
+    :return: target 이 있으면 해당 템의 ID를 메모리에 넣고 아님 만다. 반환값 의미없음
+    """
+    drops = _.clone(_drops)
+    # 돌려보낼 아이디
+    target = 0
+
+    while len(drops):
+        drop = creep.pos.findClosestByRange(drops)
+        # target_range 밖이면 손절
+        if not creep.pos.inRangeTo(drop, target_range):
+            index = drops.indexOf(drop)
+            drops.splice(index, 1)
+            continue
+        # print(creep.name, only_energy, target_range, JSON.stringify(drop))
+        # only_energy 면 에너지 있나만 본다. 다른건 무시
+        if only_energy:
+            # print('only_energy False?', only_energy)
+            # if tomestone and no energy
+            # or dropped source thats not an energy
+            if (drop.store and not drop.store[RESOURCE_ENERGY])\
+                    or (drop.resourceType and drop.resourceType != RESOURCE_ENERGY):
+                # print(creep.name, only_energy)
+                index = drops.indexOf(drop)
+                drops.splice(index, 1)
+                continue
+        # print(creep.name, JSON.stringify(drop))
+        # 안에 자원 계산. 스토어가 있으면 무덤
+        if drop.store:
+            resource_amount = _.sum(drop.store)
+        else:
+            resource_amount = drop.amount
+        # print('resource_amount', resource_amount)
+        # print(creep.name)
+        # 모든 크립 조사.
+        for cr in Object.keys(Game.creeps):
+            c = Game.creeps[cr]
+            # if c.room.name == creep.room.name:
+                # print(c, c.memory.dropped, drop.id)
+            if not c.id == creep.id \
+                    and c.memory.dropped \
+                    and c.memory.dropped == drop.id:
+                # print(c.name, c.carryCapacity)
+                resource_amount -= c.carryCapacity
+
+        # print('resource_amount', resource_amount)
+        # 리소스 양이 다른 크립이 가져가고도 남아있으면 선택한다.
+        if resource_amount > 0:
+            target = drop.id
+            break
+        # 위에서 브레이크 안걸렸으면 다음으로.
+        index = drops.indexOf(drop)
+        drops.splice(index, 1)
+        continue
+
+    if target:
+        creep.memory.dropped = target
+        creep.say('⛏BITCOINS!', True)
+
+    return target
+
+
 def pick_drops(creep, only_energy=False):
     """
     떨궈진 물건 줍기.
@@ -285,11 +355,20 @@ def pick_drops(creep, only_energy=False):
     # 존재하는가?
     if not pickup_obj:
         return ERR_INVALID_TARGET
+    # print(creep.name, only_energy, pickup_obj)
 
     # 내용물이 있는지 확인.
-    if only_energy and not ((pickup_obj.store and pickup_obj.store[RESOURCE_ENERGY]) or pickup_obj.energy):
+    # 에너지만 줍고 무덤인데 에너지가 없거나
+    # 떨군거고 리소스타입이 에너지가 아닌 경우
+    # print(pickup_obj)
+    if only_energy \
+            and ((pickup_obj.store and not pickup_obj.store[RESOURCE_ENERGY])
+                 or pickup_obj.amount and not pickup_obj.resourceType == RESOURCE_ENERGY):
+        # print('ch1')
         return ERR_NOT_ENOUGH_ENERGY
-    elif not ((pickup_obj.store and _.sum(pickup_obj.store)) or pickup_obj.energy):
+    # 무덤인데 내용물이 없는 경우. 떨궜는데 내용물이 없으면 자동삭제되니 무관
+    elif pickup_obj.store and not _.sum(pickup_obj.store):
+        # print('ch2')
         return ERR_NOT_ENOUGH_ENERGY
 
     # 근처에 없으면 이걸 돌릴 이유가 없다.
@@ -321,3 +400,32 @@ def pick_drops(creep, only_energy=False):
             return ERR_INVALID_TARGET
         else:
             return creep.pickup(pickup_obj, RESOURCE_ENERGY)
+
+
+def pick_drops_act(creep, only_energy=False):
+    """
+    위에 pick_drops 와 같이가는 함수. 위에 결과를 토대로 크립 활동 통일.
+
+    :param creep:
+    :param only_energy:
+    :return:
+    """
+
+    item_pickup_res = pick_drops(creep, only_energy)
+    # 없음
+    if item_pickup_res == ERR_INVALID_TARGET:
+        creep.say("삐빅, 없음", True)
+        del creep.memory.dropped
+    elif item_pickup_res == ERR_NOT_ENOUGH_ENERGY:
+        creep.say("텅비었다..", True)
+        del creep.memory.dropped
+    # 멀리있음
+    elif item_pickup_res == ERR_NOT_IN_RANGE:
+        movement.move_with_mem(creep, creep.memory.dropped)
+    elif item_pickup_res == OK:
+        creep.say('♻♻♻', True)
+        del creep.memory.path
+    else:
+        creep.say('drpERR {}'.format(item_pickup_res))
+
+    return item_pickup_res

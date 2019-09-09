@@ -165,40 +165,26 @@ def run_harvester(creep, all_structures, constructions, room_creeps, dropped_all
 
         # 혹여나 배정된 컨테이너가 너무 멀리 있으면 리셋 용도.
         if Game.getObjectById(creep.memory.container):
-            if not Game.getObjectById(creep.memory.source_num).pos.inRangeTo(creep.memory.container, 3):
+            if not Game.getObjectById(creep.memory.source_num)\
+                    .pos.inRangeTo(Game.getObjectById(creep.memory.container), max_range_to_container):
                 del creep.memory.pickup
 
         del creep.memory.pickup
 
     # harvesting job. if on harvest(laboro == 0) and carrying energy is smaller than carryCapacity
     if creep.memory.laboro == 0:
-        # print(creep.name, creep.memory.dropped)
-        # pickup any dropped resources on the way
-        if not creep.memory.dropped:
-            if dropped_all:
-                for drop in dropped_all:
-                    # not energy? pass
-                    if drop.resourceType != RESOURCE_ENERGY:
-                        continue
-                    elif drop.store:
-                        if drop.store.energy == 0:
-                            continue
-                    # print('drop', drop)
-                    if creep.pos.inRangeTo(drop, 3):
-                        creep.memory.dropped = drop.id
-                        creep.moveTo(creep.memory.dropped, {'visualizePathStyle':
-                                                           {'stroke': '#0000FF', 'opacity': .25}})
-                        return
-        else:
-            grab_result = harvest_stuff.pick_drops(creep, True)
-            creep.say('cc{}'.format(grab_result))
-            if grab_result == ERR_NOT_IN_RANGE:
+        if creep.memory.dropped and not Game.getObjectById(creep.memory.dropped):
+            del creep.memory.dropped
 
-                creep.moveTo(Game.getObjectById(creep.memory.dropped), {'visualizePathStyle':
-                                                                       {'stroke': '#0000FF', 'opacity': .25}})
+        # if there's no dropped but there's dropped_all
+        if not creep.memory.dropped and len(dropped_all) > 0:
+            dropped_target = harvest_stuff.filter_drops(creep, dropped_all, 3, True)
+
+        # if there is a dropped target and it's there.
+        if creep.memory.dropped:
+            item_pickup_res = harvest_stuff.pick_drops_act(creep, True)
+            if item_pickup_res == ERR_NOT_IN_RANGE or item_pickup_res == OK:
                 return
-            elif grab_result == ERR_INVALID_TARGET:
-                del creep.memory.dropped
 
         if _.sum(creep.carry) > creep.carryCapacity - 10:
             creep.say('🚜 대충 찼다', True)
@@ -208,23 +194,26 @@ def run_harvester(creep, all_structures, constructions, room_creeps, dropped_all
 
     # if carryCapacity is full - then go to nearest container or storage to store the energy.
     if creep.memory.laboro == 1:
-        # 자원을 옮길 위치
+        # 자원을 옮길 곳이 없는 경우
         if not creep.memory.container:
             # find ALL containers(whether its full doesn't matter)
             containers = _.filter(all_structures,
                                   lambda s: s.structureType == STRUCTURE_CONTAINER)
+            # store 0으로 분류된 링크 - 전송용인거
             proper_links = _.filter(creep.room.memory[STRUCTURE_LINK], lambda s: s.for_store == 0)
+            # 게임오브젝트화해서 넣는거.
             proper_link = []
             for i in proper_links:
                 if i:
                     proper_link.append(Game.getObjectById(i.id))
+
             if len(proper_link) > 0:
                 containers.extend(proper_link)
             if creep.room.storage and creep.room.controller.my:
                 print('add container')
                 containers.append(creep.room.storage)
                 # 4칸이내에 스토리지가 있으면 거기로 옮긴다
-                if len(creep.pos.findPathTo(creep.room.storage, {ignoreCreeps: True})) < 5:
+                if len(creep.pos.findPathTo(creep.room.storage, {ignoreCreeps: True})) <= max_range_to_container:
                     creep.memory.container = creep.room.storage.id
             # print(creep.name, creep.pos, containers, Game.getObjectById(creep.memory.source_num))
             closest = \
