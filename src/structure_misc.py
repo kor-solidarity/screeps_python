@@ -59,12 +59,12 @@ def run_tower(tower, hostile_creeps, repairs, malsana_amikoj):
             tower.repair(repair)
 
 
-def run_links(link_id, spawns_and_links, creeps):
+def run_links(link_id, objs_for_disp):
     """
     distributing energy to links
 
     :param link_id: room.memory[STRUCTURE_LINK][i].id
-    :param spawns_and_links:
+    :param objs_for_disp:
     :return:
     """
 
@@ -80,7 +80,7 @@ def run_links(link_id, spawns_and_links, creeps):
     me = _.filter(Game.getObjectById(link_id).room.memory[STRUCTURE_LINK],
                   lambda l: l.id == link_id)[0]
 
-    display_loc = display_location(link, spawns_and_links, 3)
+    display_loc = display_location(link, objs_for_disp, 3)
     align = display_loc['align']
     # if link.pos.x > 44:
     #     align = 'right'

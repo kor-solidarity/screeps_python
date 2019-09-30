@@ -172,24 +172,3 @@ def run_fixer(creep, all_structures, constructions, creeps, repairs, min_wall, t
         miscellaneous.repair_on_the_way(creep, repairs, constructions, True, True)
 
         movement.ranged_move(creep, creep.memory.repair_target, creeps)
-        # if not creep.pos.inRangeTo(Game.getObjectById(creep.memory.repair_target), 6):
-        #     if not creep.memory.path:
-        #         creep.memory.path = movement.get_bld_upg_path(creep, creeps, creep.memory.repair_target)
-        #     # 메모리에 있는걸 최우선적으로 찾는다.
-        #     move_by_path = movement.\
-        #         move_with_mem(creep, creep.memory.repair_target, 3, 'path', False)
-        #     if move_by_path[0] == OK and move_by_path[1]:
-        #         creep.memory.path = move_by_path[2]
-        #     # 솔까 이거 걸리는게 이상한거임...
-        #     elif move_by_path[0] == ERR_NOT_FOUND:
-        #         creep.say('noPath')
-        #         print(creep.memory.path)
-        #         creep.memory.path = movement.get_bld_upg_path(creep, creeps, creep.memory.repair_target)
-        #         move_by_path = movement. \
-        #             move_with_mem(creep, creep.memory.repair_target, 3, 'path', False)
-        #
-        # else:
-        #     # 6칸 이내로 들어가면 그때부턴 시리얼화된 길 말고 일반 이동 실시
-        #     if creep.memory.path:
-        #         del creep.memory.path
-        #     movement.movi(creep, creep.memory.repair_target, 3, 5)

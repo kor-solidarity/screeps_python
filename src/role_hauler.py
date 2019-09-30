@@ -725,7 +725,6 @@ def filter_haul_targets(creep, haul_targets, haulers):
             break
 
         # 가장 가까운 건물.
-        # structure = creep.pos.findClosestByRange(haul_targets)
         structure = creep.pos.findClosestByPath(haul_targets, {ignoreCreeps: True})
 
         for kripo in haulers:
@@ -784,7 +783,7 @@ def filter_haul_targets(creep, haul_targets, haulers):
         # but, if that's the only one, ok...
         if structure.structureType == STRUCTURE_SPAWN:
             if creep.pos.isNearTo(Game.getObjectById(structure.id)) \
-                    and structure.energy >= structure.energyCapacity * .9 and not len(structure) == 1:
+                    and structure.energy >= structure.energyCapacity * .9 and not len(haul_targets) == 1:
                 size_counter += 3
 
         # size_counter estas malpli ol 3 == structure povas asigni al creep-o

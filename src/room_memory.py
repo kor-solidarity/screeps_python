@@ -27,6 +27,8 @@ __pragma__('noalias', 'update')
 # 본진 관련
 def refresh_base_stats(chambro, all_structures, fix_rating, min_wall, spawns):
     """
+    방 내 메모리 현황 갱신을 위한 함수.
+    잘 바뀌지 않는 사안들()
 
     :param chambro: 오브젝트화된 방
     :param all_structures: 방 안 모든 스트럭쳐
@@ -82,7 +84,7 @@ def refresh_base_stats(chambro, all_structures, fix_rating, min_wall, spawns):
             chambro.memory[room_lvl] = chambro.controller.level
 
         # 만일 스토리지 용량이 부족한데 랩 채우게끔 되있으면 뽑아간다.
-        if chambro.memory[options].fill_labs and chambro.storage and chambro.storage.store.energy < 1000:
+        if chambro.memory[options].fill_labs and chambro.storage and chambro.storage.store.energy < 2000:
             chambro.memory[options].fill_labs = 0
         # 역으로 스토리지가 꽉 찼는데 안채우게 되있으면 넣는다.
         if not chambro.memory[options].fill_labs and chambro.storage \
@@ -95,7 +97,7 @@ def refresh_base_stats(chambro, all_structures, fix_rating, min_wall, spawns):
         # 이름이 좀 꼬였는데 별수없음...
         if chambro.storage \
                 and chambro.storage.storeCapacity - _.sum(chambro.storage.store) < chambro.memory[options][max_energy] + 10000 \
-                and not len(min_wall) and chambro.memory[options][repair] < 60 \
+                and not len(min_wall) and chambro.memory[options][repair] < 150 \
                 and chambro.controller.level == 8:
             chambro.memory[options][repair] += 1
 
@@ -107,7 +109,7 @@ def refresh_base_stats(chambro, all_structures, fix_rating, min_wall, spawns):
         elif min_wall.hits // fix_rating < chambro.memory[options][repair] - 1:
             chambro.memory[options][repair] = min_wall.hits // fix_rating + 1
             # 이때 픽서 수 하나짜리로 초기화.
-            chambro.memory[options][stop_fixer] = Game.time - 900
+            chambro.memory[options][stop_fixer] = Game.time - 400
 
         # 매번 완전초기화 하면 너무 자원낭비. 수량 틀릴때만 돌린다.
         # 타워세기.
@@ -249,7 +251,7 @@ def refresh_base_stats(chambro, all_structures, fix_rating, min_wall, spawns):
         # 2. 컨테이너 위치
         pass
 
-    if Memory.debug or chambro.controller.my and chambro.memory.options.reset:
+    if Memory.debug or chambro.controller and chambro.controller.my and chambro.memory.options.reset:
         print('{}방 메모리에 건물현황 갱신하는데 {}CPU 소모'
               .format(chambro.name, round(Game.cpu.getUsed() - structure_cpu, 2)))
         chambro.memory.options.reset = 0

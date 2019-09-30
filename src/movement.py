@@ -107,8 +107,7 @@ def draw_path(creep, path_arr, color='white'):
 
 def get_findPathTo(start, target, target_range=0, ignore_creeps=True):
     """
-    findPathTo 를 이용한 길찾기
-    todo 이거 패스파인딩으로 완전히 바꿉시다.
+    findPathTo 를 이용한 길찾기. 다만 방 밖으로 나가는 경우 패스파인더를 돌린다
 
     :param start: 출발지. 아이디여도 되고 포지션 오브젝트도 됨
     :param target: 목적지. 출발지와 동일
@@ -153,7 +152,7 @@ def pathfinder_for_creep(creep, creeps, target, ignore_creeps=True):
     pass
 
 
-def move_with_mem(creep, target, target_range=0, path_mem='path', repath=True, domestic=False):
+def move_with_mem(creep, target, target_range=0, path_mem='path', repath=True):
     """
     저장된 패스 메모리따라 움직일 모든 코드는 여기에 들어간다.
     움직이려 하는데 안움직이면 앞자리 애랑 교대까지.
@@ -163,7 +162,6 @@ def move_with_mem(creep, target, target_range=0, path_mem='path', repath=True, d
     :param target_range: 설명 필요없을듯
     :param path_mem: 메모리에 저장된 길목록 이름. 기본값은 'path'
     :param repath: 도로가 안맞을 시 다시 길찾기를 시도할건가? 기본값 True
-    :param domestic: 방 안에서 작업하는 애인가? 방 안에서 작업하는 애면
     :return: [결과값(int), 길이 교체됬는지 확인여부(bool), 최종적으로 쓰인 길(list)]
     """
 
@@ -187,7 +185,8 @@ def move_with_mem(creep, target, target_range=0, path_mem='path', repath=True, d
 
     # creep.memory.old_target == 이전 목적지의 pos 값. 이동중 목적지 등이 바뀌는 경우를 위해 필요.
     # 크립의 구 목표가 없거나 구 목표와 현 목표 아이디가 일치하지 않는 경우 새 길을 파야 한다.
-    if not creep.memory.old_target or not JSON.stringify(creep.memory.old_target) == JSON.stringify(target):
+    if not creep.memory.old_target \
+            or not JSON.stringify(creep.memory.old_target) == JSON.stringify(target):
         need_new_path = True
         creep.memory.old_target = target
     # 도로가 없음 만들어야하니.
@@ -244,7 +243,7 @@ def move_with_mem(creep, target, target_range=0, path_mem='path', repath=True, d
             creep_located = False
             for p in path:
                 # 이전 길 위에 본 크립 위치를 찾았는지?
-                if creep_located:
+                if creep_located and p.lookFor(LOOK_CREEPS):
                     # 찾았으면 그 앞에 크립이 길막중이니 교대한다
                     front_creep = p.lookFor(LOOK_CREEPS)[0]
                     if front_creep and front_creep.my:
@@ -297,13 +296,12 @@ def get_bld_upg_path(creep, creeps, target, target_range=3):
                          and (c.memory.role == 'upgrader' or c.memory.role == 'hauler'
                               or c.memory.role == 'fixer' or c.memory.role == 'harvester')
                          and c.pos.inRangeTo(target, target_range+1))
-    # print(upgraders)
     opts = {'trackCreeps': False, 'refreshMatrix': True, 'pass_walls': False,
             'costByArea': {'objects': upgraders, 'size': 0, 'cost': 100}}
 
     # 돌아올 패스 어레이
     path_arr = creep.pos.findPathTo(target,
-                                 {'plainCost': 2, 'swampCost': 3, 'ignoreCreeps': True, 'range': 3,
+                                 {'plainCost': 2, 'swampCost': 6, 'ignoreCreeps': True, 'range': 3,
                                   'costCallback':
                                       lambda room_name: Costs(room_name, opts).load_matrix()})
     # 크립 본인의 위치도 길에 포함시킨다.
@@ -353,7 +351,4 @@ def ranged_move(creep, target, creeps, target_range=3):
     elif not creep.pos.inRangeTo(target, target_range):
         if creep.memory.path:
             del creep.memory.path
-        movi(creep, target, target_range, 5)
-
-    # time2 = Game.cpu.getUsed() - time1
-    # creep.say(time2)
+        movi(creep, target, target_range, 3)

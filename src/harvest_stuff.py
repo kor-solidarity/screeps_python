@@ -36,7 +36,7 @@ def harvest_energy(creep, source_id):
         if not creep.pos.inRangeTo(Game.getObjectById(source_id), 6):
             move_by_path = movement.move_with_mem(creep, source_id)
             if move_by_path[0] == OK and move_by_path[1]:
-                    path = move_by_path[2]
+                path = move_by_path[2]
             else:
                 creep.say('🌾 move{}'.format(move_by_path[0]))
         else:
@@ -99,9 +99,9 @@ def grab_energy(creep, pickup, only_energy, min_capacity=.5):
         return ERR_INVALID_TARGET
 
     # 근처에 없으면 아래 확인하는 의미가 없다.
-    if not Game.getObjectById(pickup).pos.isNearTo(creep):
-        # print(creep.name, 'not in range wtf', Game.getObjectById(pickup).pos.isNearTo(creep))
-        return ERR_NOT_IN_RANGE
+    # 의미가 있나? 없애보자
+    # if not Game.getObjectById(pickup).pos.isNearTo(creep):
+    #     return ERR_NOT_IN_RANGE
 
     # check if memory.pickup has store API or not
     if Game.getObjectById(pickup).store:
@@ -150,9 +150,6 @@ def grab_energy_new(creep, resource_type, min_capacity=.5):
     :return: any creep.withdraw return codes
     """
     # we will make new script for some stuff.
-
-    # 어느 종류의 물건을 뽑을 것인가?
-    resource_type = creep.memory[haul_resource]
 
     if not resource_type:
         creep.say('허울타입X!!')

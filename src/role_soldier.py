@@ -29,17 +29,13 @@ def run_remote_defender(all_structures, creep, creeps, hostile_creeps, lairs=Non
     # random blurtin'
     listo = ['Charge!', "KILL!!", "Ypa!", 'CodeIn 🐍!', 'Python 🤘!']
 
-    try:  # incase there's no creep for visual
-        if creep.room.name != creep.memory.assigned_room:
-            if len(hostile_creeps) > 0:
-                close_enemy = _.filter(hostile_creeps, lambda c: c.pos.inRangeTo(creep, 3))
-                if len(close_enemy) > 0:
-                    e = creep.pos.findClosestByRange(close_enemy)
-                    creep.rangedAttack(e)
-            creep.heal(Game.getObjectById(creep.id))
-            movement.get_to_da_room(creep, creep.memory.assigned_room, False)
-            return
-    except:
+    # incase there's no creep for visual
+    if creep.room.name != creep.memory.assigned_room:
+        if len(hostile_creeps) > 0:
+            close_enemy = _.filter(hostile_creeps, lambda c: c.pos.inRangeTo(creep, 3))
+            if len(close_enemy) > 0:
+                e = creep.pos.findClosestByRange(close_enemy)
+                creep.rangedAttack(e)
         if creep.hits != creep.hitsMax:
             creep.heal(Game.getObjectById(creep.id))
         movement.get_to_da_room(creep, creep.memory.assigned_room, False)

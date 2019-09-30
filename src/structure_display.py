@@ -22,8 +22,8 @@ def display_location(target_obj: Game.structures, other_objs, distance=5):
     현황 디스플레이 관련.
     Ĉefe Link kaj Spawn
 
-    :param target_obj:
-    :param other_objs:
+    :param target_obj: 디스플레이 대상
+    :param other_objs: 디스플레이에 걸릴 수 있는 여러 요소들()
     :param distance:
     :return: {'x': x값, 'y': y값, 'align': 어디로 쏠릴건지.} 오브젝트의 위치를 감안한 값임.
     """

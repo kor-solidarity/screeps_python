@@ -58,7 +58,7 @@ def run_harvester(creep, all_structures, constructions, room_creeps, dropped_all
 
     # if there's no source_num, need to distribute it.
     if not creep.memory.source_num:
-
+        print(creep.name, 'no source', JSON.stringify(Game.rooms[creep.memory.assigned_room].memory.resources))
         # 하베스터의 담당 방 내 소스 아이디 목록
         sources = []
         for r in Game.rooms[creep.memory.assigned_room].memory.resources.energy:
@@ -105,7 +105,7 @@ def run_harvester(creep, all_structures, constructions, room_creeps, dropped_all
                     creep.memory.source_num = sources[i]
                     break
 
-        # kazo 3
+        # kazo 3 -
         elif len(rikoltist_kripoj) >= len(sources):
             # print('creep {} - case 3: 자원채취꾼 수가 소스의 수 이상이다.'.format(creep.name))
             # 각 자원별 숫자총합이 2 이상이면 거기엔 배치할 필요가 없는거임.
@@ -190,7 +190,9 @@ def run_harvester(creep, all_structures, constructions, room_creeps, dropped_all
             creep.say('🚜 대충 찼다', True)
             creep.memory.laboro = 1
         else:
+            # print(creep.name, creep.pos, creep.memory.source_num)
             harvest = harvest_stuff.harvest_energy(creep, creep.memory.source_num)
+            # print('fin')
 
     # if carryCapacity is full - then go to nearest container or storage to store the energy.
     if creep.memory.laboro == 1:
@@ -345,11 +347,39 @@ def run_miner(creep, all_structures):
 
     # mine
     if creep.memory.laboro == 0:
+
+        mine_result = creep.harvest(Game.getObjectById(creep.memory.mineral))
+
+        # 멀리있으면 다가간다
+        if mine_result == ERR_NOT_IN_RANGE:
+            if not creep.pos.inRangeTo(Game.getObjectById(creep.memory.mineral), 6):
+                move_by_path = movement.move_with_mem(creep, creep.memory.mineral)
+                if move_by_path[0] == OK:
+                    if move_by_path[1]:
+                        creep.memory.path = move_by_path[2]
+                else:
+                    creep.say('{}'.format(move_by_path[0]))
+            else:
+                if creep.memory.path:
+                    del creep.memory.path
+                movement.movi(creep, creep.memory.mineral, 0, 3)
+
+        # ----------------------------------------------------------------
         # 바로옆이 아니면 우선 다가간다.
         if not creep.pos.isNearTo(Game.getObjectById(creep.memory.mineral)):
-            creep.moveTo(Game.getObjectById(creep.memory.mineral), {'visualizePathStyle':
-                                                                    {'stroke': '#0000FF', 'opacity': .25},
-                                                                    'ignoreCreeps': True, 'reusePath': 40})
+            if not creep.pos.inRangeTo(Game.getObjectById(creep.memory.mineral), 6):
+                move_by_path = movement.move_with_mem(creep, creep.memory.mineral)
+                if move_by_path[0] == OK and move_by_path[1]:
+                    creep.memory.path = move_by_path[2]
+                else:
+                    creep.say('🌾 move{}'.format(move_by_path[0]))
+            else:
+                if creep.memory.path:
+                    del creep.memory.path
+                movement.movi(creep, creep.memory.mineral, 0, 3)
+            # creep.moveTo(Game.getObjectById(creep.memory.mineral), {'visualizePathStyle':
+            #                                                         {'stroke': '#0000FF', 'opacity': .25},
+            #                                                         'ignoreCreeps': True, 'reusePath': 40})
             return
         # 쿨다운이 존재하면 어차피 못캐니 통과합시다.
         elif Game.getObjectById(creep.memory.extractor).cooldown:
@@ -358,8 +388,7 @@ def run_miner(creep, all_structures):
         mine_result = creep.harvest(Game.getObjectById(creep.memory.mineral))
         # 위 기능들로 인해 이제 의미없는 작업이 된듯..?
         # se ne estas en atingopovo(reach), iru.
-        if mine_result == ERR_NOT_IN_RANGE\
-                or mine_result == ERR_NOT_ENOUGH_ENERGY:
+        if mine_result == ERR_NOT_IN_RANGE or mine_result == ERR_NOT_ENOUGH_ENERGY:
             creep.moveTo(Game.getObjectById(creep.memory.mineral), {'visualizePathStyle':
                                                                     {'stroke': '#0000FF', 'opacity': .25},
                                                                     'ignoreCreeps': True, 'reusePath': 40})

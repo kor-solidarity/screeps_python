@@ -55,6 +55,7 @@ creep.memory.flag:
 
 """
 
+# 패스파인딩 관련
 js_global._costs = {'base': {}, 'rooms': {}, 'creeps': {}}
 # js_global.yolo = lambda a: print(a)
 #
@@ -203,7 +204,7 @@ def main():
     except:
         pass
 
-    # to count the number of creeps passed.
+    # to count the number of creeps passed in case of CPU limit reached.
     passing_creep_counter = 0
 
     # 스트럭쳐 목록 초기화 위한 숫자
@@ -235,9 +236,43 @@ def main():
         avg_cpu = round(all_cpu / len(Memory.cpu_usage), 2)
         last_cpu = Memory.cpu_usage[Memory.cpu_usage.length - 1]
 
-    # # 사전에 자원·건물현황·적 구분 등을 싹 다 돌린다.
-    # for chambra_nomo in Object.keys(Game.rooms):
-    #
+    # 모든 방 안에 있는 모든 주요 오브젝트는 여기에 다 통합보관된다.
+    all_objs = {}
+    # 사전에 자원·건물현황·적 구분 등을 싹 다 돌린다.
+    for chambra_nomo in Object.keys(Game.rooms):
+        # 찾아야 하는 대상: 각 방에 대한 모든것.
+        chambro = Game.rooms[chambra_nomo]
+
+        # ALL .find() functions are done in here. THERE SHOULD BE NONE INSIDE CREEP FUNCTIONS!
+        # filters are added in between to lower cpu costs.
+        all_structures = {'all_structures': chambro.find(FIND_STRUCTURES)}
+
+        room_creeps = {'room_creeps': chambro.find(FIND_MY_CREEPS)}
+
+        malsanaj_amikoj = {'malsanaj_amikoj': _.filter(room_creeps, lambda c: c.hits < c.hitsMax)}
+
+        enemy_constructions = {'enemy_constructions': chambro.find(FIND_HOSTILE_CONSTRUCTION_SITES)}
+        my_constructions = {'my_constructions': chambro.find(FIND_MY_CONSTRUCTION_SITES)}
+        # 바로아래 이유로 딕셔너리화하진 않음.
+        dropped_all = chambro.find(FIND_DROPPED_RESOURCES)
+        tombs = chambro.find(FIND_TOMBSTONES)
+        if tombs:
+            for t in tombs:
+                if _.sum(t.store) > 0:
+                    dropped_all.append(t)
+        dropped_all = {'dropped_all': dropped_all}
+
+        # 필터하면서 목록을 삭제하는거 같음.... 그래서 이리 초기화
+        foreign_creeps = chambro.find(FIND_HOSTILE_CREEPS)
+        nukes = {'nukes': chambro.find(FIND_NUKES)}
+        # [[적 전부], [적 NPC], [적 플레이어], [동맹]]
+        friends_and_foes = miscellaneous.filter_friend_foe(foreign_creeps)
+        # init. list
+        hostile_creeps = {'hostile_creeps': friends_and_foes[0]}
+        allied_creeps = {'allied_creeps': friends_and_foes[3]}
+
+        room_objs = {chambra_nomo: {all_structures, room_creeps, malsanaj_amikoj, enemy_constructions, my_constructions,
+                                    dropped_all, nukes, hostile_creeps, allied_creeps}}
 
     # run everything according to each rooms.
     for chambra_nomo in Object.keys(Game.rooms):
@@ -251,7 +286,7 @@ def main():
             if fix_rating > 500000:
                 fix_rating = 500000
         else:
-            fix_rating = 5000000
+            fix_rating = 2000000
 
         # todo 여기 메모리 맨아래로 옮겨야함
         # todo 방폭되면 거깄는 메모리 제거요망
@@ -264,7 +299,7 @@ def main():
                 Memory.rooms[chambra_nomo] = {}
             if not Memory.rooms[chambra_nomo].options:
                 Memory.rooms[chambra_nomo] = {options: {}}
-            # repair level - 벽·방어막에만 적용. 렙하나당 오백만
+            # repair level - 벽·방어막에만 적용. 렙하나당 이백만
             if not Memory.rooms[chambra_nomo].options.repair \
                     and not Memory.rooms[chambra_nomo][options][repair] == 0:
                 Memory.rooms[chambra_nomo][options][repair] = 1
@@ -291,11 +326,11 @@ def main():
 
             # 방어막 열건가? 0 = 통과, 1 = 연다, 2 = 닫는다.
             if not Memory.rooms[chambra_nomo].options.ramparts \
-                and not Memory.rooms[chambra_nomo].options.ramparts == 0:
+                    and not Memory.rooms[chambra_nomo].options.ramparts == 0:
                 Memory.rooms[chambra_nomo].options.ramparts = 0
             # 방어막이 열려있는지 확인. 0이면 닫힌거. 위에꺼랑 같이 연동함.
             if not Memory.rooms[chambra_nomo].options.ramparts_open \
-                and not Memory.rooms[chambra_nomo].options.ramparts_open == 0:
+                    and not Memory.rooms[chambra_nomo].options.ramparts_open == 0:
                 Memory.rooms[chambra_nomo].options.ramparts_open = 0
 
             # 각종현황(현재는 링크·타워만) 초기화 할것인가?
@@ -325,14 +360,12 @@ def main():
                             Game.rooms[r].visual.text('-def {}'.format(defendistoj), rx, ry)
 
                 # 각 메모리 옵션별 값.
-                # hauler_txt = Memory.rooms[chambra_nomo].options.haulers
                 repair_txt = Memory.rooms[chambra_nomo][options][repair]
                 ramparts_txt = Memory.rooms[chambra_nomo].options.ramparts
                 ramp_open_txt = Memory.rooms[chambra_nomo].options.ramparts_open
                 nuke_txt = Memory.rooms[chambra_nomo].options.fill_nuke
                 lab_txt = Memory.rooms[chambra_nomo].options.fill_labs
                 tow_txt = Memory.rooms[chambra_nomo].options.tow_atk
-                # upg_txt = Memory.rooms[chambra_nomo].options[max_upgraders]
                 energy_txt = Memory.rooms[chambra_nomo].options[max_energy]
                 stop_fixer_txt = Game.time - chambro.memory[options][stop_fixer]
 
@@ -363,7 +396,6 @@ def main():
                     if the_container and _.sum(the_container.store):
                         chambro.visual.text(str(_.sum(the_container.store)), the_container.pos,
                                             {'color': '#EE5927', 'font': 0.5})
-
 
             # bld_plan - 건설예약설정.
             if not chambro.memory.bld_plan:
@@ -424,9 +456,9 @@ def main():
         enemy_constructions = chambro.find(FIND_HOSTILE_CONSTRUCTION_SITES)
         my_constructions = chambro.find(FIND_MY_CONSTRUCTION_SITES)
         dropped_all = chambro.find(FIND_DROPPED_RESOURCES)
-        tomes = chambro.find(FIND_TOMBSTONES)
-        if tomes:
-            for t in tomes:
+        tombs = chambro.find(FIND_TOMBSTONES)
+        if tombs:
+            for t in tombs:
                 if _.sum(t.store) > 0:
                     dropped_all.append(t)
 
@@ -438,12 +470,6 @@ def main():
         # init. list
         hostile_creeps = friends_and_foes[0]
         allied_creeps = friends_and_foes[3]
-        # NULLIFIED - replaced with above
-        # to filter out the allies.
-        # if len(foreign_creeps) > 0:
-        #     hostile_creeps = miscellaneous.filter_enemies(foreign_creeps)
-        #     allied_creeps = miscellaneous.filter_friends(foreign_creeps)
-        #     allied_creeps = miscellaneous.filter_friend_foe(foreign_creeps)[3]
 
 
         # 초기화.
@@ -457,8 +483,8 @@ def main():
 
         # 핵이 있으면 비상!! 수리수치를 올린다.
         if bool(nukes):
-            if chambro.memory[options][repair] < 2:
-                chambro.memory[options][repair] = 2
+            if chambro.memory[options][repair] < 5:
+                chambro.memory[options][repair] = 5
             nuke_extra = 150000
         else:
             nuke_extra = 0
@@ -612,12 +638,17 @@ def main():
 
             room_memory.refresh_base_stats(chambro, all_structures, fix_rating, min_wall, spawns)
 
-        # 스폰과 링크목록
-        spawns_and_links = []
-        spawns_and_links.extend(spawns)
-        if chambro.memory and chambro.memory[STRUCTURE_LINK] and len(chambro.memory[STRUCTURE_LINK]) > 0:
-            for link in chambro.memory[STRUCTURE_LINK]:
-                spawns_and_links.append(Game.getObjectById(link.id))
+        # 스폰과 링크목록. 디스플레이 적용하거나 할때 걸릴 수도 있는 오브젝트 전부.
+        objs_for_disp = []
+        objs_for_disp.extend(spawns)
+
+        if chambro.memory:
+            if chambro.memory[STRUCTURE_LINK] and len(chambro.memory[STRUCTURE_LINK]) > 0:
+                for link in chambro.memory[STRUCTURE_LINK]:
+                    objs_for_disp.append(Game.getObjectById(link.id))
+            if chambro.memory[STRUCTURE_CONTAINER] and len(chambro.memory[STRUCTURE_CONTAINER]) > 0:
+                for c in chambro.memory[STRUCTURE_CONTAINER]:
+                    objs_for_disp.append(Game.getObjectById(c.id))
 
         # STRUCTURE_TOWER
         if chambro.memory[STRUCTURE_TOWER] and len(chambro.memory[STRUCTURE_TOWER]) > 0:
@@ -669,7 +700,7 @@ def main():
                     chambro.memory.options.reset = 1
                     continue
                 room_cpu_num += 1
-                structure_misc.run_links(link.id, spawns_and_links, room_creeps)
+                structure_misc.run_links(link.id, objs_for_disp)
 
         # check every 20 ticks.
         if Game.time % 20 == 0 and chambro.memory[STRUCTURE_CONTAINER] \
@@ -758,7 +789,7 @@ def main():
 
             structure_spawn.run_spawn(nesto, all_structures, room_creeps, hostile_creeps, divider, counter,
                                       cpu_bucket_emergency, cpu_bucket_emergency_spawn_start, extractor,
-                                      terminal_capacity, chambro, interval, wall_repairs, spawns_and_links,
+                                      terminal_capacity, chambro, interval, wall_repairs, objs_for_disp,
                                       min_hits)
 
             spawn_cpu_end = Game.cpu.getUsed() - spawn_cpu
@@ -766,7 +797,7 @@ def main():
                 print('spawn {} used {} cpu'.format(spawn.name, round(spawn_cpu_end, 2)))
         # 방에 컨트롤러가 내꺼면 다음렙까지 남은 업글점수 표기
         if chambro.controller and chambro.controller.my and not chambro.controller.level == 8:
-            disp_loc = structure_display.display_location(chambro.controller, spawns_and_links, 3)
+            disp_loc = structure_display.display_location(chambro.controller, objs_for_disp, 3)
             chambro.visual.text(str(chambro.controller.progressTotal - chambro.controller.progress),
                                 disp_loc.x, disp_loc.y,
                                 {'align': disp_loc['align'], 'opacity': 0.8, 'color': '#EE5927'})
@@ -793,15 +824,8 @@ def main():
     # while len(Memory.cpu_usage.total) >= Memory.ticks:
     while len(Memory.cpu_usage) >= Memory.ticks:
         Memory.cpu_usage.splice(0, 1)
-        # Memory.cpu_usage.total.splice(0, 1)
     # 소수점 다 올림처리. 겜에서도 그리 간주함.
     Memory.cpu_usage.push(int(Game.cpu.getUsed()) + 1)
-    # Memory.cpu_usage.total.push(round(Game.cpu.getUsed(), 2))
-
-    # there's a reason I made it this way...
-    # 뭐꼬이게... 삭제.
-    # if not Memory.tick_check and Memory.tick_check != False:
-    #     Memory.tick_check = False
 
     pathfinding.run_maintenance()
 

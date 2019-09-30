@@ -18,7 +18,7 @@ __pragma__('noalias', 'update')
 # 스폰을 메인에서 쪼개기 위한 용도. 현재 어떻게 빼내야 하는지 감이 안잡혀서 공백임.
 def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, counter,
               cpu_bucket_emergency, cpu_bucket_emergency_spawn_start, extractor,
-              terminal_capacity, chambro, interval, wall_repairs, spawns_and_links, min_hits):
+              terminal_capacity, chambro, interval, wall_repairs, objs_for_disp, min_hits):
     """
 
 
@@ -35,7 +35,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
     :param chambro:
     :param interval:
     :param wall_repairs:
-    :param spawns_and_links:
+    :param objs_for_disp:
     :param min_hits:
     :return:
     """
@@ -455,8 +455,8 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
 
         # 수리할게 있거나 렙 7 이상일때부터 수리병을 부름. 7때는 단지 하나. 8때는 5천에 하나.
         # 그리고 할당량 다 찼는데도 뽑는 경우도 있을 수 있으니 타이머 쟨다.
-        # 수리할게 더 없으면 천틱동안 추가 생산을 안한다.
-        if elapsed_fixer_time > 1000 \
+        # 수리할게 더 없으면 500틱동안 추가 생산을 안한다.
+        if elapsed_fixer_time > 500 \
             and len(wall_repairs) and chambro.storage \
             and chambro.controller.level >= 4 and chambro.storage.store[RESOURCE_ENERGY] >= 5000:
 
@@ -945,6 +945,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
         if chambro.controller.level < 4:
             return
 
+        # todo 메모리 떼내야함...
         # print('chambro.controller.level', chambro.controller.level)
         if len(Memory.rooms[spawn.room.name].options.remotes) > 0:
             # 깃발로 돌렸던걸 메모리로 돌린다.
@@ -1077,7 +1078,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
 
                     flag_containers = _.filter(flag_structures,
                                                lambda s: s.structureType == STRUCTURE_CONTAINER)
-
+                    # 실제로 만들어져 있는 컨테이너. flag_containers 는 건설중인 컨테이너도 포함.
                     flag_built_containers = flag_containers
 
                     flag_lairs = _.filter(flag_structures,
@@ -1121,8 +1122,130 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                     for c in remote_carriers:
                         carrier_size += c.memory.size
 
+                    # 에너지소스에 담당 컨테이너가 존재하는가?
+                    container_exist = False
+                    # 컨테이너가 소스보다 적으면 새로 짓는거
+                    if len(flag_energy_sources) > len(flag_containers):
+                        print('build containers')
+                        for es in flag_energy_sources:
+                            # 현재 컨테이너가 있는 경우 소스에서 가장 가까운걸 찾는다.
+                            if len(flag_containers):
+                                closest_cont = es.pos.findClosestByPath(flag_containers, {ignoreCreeps: True})
+                                # 4칸이하 거리면 있는거임. 통과
+                                if closest_cont and len(es.pos.findPathTo(closest_cont, {ignoreCreeps: True})) <= 4:
+                                    continue
+                            # 위에 컨티뉴 안걸리면 무조건 여기로 도착함
+                            target_source = es
+                            break
+
+                        # ignore placing roads around sources and controllers alike as much as possible.
+                        # 무조건 막을수는 없고, 정 다른길이 없으면 가게끔.
+                        objs = flag_energy_sources
+
+                        if flag_room_controller:
+                            objs.append(flag_room_controller)
+                        # todo does this room have keeper lairs?
+                        if len(flag_mineral) > 0:
+                            objs.extend(flag_mineral)
+
+                        # 찍을 위치정보. 소스에서 본진방향으로 두번째칸임.
+                        target_to_spawn = target_source.pos.findPathTo(spawn.room.controller, {'ignoreCreeps': True})
+                        const_loc = target_to_spawn[1]
+
+                        print('const_loc:', const_loc)
+                        print('const_loc.x {}, const_loc.y {}'.format(const_loc.x, const_loc.y))
+                        print('Game.rooms[{}].name: {}'.format(room_name, Game.rooms[room_name].name))
+                        # 찍을 좌표: 이게 제대로된 pos 함수
+                        constr_pos = __new__(RoomPosition(const_loc.x, const_loc.y, Game.rooms[room_name].name))
+                        print('constr_pos:', constr_pos)
+                        const_res = constr_pos.createConstructionSite(STRUCTURE_CONTAINER)
+
+                        print('building container at {}({}, {}): {}'
+                              .format(room_name, const_loc.x, const_loc.y, const_res))
+
+                        # todo 임시방편일뿐....
+                        # 건설위치가 건설을 못하는 곳임 - 거기에 뭐가 있다던가 너무 다른방 입구근처라던가.
+                        if const_res == ERR_INVALID_TARGET:
+                            # 한칸 더 앞으로 간다.
+                            const_loc = target_to_spawn[0]
+
+                            print('const_loc:', const_loc)
+                            print('const_loc.x {}, const_loc.y {}'.format(const_loc.x, const_loc.y))
+                            print('Game.rooms[{}].name: {}'.format(room_name, Game.rooms[room_name].name))
+                            # 찍을 좌표: 이게 제대로된 pos 함수
+                            constr_pos = \
+                                __new__(RoomPosition(const_loc.x, const_loc.y, Game.rooms[room_name].name))
+                            print('constr_pos:', constr_pos)
+                            const_res = constr_pos.createConstructionSite(STRUCTURE_CONTAINER)
+
+                        print('objs', objs)
+                        # 키퍼가 있으면 중간에 크립도 있는지라.
+                        if keeper_lair:
+                            for k in chambro.memory[STRUCTURE_KEEPER_LAIR]:
+                                if Game.getObjectById(k):
+                                    objs.append(Game.getObjectById(k))
+                            opts = {'trackCreeps': True, 'refreshMatrix': True, 'pass_walls': False,
+                                    'costByArea': {'objects': objs, 'size': 1, 'cost': 6}}
+                        else:
+                            opts = {'trackCreeps': False, 'refreshMatrix': True, 'pass_walls': False,
+                                    'costByArea': {'objects': objs, 'size': 1, 'cost': 6}}
+                        # RoomPosition 목록. 컨테이너 건설한 김에 길도 깐다.
+                        constr_roads_pos = \
+                            PathFinder.search(constr_pos, spawn.pos,
+                                              {'plainCost': 2, 'swampCost': 3,
+                                               'roomCallback':
+                                                   lambda room_name:
+                                                   pathfinding.Costs(room_name, opts).load_matrix()}, ).path
+                        print('PATH:', JSON.stringify(constr_roads_pos))
+                        # 길 찾은 후 스폰이 있는곳까지 도로건설
+                        for pos in constr_roads_pos:
+                            # 스폰이 있는 곳으로 또 쏠필요는 없음...
+                            if pos == spawn.pos:
+                                continue
+                            pos.createConstructionSite(STRUCTURE_ROAD)
+                        print('end container bld')
+                        del target_source
+                    #     *****************
+
+                    # 하베스터도 소스 수 만큼! 컨테이너 건설여부에 따라 만들어줘야 할지말지 아직 미정임
+                    # if len(flag_built_containers) > len(remote_harvesters):
+                    if len(flag_energy_sources) > len(remote_harvesters):
+                        print('spawn harvesters')
+                        # 4000 for keeper lairs
+                        # todo 너무 쉽게죽음. 보강필요. and need medic for keeper remotes
+                        regular_spawn = -6
+                        if keeper_lair:
+                            regular_spawn = spawn.spawnCreep(
+                                [TOUGH, TOUGH, TOUGH, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE,
+                                 WORK, WORK, WORK, WORK, WORK, WORK, WORK,
+                                 CARRY, CARRY, CARRY, CARRY],
+                                "hv_{}_{}".format(room_name_low, rand_int),
+                                {memory: {'role': 'harvester', 'assigned_room': room_name,
+                                          'home_room': spawn.room.name,
+                                          'size': 2}})
+
+                        # perfect for 3000 cap
+                        if regular_spawn == -6:
+                            regular_spawn = spawn.spawnCreep(
+                                [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, WORK,
+                                 CARRY, CARRY, CARRY, CARRY],
+                                "hv_{}_{}".format(room_name_low, rand_int),
+                                {memory: {'role': 'harvester', 'assigned_room': room_name,
+                                          'home_room': spawn.room.name,
+                                          'size': 2}})
+                        # print('what happened:', regular_spawn)
+                        if regular_spawn == -6:
+                            # 구판 [WORK, WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE]
+                            spawn.spawnCreep(
+                                [MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, WORK, CARRY, CARRY],
+                                "hv_{}_{}".format(room_name_low, rand_int),
+                                {memory: {'role': 'harvester', 'assigned_room': room_name,
+                                          'home_room': spawn.room.name}})
+                            continue
                     # 캐리어가 소스 수 만큼 있는가?
-                    if len(flag_energy_sources) * 2 > carrier_size:
+                    # if len(flag_energy_sources) * 2 > carrier_size:
+                    # 캐리어가 컨테이너 수 만큼 있는가?
+                    elif len(flag_containers) * 2 > carrier_size:
                         # print('spawn carriers')
                         # 픽업으로 배정하는 것이 아니라 자원으로 배정한다.
                         if len(remote_carriers) == 0:
@@ -1144,13 +1267,10 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                                     # Game.getObjectById(carrier_source) << 이게 너무 길어서.
                                     target_source = Game.getObjectById(carrier_source)
                                     break
-
                         # creep.memory.pickup
                         carrier_pickup_id = ''
-
                         # 에너지소스에 담당 컨테이너가 존재하는가?
                         container_exist = False
-                        # print('carrier_source 위치:', target_source.pos)
                         # loop all structures. I'm not gonna use filter. just loop it at once.
                         if len(flag_containers) > 0:
                             # print('flag_containers', flag_containers)
@@ -1158,8 +1278,8 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                                                                                {ignoreCreeps: True})
                             # print('closest_cont', closest_cont)
                             # if target_source.pos.inRangeTo(closest_cont, 4):
-                            # 5칸이하 거리면 있는거임.
-                            if len(target_source.pos.findPathTo(closest_cont, {ignoreCreeps: True})) <= 5:
+                            # 4칸이하 거리면 있는거임.
+                            if len(target_source.pos.findPathTo(closest_cont, {ignoreCreeps: True})) <= 4:
                                 container_exist = True
                                 carrier_pickup_id = closest_cont.id
 
@@ -1174,74 +1294,73 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                             objs.extend(flag_mineral)
 
                         # 컨테이너가 존재하지 않는 경우.
-                        if not container_exist:
-                            # 건설장 존재여부. 있으면 참.
-                            container_sites = False
-                            # 건설장이 존재하는지 확인한다.
-                            for gunseol in flag_constructions:
-                                if target_source.pos.inRangeTo(gunseol, 3):
-                                    # 존재하면 굳이 아래 돌릴필요가 없어짐.
-                                    if gunseol.structureType == STRUCTURE_CONTAINER:
-                                        container_sites = True
-                                        break
-                            # 건설중인 컨테이너가 없다? 자동으로 하나 건설한다.
-                            if not container_sites:
-                                # 찍을 위치정보. 소스에서 본진방향으로 두번째칸임.
-                                target_to_spawn = target_source.pos.findPathTo(spawn.room.controller,
-                                                                               {'ignoreCreeps': True})
-                                const_loc = target_to_spawn[1]
-
-                                print('const_loc:', const_loc)
-                                print('const_loc.x {}, const_loc.y {}'.format(const_loc.x, const_loc.y))
-                                print('Game.rooms[{}].name: {}'.format(room_name, Game.rooms[room_name].name))
-                                # 찍을 좌표: 이게 제대로된 pos 함수
-                                constr_pos = __new__(RoomPosition(const_loc.x, const_loc.y, Game.rooms[room_name].name))
-                                print('constr_pos:', constr_pos)
-                                const_res = constr_pos.createConstructionSite(STRUCTURE_CONTAINER)
-
-                                print('building container at {}({}, {}): {}'
-                                      .format(room_name, const_loc.x, const_loc.y, const_res))
-
-                                # todo 임시방편일뿐....
-                                # 건설위치가 건설을 못하는 곳임 - 거기에 뭐가 있다던가 너무 다른방 입구근처라던가.
-                                if const_res == ERR_INVALID_TARGET:
-                                    # 한칸 더 앞으로 간다.
-                                    const_loc = target_to_spawn[0]
-
-                                    print('const_loc:', const_loc)
-                                    print('const_loc.x {}, const_loc.y {}'.format(const_loc.x, const_loc.y))
-                                    print('Game.rooms[{}].name: {}'.format(room_name, Game.rooms[room_name].name))
-                                    # 찍을 좌표: 이게 제대로된 pos 함수
-                                    constr_pos = \
-                                        __new__(RoomPosition(const_loc.x, const_loc.y, Game.rooms[room_name].name))
-                                    print('constr_pos:', constr_pos)
-                                    const_res = constr_pos.createConstructionSite(STRUCTURE_CONTAINER)
-
-                                print('objs', objs)
-                                # 키퍼가 있으면 중간에 크립도 있는지라.
-                                if keeper_lair:
-                                    for k in chambro.memory[STRUCTURE_KEEPER_LAIR]:
-                                        if Game.getObjectById(k):
-                                            objs.append(Game.getObjectById(k))
-                                    opts = {'trackCreeps': True, 'refreshMatrix': True, 'pass_walls': False,
-                                            'costByArea': {'objects': objs, 'size': 1, 'cost': 6}}
-                                else:
-                                    opts = {'trackCreeps': False, 'refreshMatrix': True, 'pass_walls': False,
-                                            'costByArea': {'objects': objs, 'size': 1, 'cost': 6}}
-                                # RoomPosition 목록. 컨테이너 건설한 김에 길도 깐다.
-                                constr_roads_pos = \
-                                    PathFinder.search(constr_pos, spawn.pos,
-                                                      {'plainCost': 2, 'swampCost': 3,
-                                                       'roomCallback':
-                                                           lambda room_name:
-                                                           pathfinding.Costs(room_name, opts).load_matrix()}, ).path
-                                print('PATH:', JSON.stringify(constr_roads_pos))
-                                # 길 찾은 후 스폰이 있는곳까지 도로건설
-                                for pos in constr_roads_pos:
-                                    # 스폰이 있는 곳으로 또 쏠필요는 없음...
-                                    if pos == spawn.pos:
-                                        continue
-                                    pos.createConstructionSite(STRUCTURE_ROAD)
+                        # if not container_exist:
+                        #     # 건설장 존재여부. 있으면 참.
+                        #     container_sites = False
+                        #     # 건설장이 존재하는지 확인한다.
+                        #     for gunseol in flag_constructions:
+                        #         if target_source.pos.inRangeTo(gunseol, 3):
+                        #             # 존재하면 굳이 아래 돌릴필요가 없어짐.
+                        #             if gunseol.structureType == STRUCTURE_CONTAINER:
+                        #                 container_sites = True
+                        #                 break
+                        #     # 건설중인 컨테이너가 없다? 자동으로 하나 건설한다.
+                        #     if not container_sites:
+                        #         # 찍을 위치정보. 소스에서 본진방향으로 두번째칸임.
+                        #         target_to_spawn = target_source.pos.findPathTo(spawn.room.controller,
+                        #                                                        {'ignoreCreeps': True})
+                        #         const_loc = target_to_spawn[1]
+                        #
+                        #         print('const_loc:', const_loc)
+                        #         print('const_loc.x {}, const_loc.y {}'.format(const_loc.x, const_loc.y))
+                        #         print('Game.rooms[{}].name: {}'.format(room_name, Game.rooms[room_name].name))
+                        #         # 찍을 좌표: 이게 제대로된 pos 함수
+                        #         constr_pos = __new__(RoomPosition(const_loc.x, const_loc.y, Game.rooms[room_name].name))
+                        #         print('constr_pos:', constr_pos)
+                        #         const_res = constr_pos.createConstructionSite(STRUCTURE_CONTAINER)
+                        #
+                        #         print('building container at {}({}, {}): {}'
+                        #               .format(room_name, const_loc.x, const_loc.y, const_res))
+                        #
+                        #         # 건설위치가 건설을 못하는 곳임 - 거기에 뭐가 있다던가 너무 다른방 입구근처라던가.
+                        #         if const_res == ERR_INVALID_TARGET:
+                        #             # 한칸 더 앞으로 간다.
+                        #             const_loc = target_to_spawn[0]
+                        #
+                        #             print('const_loc:', const_loc)
+                        #             print('const_loc.x {}, const_loc.y {}'.format(const_loc.x, const_loc.y))
+                        #             print('Game.rooms[{}].name: {}'.format(room_name, Game.rooms[room_name].name))
+                        #             # 찍을 좌표: 이게 제대로된 pos 함수
+                        #             constr_pos = \
+                        #                 __new__(RoomPosition(const_loc.x, const_loc.y, Game.rooms[room_name].name))
+                        #             print('constr_pos:', constr_pos)
+                        #             const_res = constr_pos.createConstructionSite(STRUCTURE_CONTAINER)
+                        #
+                        #         print('objs', objs)
+                        #         # 키퍼가 있으면 중간에 크립도 있는지라.
+                        #         if keeper_lair:
+                        #             for k in chambro.memory[STRUCTURE_KEEPER_LAIR]:
+                        #                 if Game.getObjectById(k):
+                        #                     objs.append(Game.getObjectById(k))
+                        #             opts = {'trackCreeps': True, 'refreshMatrix': True, 'pass_walls': False,
+                        #                     'costByArea': {'objects': objs, 'size': 1, 'cost': 6}}
+                        #         else:
+                        #             opts = {'trackCreeps': False, 'refreshMatrix': True, 'pass_walls': False,
+                        #                     'costByArea': {'objects': objs, 'size': 1, 'cost': 6}}
+                        #         # RoomPosition 목록. 컨테이너 건설한 김에 길도 깐다.
+                        #         constr_roads_pos = \
+                        #             PathFinder.search(constr_pos, spawn.pos,
+                        #                               {'plainCost': 2, 'swampCost': 3,
+                        #                                'roomCallback':
+                        #                                    lambda room_name:
+                        #                                    pathfinding.Costs(room_name, opts).load_matrix()}, ).path
+                        #         print('PATH:', JSON.stringify(constr_roads_pos))
+                        #         # 길 찾은 후 스폰이 있는곳까지 도로건설
+                        #         for pos in constr_roads_pos:
+                        #             # 스폰이 있는 곳으로 또 쏠필요는 없음...
+                        #             if pos == spawn.pos:
+                        #                 continue
+                        #             pos.createConstructionSite(STRUCTURE_ROAD)
 
                         # 대충 해야하는일: 캐리어의 픽업위치에서 본진거리 확인. 그 후 거리만큼 추가.
                         if Game.getObjectById(carrier_pickup_id):
@@ -1262,26 +1381,6 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                                                                   lambda room_name:
                                                                   pathfinding.Costs(room_name, opts).load_matrix()
                                                               }, ).path
-
-                            # 픽업지점에서 스폰까지 그 사이에 길이 없어진 경우 새로 깔기 위한 목적
-                            ct = 0
-                            for p in path_to_home:
-                                # 첫번째 지점은 컨테이너가 있기 때문에 무시하기 위한 것 목표
-                                if not ct:
-                                    ct += 1
-                                    continue
-                                # 도로를 건설해야 하는가?
-                                pave = True
-                                # 도로가 있나 확인하는게 목표, 스폰이 있으면 쌩까는것도 잊지말것
-                                if len(p.lookFor(LOOK_STRUCTURES)):
-                                    for s in p.lookFor(LOOK_STRUCTURES):
-                                        # 통과못하는 오브젝트에 걸렸을 경우.
-                                        if OBSTACLE_OBJECT_TYPES.includes(s.structureType):
-                                            pave = False
-                                            break
-                                # 도로건설 실시
-                                if pave:
-                                    p.createConstructionSite(STRUCTURE_ROAD)
 
                             # 위에 길 역순.
                             path_spawn_to_pickup = []
@@ -1367,41 +1466,6 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                                               'work': 1, home_room: spawn.room.name,
                                               'source_num': carrier_source, 'frontier': 1, 'size': 2,
                                               to_pickup: path_spawn_to_pickup, to_home: path_to_home}})
-                            continue
-
-                    # 하베스터도 소스 수 만큼! 컨테이너 건설여부에 따라 만들어줘야 할지말지 아직 미정임
-                    elif len(flag_built_containers) > len(remote_harvesters):
-                        # if len(flag_energy_sources) > len(remote_harvesters):
-                        # 4000 for keeper lairs
-                        # todo 너무 쉽게죽음. 보강필요. and need medic for keeper remotes
-                        regular_spawn = -6
-                        if keeper_lair:
-                            regular_spawn = spawn.spawnCreep(
-                                [TOUGH, TOUGH, TOUGH, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE,
-                                 WORK, WORK, WORK, WORK, WORK, WORK, WORK,
-                                 CARRY, CARRY, CARRY, CARRY],
-                                "hv_{}_{}".format(room_name_low, rand_int),
-                                {memory: {'role': 'harvester', 'assigned_room': room_name,
-                                          'home_room': spawn.room.name,
-                                          'size': 2}})
-
-                        # perfect for 3000 cap
-                        if regular_spawn == -6:
-                            regular_spawn = spawn.spawnCreep(
-                                [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, WORK,
-                                 CARRY, CARRY, CARRY, CARRY],
-                                "hv_{}_{}".format(room_name_low, rand_int),
-                                {memory: {'role': 'harvester', 'assigned_room': room_name,
-                                          'home_room': spawn.room.name,
-                                          'size': 2}})
-                        # print('what happened:', regular_spawn)
-                        if regular_spawn == -6:
-                            # 구판 [WORK, WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE]
-                            spawn.spawnCreep(
-                                [MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, WORK, CARRY, CARRY],
-                                "hv_{}_{}".format(room_name_low, rand_int),
-                                {memory: {'role': 'harvester', 'assigned_room': room_name,
-                                          'home_room': spawn.room.name}})
                             continue
                     continue
                     # todo 철거반 손봐야함!!
@@ -1492,16 +1556,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
 
     elif spawn.spawning:
         # 디스플레이 부분 위치조정
-        display_loc = display_location(spawn, spawns_and_links)
-        # print(display_loc['x'])
-        # print(display_loc['y'])
-        # print(display_loc['align'])
-        # print(spawn.pos.x + display_loc['x'], spawn.pos.y + display_loc['y'], display_loc['align'])
-        # if spawn.pos.x > 44:
-        #     align = 'right'
-        # else:
-        #     align = 'left'
-
+        display_loc = display_location(spawn, objs_for_disp)
         # todo 디스플레이 부분 위치조정 필요. 다섯칸 간격이면 적당할듯.
         # 벽은 7칸으로.
         # showing process of the spawning creep by %
@@ -1557,7 +1612,8 @@ def determine_carrier_size(criteria, work_chance=0, small=False):
     # 소수점 다 올림처리.
     if criteria % int(criteria) > 0:
         criteria += 1
-    criteria += random.randint(0, 1)
+    # 무조건 크기는 기본값에서 하나 추가. 방 안에서 최대 10칸까지 들어갈 수 있기 때문에 이에 대한 대비책.
+    criteria += 1
     # 여기서 값을 넣는다.
     for i in range(criteria):
         # work 부분부터 넣어본다.
