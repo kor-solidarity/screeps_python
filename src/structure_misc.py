@@ -49,10 +49,6 @@ def run_tower(tower, hostile_creeps, repairs, malsana_amikoj):
     else:
         if tower.energy < tower.energyCapacity * 0.25:
             return
-        # NULLIFIED
-        # # 스토리지 안에 에너지가 오천이상일 경우 수리를 아예 안한다. 스토리지가 아예 없으면야...
-        # if (tower.room.storage and tower.room.storage.store[LOOK_ENERGY] > 5000) \
-        #         or not tower.room.storage:
         # 타워는 수리 최후의 보루다. 당장 수리 안하면 박살날 위기에 처해지지 않는 이상 안건든다.
         else:
             repair = tower.pos.findClosestByRange(repairs)
@@ -70,11 +66,11 @@ def run_links(link_id, objs_for_disp):
 
     link = Game.getObjectById(link_id)
 
-    # 방렙이 몇이냐에 따라 쏘기 시작하는 최저수량을 규정한다.
-    if link.room.controller.level >= 7:
-        amount_to_shoot = 800
-    else:
-        amount_to_shoot = 200
+    # if link.room.controller.level >= 7:
+    # 쏘기 시작하는 최저수량. 무조건 꽉찼을때 지른다.
+    amount_to_shoot = 800
+    # else:
+    #     amount_to_shoot = 200
 
     # current link
     me = _.filter(Game.getObjectById(link_id).room.memory[STRUCTURE_LINK],

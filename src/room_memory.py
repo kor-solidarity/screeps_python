@@ -125,41 +125,43 @@ def refresh_base_stats(chambro, all_structures, fix_rating, min_wall, spawns):
         if not len(str_links) == len(chambro.memory[STRUCTURE_LINK]) or \
             not past_lvl == chambro.memory[room_lvl]:
             chambro.memory[STRUCTURE_LINK] = []
-            # 안보내는 조건은 주변 6칸거리내에 컨트롤러·스폰·스토리지가 있을 시.
-            strage_points = _.filter(all_structures, lambda s: s.structureType == STRUCTURE_STORAGE
+            range_required = 5
+            # 안보내는 조건은 주변 range_required 거리 내에 컨트롤러·스폰·스토리지가 있을 시.
+            storage_points = _.filter(all_structures, lambda s: s.structureType == STRUCTURE_STORAGE
                                                                or s.structureType == STRUCTURE_SPAWN
                                                                or s.structureType == STRUCTURE_TERMINAL)
             # or s.structureType == STRUCTURE_EXTENSION)
             # 만렙이 아닐 경우 컨트롤러 근처에 있는것도 센다.
             if not chambro.controller.level == 8:
-                strage_points.append(chambro.controller)
+                storage_points.append(chambro.controller)
 
             # 링크는 크게 두 종류가 존재한다. 하나는 보내는거, 또하난 받는거.
             for stl in str_links:
                 # 0이면 보내는거.
                 _store = 0
-                # 0이면 업글용인거.
+                # 1이면 업글용인거.
                 _upgrade = 0
-                closest = stl.pos.findClosestByPath(strage_points, {ignoreCreeps: True})
-                if len(stl.pos.findPathTo(closest, {ignoreCreeps: True})) <= 6:
+                # 링크에서 가장 가까이 있는 storage_points
+                closest_storage = stl.pos.findClosestByPath(storage_points, {ignoreCreeps: True})
+                # 링크에서 가장 가까이 있는 storage_points 까지의 거리
+                path_to_closest_storage = stl.pos.findPathTo(closest_storage, {ignoreCreeps: True})
+
+                # 링크에서 컨트롤러까지의 길
+                path_to_controller = stl.pos.findPathTo(chambro.controller, {'ignoreCreeps': True, 'range': 3})
+
+                # 거리가 조건에 충족하면 우선 저장용임.
+                if len(path_to_closest_storage) <= range_required or len(path_to_controller) <= range_required:
                     _store = 1
 
-                # 컨트롤러 근처에 있는지도 센다. 다만 렙8 아래일때만.
-                if not chambro.controller.level == 8 and \
-                    len(stl.pos.findPathTo(chambro.controller,
-                                           {'ignoreCreeps': True, 'range': 3})) <= 6:
-                    _store = 1
-                    _upgrade = 1
-
-                if not _store:
-                    for stp in strage_points:
-                        if len(stl.pos.findPathTo(stp, {'ignoreCreeps': True})) <= 6:
-                            _store = 1
-                            break
+                # 저장용이면 컨트롤러 근처에 있는지도 센다. 업글용인지 확인할 용도
+                if _store and not chambro.controller.level == 8:
+                    # 컨트롤러가 스토리지보다 더 가까울 경우 업글용으로 분류한다.
+                    if len(path_to_controller) < len(path_to_closest_storage):
+                        _upgrade = 1
 
                 # 추가한다
                 chambro.memory[STRUCTURE_LINK] \
-                    .push({'id': stl.id, for_upgrade: _upgrade, for_store: _store})
+                    .push({'id': stl.id, for_upgrade: _upgrade, for_store: _store, 'received_time': 1})
 
         # 컨테이너
         str_cont = _.filter(all_structures, lambda s: s.structureType == STRUCTURE_CONTAINER)

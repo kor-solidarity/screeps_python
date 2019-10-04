@@ -41,7 +41,8 @@ class Costs:
     def __init__(self, room_name, opts):
         self.id = room_name
         self.opts = opts or {}
-
+        # if self.opts.trackCreeps:
+        #     print('self.trackCreeps', self.opts.trackCreeps)
         self.costs = js_global._costs
         self.room = Game.rooms[room_name]
 

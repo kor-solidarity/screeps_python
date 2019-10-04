@@ -189,7 +189,7 @@ def main():
                     elif Game.time % 1000000 < 2000:
                         # 첫시작인 경우
                         if Game.time < 2100:
-                            creep.say('NewTick! 🎉', True)
+                            creep.say('NewTick!🎉', True)
                         else:
                             creep.say('{}M ticks🎉🍾'.format(int(Game.time / 1000000)), True)
                     # creep.memory.age += 1
@@ -645,10 +645,12 @@ def main():
         if chambro.memory:
             if chambro.memory[STRUCTURE_LINK] and len(chambro.memory[STRUCTURE_LINK]) > 0:
                 for link in chambro.memory[STRUCTURE_LINK]:
-                    objs_for_disp.append(Game.getObjectById(link.id))
+                    if Game.getObjectById(link.id):
+                        objs_for_disp.append(Game.getObjectById(link.id))
             if chambro.memory[STRUCTURE_CONTAINER] and len(chambro.memory[STRUCTURE_CONTAINER]) > 0:
                 for c in chambro.memory[STRUCTURE_CONTAINER]:
-                    objs_for_disp.append(Game.getObjectById(c.id))
+                    if Game.getObjectById(c.id):
+                        objs_for_disp.append(Game.getObjectById(c.id))
 
         # STRUCTURE_TOWER
         if chambro.memory[STRUCTURE_TOWER] and len(chambro.memory[STRUCTURE_TOWER]) > 0:

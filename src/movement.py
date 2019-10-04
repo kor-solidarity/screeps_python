@@ -130,11 +130,12 @@ def get_findPathTo(start, target, target_range=0, ignore_creeps=True):
                                 {'maxOps': 5000, ignoreCreeps: ignore_creeps, 'range': target_range})
         path = _.map(path, lambda p: __new__(RoomPosition(p.x, p.y, start.roomName)))
     else:
-        path = PathFinder.search(start, target,
-                                 {'plainCost': 2, 'swampCost': 6, 'maxOps': 5000,
-                                  'roomCallback':
-                                      lambda room_name:
-                                      Costs(room_name, {}).load_matrix()},).path
+        path = \
+            PathFinder.search(start, target,
+                              {'plainCost': 2, 'swampCost': 6, 'maxOps': 5000,
+                                'roomCallback':
+                                    lambda room_name:
+                                    Costs(room_name, {'trackCreeps': bool(not ignoreCreeps)}).load_matrix()},).path
 
     return path
 

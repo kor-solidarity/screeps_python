@@ -332,6 +332,9 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                     del creep.memory.path
 
             else:
+                # 픽업대상이 없어서 뽑아야할때도 주변에 모든 떨궈진 자원을 찾아본다.
+                if not creep.memory.all_full:
+                    creep.memory.all_full = 1
                 # if there's nothing in the storage they harvest on their own.
                 if not creep.memory.source_num:
                     creep.memory.source_num = creep.pos.findClosestByRange(creep.room.find(FIND_SOURCES)).id
@@ -389,7 +392,7 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
             elif len(constructions) > 0:
                 creep.say('🚧건설,염려말라!', True)
                 creep.memory.priority = 2
-            elif len(repairs) > 0 and creep.room.controller.level > 1:
+            elif len(repairs) > 0 and creep.room.controller.level > 2:
                 creep.say('☭ 세상을 고치자!', True)
                 creep.memory.priority = 3
             else:
@@ -686,8 +689,9 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
 
             # if having anything other than energy when not on priority 1 switch to 1
             # 운송크립은 발전에 심혈을 기울이면 안됨.
-            if (creep.carry[RESOURCE_ENERGY] <= 0 or _.sum(creep.carry) <= creep.carryCapacity * outer_work_perc) \
-                    and creep.room.controller.level > 4:
+            if creep.carry[RESOURCE_ENERGY] <= 0 \
+                    or creep.room.energyAvailable < creep.room.energyCapacityAvailable * .5\
+                    or len(constructions):
                 creep.memory.priority = 1
                 creep.say('복귀!', True)
                 return

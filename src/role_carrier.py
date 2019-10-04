@@ -224,59 +224,6 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
 
                 carrier_movement(creep, 'to_pickup')
 
-                # NULLIFIED - seperated to def.
-                # path = creep.memory.to_pickup[len(creep.memory.to_pickup)-1]
-                # target = __new__(RoomPosition(path.x, path.y, path.roomName))
-                # # 본진에 자원 옮기고 나서 돌아갈 경우 타겟이 뒤틀려 있을 수 있음.
-                # move_by_path = movement.move_with_mem(creep, target, 0, 'to_pickup', False)
-                # # 크립위치가 길과 안맞는 경우. 어떤 이유에서던 길 밖으로 삐져나가면 발동.
-                # if move_by_path[0] == ERR_NOT_FOUND:
-                #     creep.say('offRoad', True)
-                #     # 초기화 목적
-                #     closest = None
-                #     target_changed = False
-                #
-                #     # 작동원리:
-                #     # 방으로 돌아갈 복구지점을 저장해둔다.
-                #     # 복구지점이 없거나 지점과 크립의 방이 동일하지 않으면 새로 찾는다
-                #     if not creep.memory.return_point or not creep.memory.return_point.roomName == creep.pos.roomName:
-                #         # print(creep.name, "NOT IN SAME ROOM!!")
-                #         path = _.map(creep.memory.to_pickup, lambda p: __new__(RoomPosition(p.x, p.y, p.roomName)))
-                #         target_changed = True
-                #         closest = creep.pos.findClosestByRange(path)
-                #     # 안뜨면 이러는게 애초에 이상하긴 한데... 우선 해봅시다.
-                #     if closest:
-                #         creep.memory.return_point = closest
-                #     # 너무 길어서.
-                #     rp = creep.memory.return_point
-                #     try:
-                #         closest = __new__(RoomPosition(rp.x, rp.y, rp.roomName))
-                #     except:  # 여기 걸리면 완전 다른 방으로 갔다는거.
-                #         # 보통 다른 방 들어가자마자 걸리고 바로 돌아오는지라 큰문제는 없을듯.
-                #         print("ERROR - {} {}에 경로이탈 {}".format(creep.name, JSON.stringify(creep.pos), rp))
-                #         return
-                #     # 우선 디버깅용으로 전환시킨다. 이제 문제 안생기는듯.
-                #     if target_changed and creep.memory.debug:
-                #         print(creep.name, 'not closest',
-                #               bool(not closest), closest, 'at {}'.format(JSON.stringify(creep.pos)))
-                #         print(JSON.stringify(closest))
-                #
-                #     creep.say('탈선x{}y{}'.format(closest.x, closest.y))
-                #     if creep.memory.debug:
-                #         Game.rooms[closest.roomName]\
-                #             .visual.circle(closest, {'fill': 'green', 'opacity': 0.9})
-                #         Game.rooms[closest.roomName]\
-                #             .visual.text('{} closest'.format(creep.name))
-                #     # movement.movi(creep, closest)
-                #     # path = _.map(creep.memory.path, lambda p: __new__(RoomPosition(p.x, p.y, p.roomName)))
-                #     move_by_path = movement.move_with_mem(creep, closest, 0)
-                #     if move_by_path[0] == OK and move_by_path[1]:
-                #         creep.memory.path = move_by_path[2]
-                # elif move_by_path[0] == ERR_INVALID_ARGS:
-                #     creep.say('invalWTF')
-                # elif not move_by_path[0] == OK:
-                #     creep.say('ERR {}'.format(move_by_path[0]))
-
             elif result == 0:
                 creep.say('BEEP BEEP⛟', True)
                 # 컨테이너 안에 에너지 외 다른게 들어가 있으면 빼내 없애야 하기에 한 조치.
@@ -327,42 +274,6 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                     or not creep.pos.inRangeTo(Game.getObjectById(creep.memory.source_num), 5):
 
                 carrier_movement(creep, 'to_pickup')
-
-                # NULLIFIED - switched to above
-                # path = creep.memory.to_pickup[len(creep.memory.to_pickup)-1]
-                # target = __new__(RoomPosition(path.x, path.y, path.roomName))
-                # move_by_path = movement.move_with_mem(creep, target, 0, 'to_pickup', False)
-                #
-                # # 스폰될때 자동으로 현위치에서 길이 배정되기 때문에 없으면 애초부터 잘못 스폰된거.
-                # # path = \
-                # #     _.map(creep.memory[to_pickup],
-                # #           lambda p: __new__(RoomPosition(p.x, p.y, p.roomName)))
-                # #
-                # # moving = creep.moveByPath(path)
-                #
-                # if moving == OK:
-                #     # path = _.map(creep.memory.to_pickup, lambda p: __new__(RoomPosition(p.x, p.y, p.roomName)))
-                #     # path = creep.memory.to_pickup[[len(creep.memory.to_pickup)-1]]
-                #     target = __new__(RoomPosition(path.x, path.y, path.roomName))
-                #     move_by_path = movement.move_with_mem(creep, target, 0, 'to_pickup', False)
-                #
-                #     if not move_by_path[0] == OK:
-                #         creep.say('투픽업탈선:{}'.format(move_by_path[0]))
-                #
-                # # 크립위치가 길과 안맞는 경우.
-                # elif moving == ERR_NOT_FOUND:
-                #     # 가장 가까이 있는 길을 찾아나선다.
-                #     closest_loc = creep.pos.findClosestByRange(path)
-                #     print(creep.name, 'closest_loc', closest_loc, creep.pos)
-                #     # path = _.map(creep.memory.path, lambda p: __new__(RoomPosition(p.x, p.y, p.roomName)))
-                #     move_by_path = movement.move_with_mem(creep, closest_loc, 0)
-                #     if move_by_path[0] == OK and move_by_path[1]:
-                #         creep.memory.path = move_by_path[2]
-                #     print(creep.name, JSON.stringify(closest_loc))
-                #     creep.say('픽업탈선:{}'.format(move_by_path[0]))
-                #
-                # else:
-                #     creep.say('ERR {}'.format(moving))
 
             else:
                 # 여기로 왔다는건 할당 컨테이너가 없다는 소리. 한마디로 not creep.memory.pickup == True
@@ -509,32 +420,10 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                 move_res = carrier_movement(creep, 'to_home')
                 # 길대로 가는데 만약 이게 떴다면 중간에 길이 끊겨서 그랬을 가능성이 높다.
                 # 설치해준다.
-                if move_res == ERR_TIRED:
+                if move_res[0] == ERR_TIRED and move_res[1]:
                     build_road = creep.pos.createConstructionSite(STRUCTURE_ROAD)
                     creep.say('noRoad {}'.format(build_road))
-                # path = creep.memory[to_home][len(creep.memory[to_home])-1]
-                # target = __new__(RoomPosition(path.x, path.y, path.roomName))
-                # # 우선 길따라 가되 만약 탈선되면 길에서 가장 가까운 곳으로 이동.
-                # move_by_path = movement.move_with_mem(creep, target, 0, to_home, False)
-                # if move_by_path[0] == OK and move_by_path[1]:
-                #     creep.memory.path = move_by_path[2]
-                # # 만일 길에서 벗어났을 경우 가장 가까운 곳으로 이동. 안걸리는게 정상
-                # elif move_by_path[0] == ERR_NOT_FOUND:
-                #     path = _.map(creep.memory.to_home, lambda p: __new__(RoomPosition(p.x, p.y, p.roomName)))
-                #     closest = creep.pos.findClosestByRange(path)
-                #     # print('closest', closest)
-                #     # 이게 안뜬다는건 그냥 방이 없다는건데...
-                #     try:
-                #         move = movement.movi(creep, __new__(RoomPosition(closest.x, closest.y, closest.roomName)))
-                #     except:
-                #         # 보통 다른 방 들어가자마자 걸리고 바로 돌아오는지라 큰문제는 없을듯.
-                #         print("ERROR - {} {}에 경로이탈".format(creep.name, JSON.stringify(creep.pos)))
-                #     creep.say('집 탈선:{}'.format(move))
-                # # 길대로 가는데 만약 이게 떴다면 중간에 길이 끊겨서 그랬을 가능성이 높다.
-                # # 설치해준다.
-                # elif move_by_path[0] == ERR_TIRED:
-                #     build_road = creep.pos.createConstructionSite(STRUCTURE_ROAD)
-                #     creep.say('noRoad {}'.format(build_road))
+
 
             # 본진도착
             else:
@@ -689,7 +578,16 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                             or creep.memory.frontier:
                         creep.suicide()
                         return
-
+                    # 또는 만일 사이즈 반쪽짜리 크립인데 완전체가 존재할 경우도 자살한다.
+                    elif creep.memory.size == 1:
+                        all_creeps = Game.creeps
+                        same_creep = _.filter(all_creeps, lambda c: not c.spawning
+                                                        and c.memory.source_num == creep.memory.source_num
+                                                        and c.size == 2 and c.memory.role == 'carrier')
+                        # print(creep.name, 'checking for full creep:', len(same_creep))
+                        if len(same_creep):
+                            creep.suicide()
+                            return
                     # 바로 새로운 대상을 찾기위해 허울타겟 제거.
                     del creep.memory.haul_target
 
@@ -860,7 +758,8 @@ def carrier_movement(creep, path_mem):
     :param path_mem: 따를 길 명칭
     :return:
     """
-
+    # 이거 끝나고 결과값에 따라 바닥에 새 길을 깔기도 하는데 그거 확인용도.
+    in_its_path = True
     # 사용할 메모리의 도로의 목적지(마지막 위치)
     path_end = creep.memory[path_mem][len(creep.memory[path_mem]) - 1]
     target = __new__(RoomPosition(path_end.x, path_end.y, path_end.roomName))
@@ -868,6 +767,7 @@ def carrier_movement(creep, path_mem):
     move_by_path = movement.move_with_mem(creep, target, 0, path_mem, False)
     # 크립위치가 길과 안맞는 경우. 어떤 이유에서던 길 밖으로 삐져나가면 발동.
     if move_by_path[0] == ERR_NOT_FOUND:
+        in_its_path = False
         # 초기화 목적
         closest = None
         target_changed = False
@@ -912,4 +812,4 @@ def carrier_movement(creep, path_mem):
     elif not move_by_path[0] == OK:
         creep.say('ERR {}'.format(move_by_path[0]))
 
-    return move_by_path[0]
+    return move_by_path[0], in_its_path
