@@ -309,7 +309,6 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
         # 3. repair
 
         if creep.memory.priority == 0:
-
             # made for cases carriers dont have WORK
             creep_body_has_work = creep.memory.work
 
@@ -321,19 +320,29 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                 # 이게 걸리면 지금 반대쪽 방에 아무것도 없어서 시야확보 안됐단 소리.
                 return
             pickup_obj = Game.getObjectById(creep.memory.pickup)
+            # 건설대상이 있고 크립에 워크바디가 있는 경우 건설부터 한다
+            if len(constructions) > 0 and not creep_body_has_work:
+                creep.say('🚧 건설투쟁!', True)
+                creep.memory.priority = 1
             # if there's no WORK in carrier they cant do fix or build at all.
             # 또는 컨테이너 풀 메모리가 활성화된 경우: 픽업 꽉차서 재실행된거임.
-            if not creep_body_has_work or creep.memory.container_full:
+            # elif not creep_body_has_work or creep.memory.container_full:
+            # elif not creep_body_has_work or creep.memory.container_full:
+            #     creep.say('🔄물류,염려말라!', True)
+            #     creep.memory.priority = 2
+            #     creep.memory.container_full = 0
+            # elif len(constructions) > 0:
+            #     creep.say('🚧 건설투쟁!', True)
+            #     creep.memory.priority = 1
+            # 픽업의 체력이 60% 이하고 컨테이너가 꽉찬 상태가 아니면 정기수리 드간다.
+            elif pickup_obj and pickup_obj.hits <= pickup_obj.maxHits * .6 and not creep.memory.container_full:
+                creep.say('🔧REGULAR✔⬆', True)
+                creep.memory.priority = 3
+            # 위에 해당사항 없으면 바로 운송시작
+            else:
                 creep.say('🔄물류,염려말라!', True)
                 creep.memory.priority = 2
                 creep.memory.container_full = 0
-            elif len(constructions) > 0:
-                creep.say('🚧 건설투쟁!', True)
-                creep.memory.priority = 1
-            # 픽업의 체력이 60% 이하면 정기수리 드간다.
-            elif pickup_obj and pickup_obj.hits <= pickup_obj.maxHits * .6:
-                creep.say('🔧REGULAR✔⬆', True)
-                creep.memory.priority = 3
 
             # NULLIFIED - 간소화
             # else:
@@ -368,9 +377,7 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
             try:
                 # dont have a build_target and not in proper room - get there firsthand.
                 if creep.memory.assigned_room != creep.room.name and not creep.memory.build_target:
-
                     movement.get_to_da_room(creep, creep.memory.assigned_room, False)
-
                     return
             except:
                 print('no visual in room {}'.format(creep.memory.assigned_room))

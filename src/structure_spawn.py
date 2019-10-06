@@ -977,10 +977,9 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                     flag_structures = Game.rooms[room_name].find(FIND_STRUCTURES)
 
                     keeper_lair = False
-
-                    if Game.rooms[room_name].memory[STRUCTURE_KEEPER_LAIR]:
-                        if len(Game.rooms[room_name].memory[STRUCTURE_KEEPER_LAIR]):
-                            keeper_lair = True
+                    if Game.rooms[room_name].memory[STRUCTURE_KEEPER_LAIR] \
+                            and len(Game.rooms[room_name].memory[STRUCTURE_KEEPER_LAIR]):
+                        keeper_lair = True
                     # 방에 컨트롤러가 없는 경우 가정.
                     flag_room_controller = Game.rooms[room_name].controller
                     flag_room_reserved_by_other = False
@@ -1076,7 +1075,9 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                                                                    and (c.spawning or c.ticksToLive > 150))
                     remote_reservers = _.filter(creeps, lambda c: c.memory.role == 'reserver'
                                                                   and c.memory.assigned_room == room_name)
-
+                    remote_guard = _.filter(creeps, lambda c: c.memory.role == 'k_guard'
+                                                                   and c.memory.assigned_room == room_name
+                                                                   and (c.spawning or c.ticksToLive > 250))
                     # resources in flag's room
                     # 멀티에 소스가 여럿일 경우 둘을 스폰할 필요가 있다.
                     flag_energy_sources = Game.rooms[room_name].find(FIND_SOURCES)
@@ -1210,8 +1211,6 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                             pos.createConstructionSite(STRUCTURE_ROAD)
                         print('end container bld')
                         del carrier_source_obj
-                    #     *****************
-
                     # 하베스터도 소스 수 만큼! 컨테이너 건설여부에 따라 만들어줘야 할지말지 아직 미정임
                     # if len(flag_built_containers) > len(remote_harvesters):
                     if len(flag_energy_sources) > len(remote_harvesters):
@@ -1246,11 +1245,6 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                                 "hv_{}_{}".format(room_name_low, rand_int),
                                 {memory: {'role': 'harvester', 'assigned_room': room_name,
                                           'home_room': spawn.room.name}})
-                            continue
-                    # 캐리어가 소스 수 만큼 있는가?
-                    # if len(flag_energy_sources) * 2 > carrier_size:
-                    # 캐리어가 컨테이너 수 만큼 있는가?
-                    # elif len(flag_containers) * 2 > carrier_size:
 
                     # 예전엔 그냥 하베스터랑 똑같은 방식썼는데 다 만들고 갑시다. 거 차봤자 얼마나 찬다고.
                     # 캐리어가 지어진 컨테이너 수 만큼 있는가?
@@ -1359,9 +1353,9 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                             distance = int(distance * 1.3)
 
                         work_chance = 0
-                        # 캐리어는 방에 건설거리가 있거나 컨테이너 체력이 60% 이하일때만 워크바디를 넣는다.
+                        # 캐리어는 방에 건설거리가 있거나 컨테이너 체력이 2/3 이하일때만 워크바디를 넣는다.
                         if Game.getObjectById(carrier_pickup_id).hits \
-                                <= Game.getObjectById(carrier_pickup_id).hitsMax * .6 \
+                                <= Game.getObjectById(carrier_pickup_id).hitsMax / 3 * 2 \
                                 or len(flag_constructions) > 0:
 
                             work_chance = 1
