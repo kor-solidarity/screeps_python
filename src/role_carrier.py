@@ -217,7 +217,6 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
             # 1. if 1 == False, look for storage|containers to get the energy from.
             # 2. if 2 == False, you harvest on ur own.
             result = grab_energy_new(creep, creep.memory[haul_resource])
-            # *******************************************************************
             # 거리 에러 이전에 ERR_NOT_ENOUGH_RESOURCES 가 뜨기에 방 밖이면 무조건 여기로 오게끔 묶는다.
             if result == ERR_NOT_IN_RANGE or \
                     (result == ERR_NOT_ENOUGH_RESOURCES and not creep.room.name == creep.memory.assigned_room):
@@ -247,7 +246,6 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
 
                 else:
                     harvest = creep.harvest(Game.getObjectById(creep.memory.source_num))
-                    # creep.say('harv {}'.format(harvest))
                     if harvest == ERR_NOT_IN_RANGE:
                         creep.moveTo(Game.getObjectById(creep.memory.source_num),
                                      {'visualizePathStyle': {'stroke': '#ffffff'},
@@ -322,6 +320,7 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
             except:
                 # 이게 걸리면 지금 반대쪽 방에 아무것도 없어서 시야확보 안됐단 소리.
                 return
+            pickup_obj = Game.getObjectById(creep.memory.pickup)
             # if there's no WORK in carrier they cant do fix or build at all.
             # 또는 컨테이너 풀 메모리가 활성화된 경우: 픽업 꽉차서 재실행된거임.
             if not creep_body_has_work or creep.memory.container_full:
@@ -331,27 +330,33 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
             elif len(constructions) > 0:
                 creep.say('🚧 건설투쟁!', True)
                 creep.memory.priority = 1
-            else:
-                # 수리할 것이 있는가? 있으면 확률 발동. 없으면 1 고정. 20% 이하 체력건물이 있으면 100%
-                # 이제 있을때만 적용.
-                if len(repairs) > 0:
-                    random_chance = 1
-                    if creep.memory.pickup:
-                        pick_obj = Game.getObjectById(creep.memory.pickup)
-                        if pick_obj and pick_obj.pos.inRangeTo(creep, 3):
-                            if pick_obj.hits <= pick_obj.hitsMax * .6:
-                                random_chance = 0
+            # 픽업의 체력이 60% 이하면 정기수리 드간다.
+            elif pickup_obj and pickup_obj.hits <= pickup_obj.maxHits * .6:
+                creep.say('🔧REGULAR✔⬆', True)
+                creep.memory.priority = 3
 
-                else:
-                    random_chance = random.randint(0, 10)
-
-                if random_chance != 0:
-                    creep.say('🔄물류,염려말라!', True)
-                    creep.memory.priority = 2
-                # 9% 확률로 발동함.
-                else:
-                    creep.say('🔧REGULAR✔⬆', True)
-                    creep.memory.priority = 3
+            # NULLIFIED - 간소화
+            # else:
+            #     # 수리할 것이 있는가? 있으면 확률 발동. 없으면 1 고정. 20% 이하 체력건물이 있으면 100%
+            #     # 이제 있을때만 적용.
+            #     if len(repairs) > 0:
+            #         random_chance = 1
+            #         if creep.memory.pickup:
+            #             pick_obj = Game.getObjectById(creep.memory.pickup)
+            #             if pick_obj and pick_obj.pos.inRangeTo(creep, 3):
+            #                 if pick_obj.hits <= pick_obj.hitsMax * .6:
+            #                     random_chance = 0
+            #
+            #     else:
+            #         random_chance = random.randint(0, 10)
+            #
+            #     if random_chance != 0:
+            #         creep.say('🔄물류,염려말라!', True)
+            #         creep.memory.priority = 2
+            #     # 9% 확률로 발동함.
+            #     else:
+            #         creep.say('🔧REGULAR✔⬆', True)
+            #         creep.memory.priority = 3
 
         # PRIORITY 1: construct
         if creep.memory.priority == 1:
@@ -381,7 +386,7 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                 creep.memory.build_target = construction.id
 
             build_result = creep.build(Game.getObjectById(creep.memory.build_target))  # construction)
-            creep.say(build_result)
+            # creep.say(build_result)
             # print('build_result:', build_result)
             if build_result == ERR_NOT_IN_RANGE:
                 move_res = creep.moveTo(Game.getObjectById(creep.memory.build_target)
@@ -389,29 +394,41 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                 # print('move_res:', move_res)
             # if there's nothing to build or something
             elif build_result == ERR_INVALID_TARGET:
-                # if there's no more construction sites, get back grabbing energy.
-                if len(constructions) == 0 and _.sum(creep.carry) >= creep.carryCapacity * .6:
-                    # print(creep.name, 'con', 11)
-                    creep.memory.priority = 2
-                    del creep.memory.build_target
-                elif len(constructions) == 0:
-                    # print(creep.name, 'con', 22)
-                    creep.memory.priority = 0
-                    creep.memory.laboro = 0
-                    del creep.memory.build_target
-                # if there are more, return to priority 0 to decide what to do.
-                else:
-                    # print(creep.name, 'con', 33)
-                    creep.memory.priority = 0
-                    del creep.memory.build_target
+                # 우선 당장 있는거 삭제.
+                del creep.memory.build_target
+                # 건설할게 더 없으면
+                if len(constructions) == 0:
+                    # 안에 자원이 반이상 남아있으면 바로 운송 들어간다.
+                    if _.sum(creep.carry) >= creep.carryCapacity * .5:
+                        creep.memory.priority = 2
+                        creep.say('보급!', True)
+                    # 반 이하면 다시 채우러.
+                    else:
+                        creep.memory.priority = 0
+                        creep.memory.laboro = 0
+                        creep.say('다시채우러~', True)
+
+                # elif len(constructions) == 0:
+                #     # print(creep.name, 'con', 22)
+                #     creep.memory.priority = 0
+                #     creep.memory.laboro = 0
+                #     del creep.memory.build_target
+                # # if there are more, return to priority 0 to decide what to do.
+                # else:
+                #     # print(creep.name, 'con', 33)
+                #     creep.memory.priority = 0
+                #     del creep.memory.build_target
             elif build_result == ERR_NO_BODYPART:
                 creep.memory.priority = 2
                 creep.say('건설못함..', True)
                 return
 
         # PRIORITY 2: carry 'em
-        elif creep.memory.priority == 2:
-
+        if creep.memory.priority == 2:
+            pickup_obj = Game.getObjectById(creep.memory.pickup)
+            # 픽업을 최우선으로 수리한다.
+            if pickup_obj and pickup_obj.hits < pickup_obj.maxHits and pickup_obj.pos.inRangeTo(creep, 3):
+                repairs = pickup_obj
             if len(repairs) > 0 and creep.memory.work:
                 repair_on_the_way(creep, repairs, constructions, False, True)
 
@@ -423,7 +440,6 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                 if move_res[0] == ERR_TIRED and move_res[1]:
                     build_road = creep.pos.createConstructionSite(STRUCTURE_ROAD)
                     creep.say('noRoad {}'.format(build_road))
-
 
             # 본진도착
             else:
@@ -573,21 +589,39 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                 elif transfer_result == OK:
                     creep.memory.err_full = 0
 
-                    # 이동 완료했는데 픽업도없고 그렇다고 일할수있는것도 아니면 죽어야함. 프론티어일 경우도 해당.
-                    if (not Game.getObjectById(creep.memory.pickup) and not creep.memory.work) \
-                            or creep.memory.frontier:
+                    # 이동 완료했는데 픽업도없고 그렇다고 일할수있는것도 아니면 죽어야함.
+                    if not Game.getObjectById(creep.memory.pickup) and not creep.memory.work:
                         creep.suicide()
                         return
                     # 또는 만일 사이즈 반쪽짜리 크립인데 완전체가 존재할 경우도 자살한다.
                     elif creep.memory.size == 1:
-                        all_creeps = Game.creeps
-                        same_creep = _.filter(all_creeps, lambda c: not c.spawning
+                        # 같은 자원을 캐는 사이즈 2 이상의 캐리어. 하나라도 있으면 자살대상임.
+                        same_creep = _.filter(Game.creeps, lambda c: not c.spawning and not c.id == creep.id
                                                         and c.memory.source_num == creep.memory.source_num
-                                                        and c.size == 2 and c.memory.role == 'carrier')
-                        # print(creep.name, 'checking for full creep:', len(same_creep))
+                                                        and c.size >= 2 and c.memory.role == 'carrier'
+                                                        and c.ticksToLive > 150)
+                        for c in same_creep:
+                            print(c.name, 'size', c.memory.size, 'ttl', c.ticksToLive)
+                        # print(creep.name, creep.pos, 'checking for full creep:', len(same_creep))
+                        # ss = Game.getObjectById(creep.memory.source_num)
+                        # cc = Game.getObjectById(creep.memory.pickup)
+                        # print(creep.memory.source_num, ss.pos, cc.pos)
                         if len(same_creep):
+                            print(creep.name, 'suicide!',
+                                  'source at {}'.format(Game.getObjectById(creep.memory.source_num).pos))
                             creep.suicide()
                             return
+                    # 위와 대조하기 위한 용도. 디버깅 후 폐기
+                    # else:
+                    #     same_creep = _.filter(Game.creeps, lambda c: not c.spawning and c.memory.role == 'carrier'
+                    #                                       and c.memory.source_num == creep.memory.source_num
+                    #                                       and c.ticksToLive > 150)
+                    #     for c in same_creep:
+                    #         print(c.name, 'size', c.memory.size, 'ttl', c.ticksToLive)
+                    #     print(creep.name, creep.pos, 'size', creep.memory.size,
+                    #           'checking for full creep:', len(same_creep),
+                    #           # 2 넘기면 안됨...
+                    #           'total size', _.sum(same_creep, lambda c: c.memory.size))
                     # 바로 새로운 대상을 찾기위해 허울타겟 제거.
                     del creep.memory.haul_target
 
@@ -776,10 +810,11 @@ def carrier_movement(creep, path_mem):
         # 방으로 돌아갈 복구지점을 저장해둔다.
         # 복구지점이 없거나 지점과 크립의 방이 동일하지 않으면 새로 찾는다
         if not creep.memory.return_point or not creep.memory.return_point.roomName == creep.pos.roomName:
-            # print(creep.name, "NOT IN SAME ROOM!!")
             path = _.map(creep.memory.to_pickup, lambda p: __new__(RoomPosition(p.x, p.y, p.roomName)))
             target_changed = True
             closest = creep.pos.findClosestByRange(path)
+            print(creep.name, 'NOT IN SAME ROOM!! closest', closest,
+                  'creep.memory.to_pickup len', len(creep.memory.to_pickup))
         # 안뜨면 이러는게 애초에 이상하긴 한데... 우선 해봅시다
         if closest:
             creep.memory.return_point = closest

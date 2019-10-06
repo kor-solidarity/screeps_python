@@ -361,13 +361,13 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
             # start making upgraders after there's a storage
             elif spawn.room.storage:
                 # 스토리지가 생기면 원칙적으로 스토리지 안 에너지 양 / expected_reserve 값으로 할당량 배정
-                # 만약 1만 넘기면 5천단위로 세자. - 위에 초대형 애 감안한거. 렙7 아래에선 뽑을수가 없음.
-                if spawn.room.storage.store[RESOURCE_ENERGY] > 9000 and spawn.room.controller.level < 7:
+                # 만약 1만 넘기면 5천단위로 세자. - 위에 초대형 애 감안한거. 단 렙7 아래에만. 그 아래는 뽑을수가 없음.
+                if spawn.room.storage.store[RESOURCE_ENERGY] > 9000 and spawn.room.controller.level == 7:
                     expected_reserve = 5000
                     mega = True
                 else:
                     expected_reserve = 3000
-
+                # print('expected_reserve', expected_reserve)
                 # if storage has less than expected_reserve
                 if spawn.room.storage.store[RESOURCE_ENERGY] < expected_reserve:
                     upgrader_quota = 1
@@ -397,6 +397,8 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                     upgrader_quota += 5
                 else:
                     upgrader_quota += 3
+            # print('upgrader_quota', upgrader_quota, 'storage_ene', spawn.room.storage.store[RESOURCE_ENERGY],
+            #       'container_full', len(container_full))
             # print('upgrader_quota', upgrader_quota)
             if len(creep_upgraders) < upgrader_quota:
                 if spawn.room.controller.level != 8:
@@ -474,7 +476,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
             # 렙8부터 본격적인 작업에 드간다. 그전까진 무의미.
             # 또한 수리할게 더 없는 상황에서 첫 생성을 한거면 하나만 뽑고 천틱 대기한다.
             elif chambro.controller.level < 8 \
-                    and (10000 <= chambro.storage.store[RESOURCE_ENERGY] or elapsed_fixer_time <= 3000):
+                    and (10000 <= chambro.storage.store[RESOURCE_ENERGY] or elapsed_fixer_time <= 2000):
                 max_num_fixers = 1
 
             # 벽수리가 중심인데 수리할 벽이 없으면 의미가 없음.
@@ -484,11 +486,11 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                 if chambro.storage.store[RESOURCE_ENERGY] < 30000:
                     max_num_fixers = 1
                 # 그 이상인 경우 수리대상 벽 20개당 하나로 제한한다
-                # 수리대상 10개당 하나 vs elapsed_fixer_time // 3k vs 스토리지 에너지양 / 3만의 정수
+                # 수리대상 10개당 하나 vs elapsed_fixer_time // 2k vs 스토리지 에너지양 / 3만의 정수
                 # 셋중 가장 적은걸로 결정
                 else:
                     storage_dividend = int(chambro.storage.store[RESOURCE_ENERGY] / 50000)
-                    elapsed_fixer_dividend = int(elapsed_fixer_time / 3000) + 1
+                    elapsed_fixer_dividend = int(elapsed_fixer_time / 2000) + 1
                     # dividend_by_repairs = len(wall_repairs) // 10
                     max_num_fixers = _.min([storage_dividend, elapsed_fixer_dividend])
 
@@ -1082,7 +1084,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                     flag_containers = _.filter(flag_structures,
                                                lambda s: s.structureType == STRUCTURE_CONTAINER)
                     # 실제로 만들어져 있는 컨테이너. flag_containers 는 건설중인 컨테이너도 포함.
-                    flag_built_containers = flag_containers
+                    flag_built_containers = _.clone(flag_containers)
 
                     flag_lairs = _.filter(flag_structures,
                                           lambda s: s.structureType == STRUCTURE_KEEPER_LAIR)
@@ -1249,51 +1251,71 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                     # if len(flag_energy_sources) * 2 > carrier_size:
                     # 캐리어가 컨테이너 수 만큼 있는가?
                     # elif len(flag_containers) * 2 > carrier_size:
+
                     # 예전엔 그냥 하베스터랑 똑같은 방식썼는데 다 만들고 갑시다. 거 차봤자 얼마나 찬다고.
                     # 캐리어가 지어진 컨테이너 수 만큼 있는가?
                     # todo 미네랄 생각해봐야함
-                    elif len(flag_built_containers) * 2 > carrier_size:
+                    elif len(flag_built_containers) and len(flag_built_containers) * 2 > carrier_size:
+                        print(r, 'len(flag_built_containers)*2 == {} carrier_size {}'
+                              .format(len(flag_built_containers)*2, carrier_size))
+                        print(JSON.stringify(flag_built_containers))
+                        for i in flag_built_containers:
+                            print(i.id, i.structureType, i.pos, i.progress)
                         # print('spawn carriers')
+                        # creep.memory.pickup = carrier_pickup_id
                         # 픽업으로 배정하는 것이 아니라 자원으로 배정한다.
                         if len(remote_carriers) == 0:
                             # 캐리어가 아예 없으면 지어진 첫 컨테이너로.
-                            # carrier_pickup_id = flag_built_containers[]
+                            carrier_pickup_id = flag_built_containers[0].id
+                            carrier_pickup_obj = flag_built_containers[0]
+                            print('no remote carriers')
                             # 캐리어가 아예 없으면 그냥 첫 자원으로.
-                            carrier_source_id = flag_energy_sources[0].id
-                            carrier_source_obj = Game.getObjectById(carrier_source_id)
+                            # carrier_source_id = flag_energy_sources[0].id
+                            # carrier_source_obj = Game.getObjectById(carrier_source_id)
                         else:
-                            # 캐리어가 존재할 시. 각 소스를 돌린다.
-                            for s in flag_energy_sources:
+                            for bc in flag_built_containers:
                                 # 소스 하나당 누적 사이즈 2여야함
                                 carrier_size_assigned = 0
-                                for c in remote_carriers:
-                                    if s.id == c.memory.source_num:
-                                        carrier_size_assigned += c.memory.size
-                                # 다 돌려서 점수 매겼는데 2 이하면 해당 소스가 빈거임
-                                if carrier_size_assigned < 2:
-                                    # creep.memory.source_num
-                                    carrier_source_id = s.id
-                                    # Game.getObjectById(carrier_source_id) << 이게 너무 길어서.
-                                    carrier_source_obj = Game.getObjectById(carrier_source_id)
-                                    break
-                        # creep.memory.pickup
-                        carrier_pickup_id = ''
-                        # 에너지소스에 담당 컨테이너가 존재하는가?
-                        container_exist = False
-                        # loop all structures. I'm not gonna use filter. just loop it at once.
-                        if len(flag_containers) > 0:
-                            # print('flag_containers', flag_containers)
-                            closest_cont = carrier_source_obj.pos.findClosestByPath(flag_containers,
-                                                                               {ignoreCreeps: True})
-                            # print('closest_cont', closest_cont)
-                            # if carrier_source_obj.pos.inRangeTo(closest_cont, 4):
-                            # 4칸이하 거리면 있는거임.
-                            if len(carrier_source_obj.pos.findPathTo(closest_cont, {ignoreCreeps: True})) <= 4:
-                                container_exist = True
-                                carrier_pickup_id = closest_cont.id
 
-                        # ignore placing roads around sources and controllers alike as much as possible.
-                        # 무조건 막을수는 없고, 정 다른길이 없으면 가게끔.
+                                for c in remote_carriers:
+                                    if bc.id == c.memory.pickup:
+                                        carrier_size_assigned += c.memory.size
+                                # 다 돌려서 점수 매겼는데 2 이하면 해당 컨테이너가 빈거임
+                                if carrier_size_assigned < 2:
+                                    carrier_pickup_id = bc.id
+                                    carrier_pickup_obj = bc
+                                    break
+
+                        # 이제 컨테이너에서 가장 가까운 소스 확인한다
+                        # 소스 둘 이상에 컨테이너 하나가 배정되는 경우도 있으니 감안해야함.
+                        print('carrier_pickup_obj', carrier_pickup_obj.id, carrier_pickup_obj.pos)
+                        for s in flag_energy_sources:
+                            # 소스 배정됬나?
+                            source_assigned = False
+                            path_to_cont = s.pos.findPathTo(carrier_pickup_obj, {ignoreCreeps: True})
+                            print(s.id, s.pos, len(path_to_cont))
+                            # 4칸이내에 있으면 조건에 맞음. 이제 배정된 다른 캐리어가 있는지 확인.
+                            if len(path_to_cont) <= 4:
+                                # 크립중에 캐리어 롤을 갖고 소스가 같은 애를 찾는다.
+                                same_creep = _.filter(Game.creeps, lambda c: c.memory.source_num == s.id
+                                                                             and c.memory.role == 'carrier'
+                                                                             and (c.spawning or c.ticksToLive > 150))
+                                print('same_creep', len(same_creep), _.sum(same_creep, lambda c: c.memory.size))
+                                # 크립이 있는 경우 사이즈 총합이 2 이상이면 배정 다 되있는거. 고로 통과.
+                                if len(same_creep) and _.sum(same_creep, lambda c: c.memory.size) >= 2:
+                                    print('cont??')
+                                    continue
+                                # 위에 걸리지 않았으면 소스가 있는거임.
+                                carrier_source_id = s.id
+                                carrier_source_obj = s
+                                source_assigned = True
+                                break
+                        # 소스 배정된게 없으면 엉킨거. 애초에 이게 뜨면 안됨.
+                        if not source_assigned:
+                            print('ERROR AT MAKING CARRIER FOR {}'.format(r))
+                            continue
+
+                        # 패스파인딩 할때 최대한 피해야 하는 구간.
                         objs = flag_energy_sources
 
                         if flag_room_controller:
@@ -1303,110 +1325,117 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                             objs.extend(flag_mineral)
 
                         # 대충 해야하는일: 캐리어의 픽업위치에서 본진거리 확인. 그 후 거리만큼 추가.
-                        if Game.getObjectById(carrier_pickup_id):
-                            # 크립의 크기는 본진까지의 거리에 따라 좌우된다.
-                            distance = 0
+                        # NULLIFIED - 무조건 존재함.
+                        # if Game.getObjectById(carrier_pickup_id):
 
-                            if keeper_lair:
-                                opts = {'trackCreeps': True, 'refreshMatrix': True, 'pass_walls': False,
-                                        'costByArea': {'objects': objs, 'size': 1, 'cost': 6}}
-                            else:
-                                opts = {'trackCreeps': False, 'refreshMatrix': True, 'pass_walls': False,
-                                        'costByArea': {'objects': objs, 'size': 1, 'cost': 6}}
+                        # 컨테이너에서 본진까지의 거리 크립의 크기는 이거에 좌우된다.
+                        distance = 0
 
-                            # 픽업 지점부터 스폰까지의 길
-                            path_to_home = PathFinder.search(Game.getObjectById(carrier_pickup_id).pos, spawn.pos,
-                                                             {'plainCost': 2, 'swampCost': 3,
-                                                              'roomCallback':
-                                                                  lambda room_name:
-                                                                  pathfinding.Costs(room_name, opts).load_matrix()
-                                                              }, ).path
+                        if keeper_lair:
+                            opts = {'trackCreeps': True, 'refreshMatrix': True, 'pass_walls': False,
+                                    'costByArea': {'objects': objs, 'size': 1, 'cost': 6}}
+                        else:
+                            opts = {'trackCreeps': False, 'refreshMatrix': True, 'pass_walls': False,
+                                    'costByArea': {'objects': objs, 'size': 1, 'cost': 6}}
 
-                            # 위에 길 역순.
-                            path_spawn_to_pickup = []
+                        # 픽업 지점부터 스폰까지의 길
+                        path_to_home = PathFinder.search(Game.getObjectById(carrier_pickup_id).pos, spawn.pos,
+                                                         {'plainCost': 2, 'swampCost': 3,
+                                                          'roomCallback':
+                                                              lambda room_name:
+                                                              pathfinding.Costs(room_name, opts).load_matrix()
+                                                          }, ).path
 
-                            for p in path_to_home:
-                                if not p.roomName == spawn.room.name:
-                                    distance += 1
-                                path_spawn_to_pickup.insert(0, p)
+                        # 위에 길 역순.
+                        path_spawn_to_pickup = []
 
-                            # 만일 키퍼가 있으면 다 4000짜리니 그만큼 한번에 수확가능한 자원이 많아짐. 그거 반영.
-                            if keeper_lair:
-                                distance = int(distance * 1.3)
+                        for p in path_to_home:
+                            if not p.roomName == spawn.room.name:
+                                distance += 1
+                            path_spawn_to_pickup.insert(0, p)
 
-                            if Game.getObjectById(carrier_pickup_id).hits \
+                        # 만일 키퍼가 있으면 다 4000짜리니 그만큼 한번에 수확가능한 자원이 많아짐. 그거 반영.
+                        if keeper_lair:
+                            distance = int(distance * 1.3)
+
+                        work_chance = 0
+                        # 캐리어는 방에 건설거리가 있거나 컨테이너 체력이 60% 이하일때만 워크바디를 넣는다.
+                        if Game.getObjectById(carrier_pickup_id).hits \
                                 <= Game.getObjectById(carrier_pickup_id).hitsMax * .6 \
                                 or len(flag_constructions) > 0:
 
-                                work_chance = 1
-                            else:
-                                work_chance = random.randint(0, 1)
+                            work_chance = 1
 
-                            carrier_size = distance / 2
+                        # 거리의 절반만큼의 거리를 캐리어 사이즈로...
+                        # 정확히 뭘 근거였는지 기억이 안나는데 여튼 돌아감.
+                        carrier_size = distance / 2
 
-                            # 여기서 확인해야 하는 사항. 바디크기가 50 이상인가?
-                            # 이상이면 반으로 쪼개서 재계산해야한다.
-                            # todo 만약 100넘기면...에 대한 답이 아직 없음.
-                            size_level = 2
-                            carrier_body = determine_carrier_size(carrier_size, work_chance)
+                        # 여기서 확인해야 하는 사항. 바디크기가 50 이상인가?
+                        # 이상이면 반으로 쪼개서 재계산해야한다.
+                        # todo 만약 100넘기면...에 대한 답이 아직 없음.
+                        size_level = 2
+                        carrier_body = determine_carrier_size(carrier_size, work_chance)
 
-                            if len(carrier_body) > 50:
-                                print('body exceeded 50 for room {}: {}'.format(room_name, len(carrier_body)))
-                                size_level = 1
-                                carrier_size /= 2
-                                carrier_body = determine_carrier_size(carrier_size, work_chance, True)
+                        if len(carrier_body) > 50:
+                            print('body exceeded 50 for room {}: {}'.format(room_name, len(carrier_body)))
+                            size_level = 1
+                            carrier_size /= 2
+                            carrier_body = determine_carrier_size(carrier_size, work_chance, True)
 
-                            spawning = spawn.spawnCreep(carrier_body,
-                                                        'cr_{}_{}'.format(room_name_low, rand_int),
-                                                        {memory: {'role': 'carrier',
-                                                                  'assigned_room': room_name,
-                                                                  'home_room': spawn.pos.roomName,
-                                                                  'pickup': carrier_pickup_id, 'work': work_chance,
-                                                                  'source_num': carrier_source_id, 'size': size_level,
-                                                                  to_pickup: path_spawn_to_pickup,
-                                                                  to_home: path_to_home}})
-                            # print('spawning', spawning)
-                            if spawning == 0:
-                                continue
-                            # 자원부족하면 반토막내서 넣는다. 어차피 두번 넣는거잖음.
-                            elif spawning == ERR_NOT_ENOUGH_RESOURCES:
-                                # 여기서 값을 넣는다.
-                                # carrier_size = int(carrier_size * 5 / 6)
-                                carrier_size /= 2
-                                carrier_body = determine_carrier_size(carrier_size, work_chance, True)
-
-                                spawning = spawn.spawnCreep(
-                                    carrier_body,
-                                    'cr_{}_{}'.format(room_name_low, rand_int),
-                                    {memory: {'role': 'carrier',
-                                              'assigned_room': room_name, 'home_room': spawn.pos.roomName,
-                                              'pickup': carrier_pickup_id, 'work': work_chance,
-                                              'source_num': carrier_source_id, 'size': 1,
-                                              to_pickup: path_spawn_to_pickup, to_home: path_to_home}})
-
-                                print('spawning to {}: {}'.format(room_name, spawning))
-                                continue
-                        # 픽업이 존재하지 않는다는건 현재 해당 건물이 없다는 뜻이므로 새로 지어야 함.
-                        else:
-                            # 중간에 프론티어가 붙은 이유: 이거 속성 건설용이기 때문에 운송용으로 쓸 수 없음.
-                            spawning = spawn.spawnCreep(
-                                [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, WORK,
-                                 WORK, WORK, WORK, CARRY, CARRY],
-                                'cr_{}_{}'.format(room_name_low, rand_int),
-                                {memory: {'role': 'carrier', 'assigned_room': room_name,
-                                          'work': 1, 'home_room': spawn.room.name,
-                                          'source_num': carrier_source_id, 'frontier': 1, 'size': 2,
-                                          to_pickup: path_spawn_to_pickup, to_home: path_to_home}})
-                            if spawning == ERR_NOT_ENOUGH_RESOURCES:
-                                spawn.spawnCreep(
-                                    [WORK, WORK, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, MOVE,
-                                     MOVE, MOVE, MOVE, MOVE],
-                                    'cr_{}_{}'.format(room_name_low, rand_int),
-                                    {memory: {'role': 'carrier', 'assigned_room': room_name,
-                                              'work': 1, home_room: spawn.room.name,
-                                              'source_num': carrier_source_id, 'frontier': 1, 'size': 2,
-                                              to_pickup: path_spawn_to_pickup, to_home: path_to_home}})
+                        spawning = spawn.spawnCreep(carrier_body,
+                                                    'cr_{}_{}'.format(room_name_low, rand_int),
+                                                    {memory: {'role': 'carrier',
+                                                              'assigned_room': room_name,
+                                                              'home_room': spawn.pos.roomName,
+                                                              'pickup': carrier_pickup_id, 'work': work_chance,
+                                                              'source_num': carrier_source_id, 'size': size_level,
+                                                              haul_resource: haul_all,
+                                                              to_pickup: path_spawn_to_pickup,
+                                                              to_home: path_to_home}})
+                        # print('spawning', spawning)
+                        if spawning == 0:
                             continue
+                        # 자원부족하면 반토막내서 넣는다. 어차피 두번 넣는거잖음.
+                        elif spawning == ERR_NOT_ENOUGH_RESOURCES:
+                            # 여기서 값을 넣는다.
+                            # carrier_size = int(carrier_size * 5 / 6)
+                            smaller_carrier_size = carrier_size / 2
+                            carrier_body = determine_carrier_size(smaller_carrier_size, work_chance, True)
+
+                            spawning = spawn.spawnCreep(
+                                carrier_body,
+                                'cr_{}_{}'.format(room_name_low, rand_int),
+                                {memory: {'role': 'carrier',
+                                          'assigned_room': room_name, 'home_room': spawn.pos.roomName,
+                                          'pickup': carrier_pickup_id, 'work': work_chance,
+                                          'source_num': carrier_source_id, 'size': 1,
+                                          haul_resource: haul_all,
+                                          to_pickup: path_spawn_to_pickup, to_home: path_to_home}})
+
+                            print('spawning to {}: {}'.format(room_name, spawning))
+                            continue
+                        # NULLIFIED - 컨테이너가 무조건 있어야만 스폰하기에 프론티어가 필요가 없다.
+                        # 픽업이 존재하지 않는다는건 현재 해당 건물이 없다는 뜻이므로 새로 지어야 함.
+                        # else:
+                        #     # 중간에 프론티어가 붙은 이유: 이거 속성 건설용이기 때문에 운송용으로 쓸 수 없음.
+                        #     spawning = spawn.spawnCreep(
+                        #         [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, WORK,
+                        #          WORK, WORK, WORK, CARRY, CARRY],
+                        #         'cr_{}_{}'.format(room_name_low, rand_int),
+                        #         {memory: {'role': 'carrier', 'assigned_room': room_name,
+                        #                   'work': 1, 'home_room': spawn.room.name,
+                        #                   'source_num': carrier_source_id, 'frontier': 1, 'size': 2,
+                        #                   to_pickup: path_spawn_to_pickup, to_home: path_to_home}})
+                        #     if spawning == ERR_NOT_ENOUGH_RESOURCES:
+                        #         spawn.spawnCreep(
+                        #             [WORK, WORK, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, MOVE,
+                        #              MOVE, MOVE, MOVE, MOVE],
+                        #             'cr_{}_{}'.format(room_name_low, rand_int),
+                        #             {memory: {'role': 'carrier', 'assigned_room': room_name,
+                        #                       'work': 1, home_room: spawn.room.name,
+                        #                       'source_num': carrier_source_id, 'frontier': 1, 'size': 2,
+                        #                       to_pickup: path_spawn_to_pickup, to_home: path_to_home}})
+                        #     continue
                     continue
                     # todo 철거반 손봐야함!!
                     # 시퓨 딸리면 안만드는건데... 사실 이제 필요하나 싶긴함.

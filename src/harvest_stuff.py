@@ -189,11 +189,6 @@ def grab_energy_new(creep, resource_type, min_capacity=.5):
     # 그외는 전부 링크나 등등. 에너지만 보면 됨 이건.
     else:
         storage = pickup_obj.energy
-        # if pickup_obj.energy < (creep.carryCapacity - _.sum(creep.carry)) * min_capacity:
-        #     del pickup
-        #     # print('checkpoint222')
-        #     return ERR_NOT_ENOUGH_ENERGY
-
     if storage < (creep.carryCapacity - _.sum(creep.carry)) * min_capacity:
         return ERR_NOT_ENOUGH_ENERGY
 
