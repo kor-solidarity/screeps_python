@@ -16,7 +16,7 @@ __pragma__('noalias', 'update')
 
 '''
 - harvester:  
-        1. harvest stuff to areas. in this case they also must harvest dropped resources.
+        1. harvest stuff to areas. in this case they also must harvest dropped_all resources.
         1-1. after this the harvester won't leave anywhere else than areas close to them. distributor will carry 4 them 
         2. if theres no place to collect they go and help up with upgrading.
         3. there are currently 5 harvesters. when python is made i only need 1 or 2(probably). 
@@ -176,11 +176,11 @@ def run_harvester(creep, all_structures, constructions, room_creeps, dropped_all
         if creep.memory.dropped and not Game.getObjectById(creep.memory.dropped):
             del creep.memory.dropped
 
-        # if there's no dropped but there's dropped_all
+        # if there's no dropped_all but there's dropped_all
         if not creep.memory.dropped and len(dropped_all) > 0:
             dropped_target = harvest_stuff.filter_drops(creep, dropped_all, 3, True)
 
-        # if there is a dropped target and it's there.
+        # if there is a dropped_all target and it's there.
         if creep.memory.dropped:
             item_pickup_res = harvest_stuff.pick_drops_act(creep, True)
             if item_pickup_res == ERR_NOT_IN_RANGE or item_pickup_res == OK:
@@ -309,8 +309,7 @@ def run_harvester(creep, all_structures, constructions, room_creeps, dropped_all
                 construction = creep.pos.findClosestByRange(constructions)
                 build_result = creep.build(construction)
                 if build_result == ERR_NOT_IN_RANGE:
-                    creep.moveTo(construction, {'visualizePathStyle': {'stroke': '#ffffff'}})
-
+                    movement.movi(creep, construction.id, 3)
     return
 
 

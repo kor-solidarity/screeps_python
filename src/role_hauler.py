@@ -40,7 +40,7 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
     repair_target == 수리 목표.
     upgrade_target == 업그레이드 목표
     build_target == 건설 목표
-    dropped == 근처에 떨어져있는 리소스
+    dropped_all == 근처에 떨어져있는 리소스
     pickup == 에너지 빼갈 대상.
     """
 
@@ -119,7 +119,7 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
 
     # laboro: 0 == pickup something.
     if creep.memory.laboro == 0:
-        # 1. look for dropped resources and get them
+        # 1. look for dropped_all resources and get them
         # 2. if 1 == False, look for storage|containers to get the energy from.
         # 3. if 2 == False, you harvest on ur own.
 
@@ -138,7 +138,7 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
         if not Game.rooms[creep.memory.assigned_room].storage:
             energy_only = True
         # print(creep.name, energy_only, creep.pos)
-        # if there's no dropped but there's dropped_all
+        # if there's no dropped_all but there's dropped_all
         if not creep.memory.dropped and len(dropped_all) > 0:
             # 떨어진거 확인 범위.
             drop_range = 5
@@ -148,7 +148,7 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
 
             dropped_target = filter_drops(creep, dropped_all, drop_range, energy_only)
 
-        # if there is a dropped target and it's there.
+        # if there is a dropped_all target and it's there.
         if creep.memory.dropped:
             # 에너지 외 다른게 있을수도 있어서.
             if pick_drops_act(creep, energy_only) == 0:
@@ -392,7 +392,7 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
             elif len(constructions) > 0:
                 creep.say('🚧건설,염려말라!', True)
                 creep.memory.priority = 2
-            elif len(repairs) > 0 and creep.room.controller.level > 2:
+            elif len(repairs) > 0 and creep.room.controller.level > 3:
                 creep.say('☭ 세상을 고치자!', True)
                 creep.memory.priority = 3
             else:

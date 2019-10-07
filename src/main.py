@@ -469,6 +469,7 @@ def main():
         friends_and_foes = miscellaneous.filter_friend_foe(foreign_creeps)
         # init. list
         hostile_creeps = friends_and_foes[0]
+        hostile_human = friends_and_foes[2]
         allied_creeps = friends_and_foes[3]
 
 
@@ -526,7 +527,12 @@ def main():
         extractor = _.filter(my_structures, lambda s: s.structureType == STRUCTURE_EXTRACTOR)
 
         spawns = chambro.find(FIND_MY_SPAWNS)
-
+        damaged_ext = _.filter(my_structures,
+                               lambda s: s.structureType == STRUCTURE_EXTENSION and not s.hits == s.hitsMax)
+        # 공격당하고 있고 그게 잉간이면 발동
+        if len(damaged_ext) and len(hostile_human) and \
+                chambro.controller.safeModeAvailable and not chambro.controller.safeMode:
+            chambro.controller.activateSafemode()
         # Run each creeps
         for chambro_creep in room_creeps:
             creep_cpu = Game.cpu.getUsed()
@@ -601,7 +607,8 @@ def main():
                     continue
 
             if creep.memory.role == 'upgrader':
-                role_upgrader.run_upgrader(creep, room_creeps, all_structures, all_repairs, my_constructions)
+                role_upgrader.run_upgrader(creep, room_creeps, all_structures,
+                                           all_repairs, my_constructions, dropped_all)
 
             elif creep.memory.role == 'miner':
                 role_harvester.run_miner(creep, all_structures)

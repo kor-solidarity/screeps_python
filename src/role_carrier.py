@@ -202,7 +202,7 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
         if not creep.memory.home_room == creep.pos.roomName and not creep.memory.dropped and len(dropped_all) > 0:
             dropped_target = filter_drops(creep, dropped_all, 5, True)
 
-        # if there is a dropped target and it's there.
+        # if there is a dropped_all target and it's there.
         if creep.memory.dropped:
             item_pickup_res = pick_drops_act(creep, True)
             if item_pickup_res == ERR_NOT_IN_RANGE or item_pickup_res == OK:

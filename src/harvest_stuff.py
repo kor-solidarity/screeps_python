@@ -33,12 +33,13 @@ def harvest_energy(creep, source_id):
     # print(creep.name, creep.pos, harvested, Game.getObjectById(source_id))
     # is sources too far out?
     if harvested == ERR_NOT_IN_RANGE:
+        # print(creep.name, creep.pos, 'wut', Game.getObjectById(source_id))
         if not creep.pos.inRangeTo(Game.getObjectById(source_id), 6):
             move_by_path = movement.move_with_mem(creep, source_id)
             if move_by_path[0] == OK and move_by_path[1]:
                 path = move_by_path[2]
-            else:
-                creep.say('🌾 move{}'.format(move_by_path[0]))
+            # else:
+            #     creep.say('🌾 move{}'.format(move_by_path[0]))
         else:
             creep.moveTo(Game.getObjectById(source_id), {'visualizePathStyle': {'stroke': '#ffffff'}, 'maxOps': 5000})
 
@@ -264,11 +265,11 @@ def transfer_stuff(creep):
 
 def filter_drops(creep, _drops, target_range, only_energy=False):
     """
-    떨궈진거 주울때 여럿이 안몰리게끔.
+    떨궈진거 주울때 여럿이 안몰리게끔 분류.
     허울러의 grab_haul_list 함수와 거의 비슷함
 
     :param creep:
-    :param drops: creep.room.find(FIND_DROPPED_RESOURCES) + creep.room.find(FIND_TOMBSTONES) 여기서 다 필터 거친다. 굳이 필터한 상태로 가져올필요 없음.
+    :param _drops: 자원 및 자원있는 비석. 여기서 다 필터 거친다. 굳이 필터한 상태로 가져올 필요 없음.
     :param target_range: 찾을 최대거리
     :param only_energy:
     :return: target 이 있으면 해당 템의 ID를 메모리에 넣고 아님 만다. 반환값 의미없음
@@ -284,38 +285,26 @@ def filter_drops(creep, _drops, target_range, only_energy=False):
             index = drops.indexOf(drop)
             drops.splice(index, 1)
             continue
-        # print(creep.name, only_energy, target_range, JSON.stringify(drop))
+
         # only_energy 면 에너지 있나만 본다. 다른건 무시
         if only_energy:
-            # print('only_energy False?', only_energy)
             # if tomestone and no energy
-            # or dropped source thats not an energy
+            # or dropped_all source thats not an energy
             if (drop.store and not drop.store[RESOURCE_ENERGY])\
                     or (drop.resourceType and drop.resourceType != RESOURCE_ENERGY):
-                # print(creep.name, only_energy)
                 index = drops.indexOf(drop)
                 drops.splice(index, 1)
                 continue
-        # print(creep.name, JSON.stringify(drop))
         # 안에 자원 계산. 스토어가 있으면 무덤
         if drop.store:
             resource_amount = _.sum(drop.store)
         else:
             resource_amount = drop.amount
-        # print('resource_amount', resource_amount)
-        # print(creep.name)
         # 모든 크립 조사.
         for cr in Object.keys(Game.creeps):
             c = Game.creeps[cr]
-            # if c.room.name == creep.room.name:
-                # print(c, c.memory.dropped, drop.id)
-            if not c.id == creep.id \
-                    and c.memory.dropped \
-                    and c.memory.dropped == drop.id:
-                # print(c.name, c.carryCapacity)
+            if not c.id == creep.id and c.memory.dropped and c.memory.dropped == drop.id:
                 resource_amount -= c.carryCapacity
-
-        # print('resource_amount', resource_amount)
         # 리소스 양이 다른 크립이 가져가고도 남아있으면 선택한다.
         if resource_amount > 0:
             target = drop.id
@@ -342,7 +331,7 @@ def pick_drops(creep, only_energy=False):
     :return:
     """
 
-    # creep.memory.dropped 이건 떨군거 집을때 모든 크립 공통
+    # creep.memory.dropped_all 이건 떨군거 집을때 모든 크립 공통
     pickup_obj = Game.getObjectById(creep.memory.dropped)
     # 존재하는가?
     if not pickup_obj:

@@ -86,13 +86,13 @@ def run_fixer(creep, all_structures, constructions, creeps, repairs, min_wall, t
         if creep.memory.dropped and not Game.getObjectById(creep.memory.dropped):
             del creep.memory.dropped
 
-        # print(creep.name, 'dropped_all', dropped_all, creep.memory.dropped)
-        # if there's no dropped but there's dropped_all
+        # print(creep.name, 'dropped_all', dropped_all, creep.memory.dropped_all)
+        # if there's no dropped_all but there's dropped_all
         if not creep.memory.dropped and len(dropped_all) > 0:
             # print(creep.name, dropped_all)
             dropped_target = harvest_stuff.filter_drops(creep, dropped_all, 5, True)
 
-        # if there is a dropped target and it's there.
+        # if there is a dropped_all target and it's there.
         if creep.memory.dropped:
             item_pickup_res = harvest_stuff.pick_drops_act(creep, True)
             if item_pickup_res == ERR_NOT_IN_RANGE or item_pickup_res == OK:

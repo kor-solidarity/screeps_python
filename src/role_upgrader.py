@@ -16,13 +16,14 @@ __pragma__('noalias', 'type')
 __pragma__('noalias', 'update')
 
 
-def run_upgrader(creep, creeps, all_structures, repairs, constructions):
+def run_upgrader(creep, creeps, all_structures, repairs, constructions, dropped_all):
     """
     :param creep:
     :param creeps:
     :param all_structures: creep.room.find(FIND_STRUCTURES)
     :param repairs: 수리대상들
     :param constructions: creep.room.find(FIND_CONSTRUCTION_SITES)
+    :param dropped_all: 떨군 자원과 비석
     :return:
     """
     # memory.pickup = 자원 가져올 대상.
@@ -65,6 +66,7 @@ def run_upgrader(creep, creeps, all_structures, repairs, constructions):
         creep.say('⚡ Upgrade', True)
         creep.memory.laboro = 1
         del creep.memory.source_num
+        del creep.memory.pickup
 
     # when you have to harvest. laboro: 0 == HARVEST
     if creep.memory.laboro == 0:
@@ -75,6 +77,13 @@ def run_upgrader(creep, creeps, all_structures, repairs, constructions):
         # 없으면? 아무 컨테이너나 찾는다. >> 이거 미구현임.
         # 그것도 없으면? 캔다...
         # 이렇게 합시다.
+
+        # 중간에 떨군거 있으면 집는다.
+        if not creep.memory.dropped and len(dropped_all) > 0:
+            harvest_stuff.filter_drops(creep, dropped_all, 5, True)
+        if creep.memory.dropped:
+            harvest_stuff.pick_drops_act(creep, True)
+            return
 
         # 배정된 저장소가 없을 경우
         if not creep.memory.pickup:
@@ -160,39 +169,7 @@ def run_upgrader(creep, creeps, all_structures, repairs, constructions):
 
     # laboro: 1 == UPGRADE
     if creep.memory.laboro == 1:
-
         movement.ranged_move(creep, creep.memory.upgrade_target, creeps)
-        # 6칸이내 안들어왔으면 이거
-        # if not creep.pos.inRangeTo(Game.getObjectById(creep.memory.upgrade_target), 6):
-        #     # 엉킬걸 대비해서 패스파인딩을 할때 컨트롤러 주변에 있는 업글러도 장애물로 간주하고 거른다
-        #     if not creep.memory.path:
-        #         creep.memory.path = movement.get_bld_upg_path(creep, creeps, creep.memory.upgrade_target)
-        #     # 메모리 안 패스는 RoomPosition 오브젝트가 아니기 때문에 꼭 맵 걸러야함
-        #     # path = _.map(creep.memory.path, lambda p: __new__(RoomPosition(p.x, p.y, p.roomName)))
-        #     move_by_path = movement.\
-        #         move_with_mem(creep, creep.memory.upgrade_target, 3, 'path', False)
-        #
-        #     if move_by_path[0] == OK and move_by_path[1]:
-        #         path = move_by_path[2]
-        #     elif move_by_path[0] == ERR_NOT_FOUND:
-        #         creep.memory.path = movement.get_bld_upg_path(creep, creeps, creep.memory.upgrade_target)
-        #         # path = _.map(creep.memory.path, lambda p: __new__(RoomPosition(p.x, p.y, p.roomName)))
-        #         move_by_path = movement.\
-        #             move_with_mem(creep, creep.memory.upgrade_target, 3, 'path', False)
-        #         creep.say('걸렀다!')
-        #         if move_by_path[0] == OK and move_by_path[1]:
-        #             path = move_by_path[2]
-        #         elif not move_by_path[0] == OK and not move_by_path[0] == ERR_TIRED:
-        #             creep.say('2업글중: {}'.format(move_by_path[0]))
-        #     elif not move_by_path[0] == OK and not move_by_path[0] == ERR_TIRED:
-        #         creep.say('업글중: {}'.format(move_by_path[0]))
-        #     # 이걸 여기서 거르는 이유는 상기한대로... 독자 패스파인딩을 써서 그런거.
-        #
-        # else:
-        #     if creep.memory.path:
-        #         del creep.memory.path
-        #     movement.movi(creep, creep.memory.upgrade_target, 3, 5)
-
         miscellaneous.repair_on_the_way(creep, repairs, constructions, True)
     return
 
