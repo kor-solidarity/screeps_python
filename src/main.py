@@ -529,9 +529,9 @@ def main():
         spawns = chambro.find(FIND_MY_SPAWNS)
         damaged_ext = _.filter(my_structures,
                                lambda s: s.structureType == STRUCTURE_EXTENSION and not s.hits == s.hitsMax)
-        # 공격당하고 있고 그게 잉간이면 발동
+        # 건물이 공격당하고 있고 그게 잉간이면 세이프모드 발동
         if len(damaged_ext) and len(hostile_human) and \
-                chambro.controller.safeModeAvailable and not chambro.controller.safeMode:
+                chambro.controller.safeModeAvailable and not chambro.controller.safeModeCooldown:
             chambro.controller.activateSafemode()
         # Run each creeps
         for chambro_creep in room_creeps:
@@ -789,7 +789,8 @@ def main():
                 divider -= counter
 
             # 세이프모드 트리거: 스폰이 한대라도 맞으면 발동한다.
-            if nesto.hits < nesto.hitsMax and chambro.controller.safeModeAvailable and not chambro.controller.safeMode:
+            if nesto.hits < nesto.hitsMax and chambro.controller.safeModeAvailable \
+                    and not chambro.controller.safeModeCooldown:
                 chambro.controller.activateSafemode()
 
             if Memory.debug and Game.time % interval == 0:

@@ -327,7 +327,7 @@ def main():
         expander_control.expand_files()
 
     build(config)
-    upload(config)
+    # upload(config)
 
 
 if __name__ == "__main__":

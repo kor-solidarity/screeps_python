@@ -388,7 +388,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                 for mcont in spawn.room.memory[STRUCTURE_CONTAINER]:
                     cont_obj = Game.getObjectById(mcont.id)
                     if cont_obj and _.sum(cont_obj.store) >= cont_obj.storeCapacity * .9:
-                        upgrader_quota += 2
+                        upgrader_quota += 3
             else:
                 # print('checkWTF')
                 upgrader_quota = 0
