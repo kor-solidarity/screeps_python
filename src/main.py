@@ -529,6 +529,17 @@ def main():
         spawns = chambro.find(FIND_MY_SPAWNS)
         damaged_ext = _.filter(my_structures,
                                lambda s: s.structureType == STRUCTURE_EXTENSION and not s.hits == s.hitsMax)
+        # 디버깅 용도
+        if len(damaged_ext):
+            cc = _.filter(room_creeps, lambda c: c.memory.assigned_room == chambra_nomo
+                                                 and c.memory.role == 'harvester')
+            for c in cc:
+                c.say('피해수 {}'.format(len(damaged_ext)), True)
+        if len(damaged_ext) and len(hostile_human):
+            cc = _.filter(room_creeps, lambda c: c.memory.assigned_room == chambra_nomo
+                                                 and c.memory.role == 'hauler')
+            for c in cc:
+                c.say('적 수 {}'.format(len(hostile_human)), True)
         # 건물이 공격당하고 있고 그게 잉간이면 세이프모드 발동
         if len(damaged_ext) and len(hostile_human) and \
                 chambro.controller.safeModeAvailable and not chambro.controller.safeModeCooldown:
