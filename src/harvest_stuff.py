@@ -32,7 +32,7 @@ def harvest_energy(creep, source_id):
         harvested = creep.harvest(Game.getObjectById(source_id))
     # print(creep.name, creep.pos, harvested, Game.getObjectById(source_id))
     # is sources too far out?
-    if harvested == ERR_NOT_IN_RANGE:
+    if harvested == ERR_NOT_IN_RANGE and Game.getObjectById(source_id):
         # print(creep.name, creep.pos, 'wut', Game.getObjectById(source_id))
         if not creep.pos.inRangeTo(Game.getObjectById(source_id), 6):
             move_by_path = movement.move_with_mem(creep, source_id)

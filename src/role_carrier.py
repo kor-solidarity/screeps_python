@@ -324,18 +324,8 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
             if len(constructions) > 0 and not creep_body_has_work:
                 creep.say('🚧 건설투쟁!', True)
                 creep.memory.priority = 1
-            # if there's no WORK in carrier they cant do fix or build at all.
-            # 또는 컨테이너 풀 메모리가 활성화된 경우: 픽업 꽉차서 재실행된거임.
-            # elif not creep_body_has_work or creep.memory.container_full:
-            # elif not creep_body_has_work or creep.memory.container_full:
-            #     creep.say('🔄물류,염려말라!', True)
-            #     creep.memory.priority = 2
-            #     creep.memory.container_full = 0
-            # elif len(constructions) > 0:
-            #     creep.say('🚧 건설투쟁!', True)
-            #     creep.memory.priority = 1
-            # 픽업의 체력이 60% 이하고 컨테이너가 꽉찬 상태가 아니면 정기수리 드간다.
-            elif pickup_obj and pickup_obj.hits <= pickup_obj.maxHits * .6 and not creep.memory.container_full:
+            # 컨테이너 체력이 60% 이하고 메모리에 container_full 가 없는 경우 수리 들어간다
+            elif pickup_obj and pickup_obj.hits <= pickup_obj.hitsMax * .6 and not creep.memory.container_full:
                 creep.say('🔧REGULAR✔⬆', True)
                 creep.memory.priority = 3
             # 위에 해당사항 없으면 바로 운송시작
@@ -343,29 +333,6 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                 creep.say('🔄물류,염려말라!', True)
                 creep.memory.priority = 2
                 creep.memory.container_full = 0
-
-            # NULLIFIED - 간소화
-            # else:
-            #     # 수리할 것이 있는가? 있으면 확률 발동. 없으면 1 고정. 20% 이하 체력건물이 있으면 100%
-            #     # 이제 있을때만 적용.
-            #     if len(repairs) > 0:
-            #         random_chance = 1
-            #         if creep.memory.pickup:
-            #             pick_obj = Game.getObjectById(creep.memory.pickup)
-            #             if pick_obj and pick_obj.pos.inRangeTo(creep, 3):
-            #                 if pick_obj.hits <= pick_obj.hitsMax * .6:
-            #                     random_chance = 0
-            #
-            #     else:
-            #         random_chance = random.randint(0, 10)
-            #
-            #     if random_chance != 0:
-            #         creep.say('🔄물류,염려말라!', True)
-            #         creep.memory.priority = 2
-            #     # 9% 확률로 발동함.
-            #     else:
-            #         creep.say('🔧REGULAR✔⬆', True)
-            #         creep.memory.priority = 3
 
         # PRIORITY 1: construct
         if creep.memory.priority == 1:
@@ -415,16 +382,6 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                         creep.memory.laboro = 0
                         creep.say('다시채우러~', True)
 
-                # elif len(constructions) == 0:
-                #     # print(creep.name, 'con', 22)
-                #     creep.memory.priority = 0
-                #     creep.memory.laboro = 0
-                #     del creep.memory.build_target
-                # # if there are more, return to priority 0 to decide what to do.
-                # else:
-                #     # print(creep.name, 'con', 33)
-                #     creep.memory.priority = 0
-                #     del creep.memory.build_target
             elif build_result == ERR_NO_BODYPART:
                 creep.memory.priority = 2
                 creep.say('건설못함..', True)
@@ -445,7 +402,14 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                 # 길대로 가는데 만약 이게 떴다면 중간에 길이 끊겨서 그랬을 가능성이 높다.
                 # 설치해준다.
                 if move_res[0] == ERR_TIRED and move_res[1]:
-                    build_road = creep.pos.createConstructionSite(STRUCTURE_ROAD)
+                    lookat = creep.pos.lookFor(LOOK_STRUCTURES)
+                    container_above = False
+                    for s in lookat:
+                        if s.structureType == STRUCTURE_CONTAINER:
+                            container_above = True
+                    # 컨테이너가 있는 곳은 도로를 깔지 않는다.
+                    if not container_above:
+                        build_road = creep.pos.createConstructionSite(STRUCTURE_ROAD)
                     creep.say('noRoad {}'.format(build_road))
 
             # 본진도착

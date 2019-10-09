@@ -186,6 +186,10 @@ def run_harvester(creep, all_structures, constructions, room_creeps, dropped_all
             if item_pickup_res == ERR_NOT_IN_RANGE or item_pickup_res == OK:
                 return
 
+        if not Game.getObjectById(creep.memory.source_num):
+            del creep.memory.source_num
+            return
+
         if _.sum(creep.carry) > creep.carryCapacity - 10:
             creep.say('🚜 대충 찼다', True)
             creep.memory.laboro = 1

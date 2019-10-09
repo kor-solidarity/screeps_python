@@ -61,47 +61,6 @@ def check_for_carrier_setting(creep, target_obj):
         return
 
 
-# NULLIFIED - changed to function below
-# def filter_enemies(foreign_creeps, count_ai=True):
-#     """
-#     filter out allies(ones must not be killed) from FIND_HOSTILE_CREEPS
-#     :param foreign_creeps:
-#     :param count_ai:
-#     :return:
-#     """
-#     ally_list = Memory.allianceArray
-#     enemy_list = []
-#     for hostile in foreign_creeps:
-#         enemy = True
-#         # this is an NPC
-#         if hostile.owner.username == 'Invader':
-#             # 평소엔 필요없는거지만 가끔가다 NPC를 세면 안되는 경우가 있음...
-#             if count_ai:
-#                 enemy_list.append(hostile)
-#             continue
-#
-#         for ally in ally_list:
-#             # print('ally.username:', ally.username)
-#             # if hostile's name is equal to ally's name it's excluded
-#             if hostile.owner.username == ally:
-#                 enemy = False
-#                 break
-#         # filter out creeps without any harm.
-#         if enemy:
-#             is_civilian = True
-#             # print('hostile.body', hostile.body)
-#             for body in hostile.body:
-#                 # 움직일수만 있는놈 빼고 다 적임.
-#                 if body['type'] != MOVE:
-#                     is_civilian = False
-#                     break
-#
-#             if not is_civilian:
-#                 enemy_list.append(hostile)
-#     # return foreign_creeps
-#     return enemy_list
-
-
 def filter_friend_foe(foreign_creeps):
     """
     크립목록에서 적과 아군 필터링한다.

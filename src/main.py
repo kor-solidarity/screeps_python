@@ -280,11 +280,9 @@ def main():
         chambro = Game.rooms[chambra_nomo]
 
         # fix_rating = stop_fixer 급수별 램파트 수리 양.
-        # 레벨8 진입전까진 렙 하나당 100k씩 추가, 최대 500k, 리페어렙 1 유지.
+        # 레벨8 진입전까진 렙 하나당 100k씩 추가, 리페어렙 1 유지.
         if chambro.controller and chambro.controller.level < 8:
             fix_rating = 100000 * chambro.controller.level
-            if fix_rating > 500000:
-                fix_rating = 500000
         else:
             fix_rating = 2000000
 
@@ -527,23 +525,13 @@ def main():
         extractor = _.filter(my_structures, lambda s: s.structureType == STRUCTURE_EXTRACTOR)
 
         spawns = chambro.find(FIND_MY_SPAWNS)
-        damaged_ext = _.filter(my_structures,
-                               lambda s: s.structureType == STRUCTURE_EXTENSION and not s.hits == s.hitsMax)
-        # 디버깅 용도
-        if len(damaged_ext):
-            cc = _.filter(room_creeps, lambda c: c.memory.assigned_room == chambra_nomo
-                                                 and c.memory.role == 'harvester')
-            for c in cc:
-                c.say('피해수 {}'.format(len(damaged_ext)), True)
-        if len(damaged_ext) and len(hostile_human):
-            cc = _.filter(room_creeps, lambda c: c.memory.assigned_room == chambra_nomo
-                                                 and c.memory.role == 'hauler')
-            for c in cc:
-                c.say('적 수 {}'.format(len(hostile_human)), True)
+        damaged_bld = _.filter(my_structures,
+                               lambda s: (s.structureType == STRUCTURE_EXTENSION or
+                                s.structureType == STRUCTURE_SPAWN) and s.hits < s.hitsMax)
         # 건물이 공격당하고 있고 그게 잉간이면 세이프모드 발동
-        if len(damaged_ext) and len(hostile_human) and \
+        if len(damaged_bld) and len(hostile_human) and \
                 chambro.controller.safeModeAvailable and not chambro.controller.safeModeCooldown:
-            chambro.controller.activateSafemode()
+            chambro.controller.activateSafeMode()
         # Run each creeps
         for chambro_creep in room_creeps:
             creep_cpu = Game.cpu.getUsed()
@@ -798,11 +786,6 @@ def main():
             divider += 1
             if divider > counter:
                 divider -= counter
-
-            # 세이프모드 트리거: 스폰이 한대라도 맞으면 발동한다.
-            if nesto.hits < nesto.hitsMax and chambro.controller.safeModeAvailable \
-                    and not chambro.controller.safeModeCooldown:
-                chambro.controller.activateSafemode()
 
             if Memory.debug and Game.time % interval == 0:
                 print('방 {} 루프에서 스폰 {} 준비시간 : {} cpu'.format(nesto.room.name, nesto.name
