@@ -1589,7 +1589,7 @@ def determine_carrier_size(criteria, work_chance=0, small=False):
     body = []
 
     if small:
-        work_size = 2
+        work_size = 1
     else:
         work_size = 3
 

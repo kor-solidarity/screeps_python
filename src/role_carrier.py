@@ -321,7 +321,7 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                 return
             pickup_obj = Game.getObjectById(creep.memory.pickup)
             # 건설대상이 있고 크립에 워크바디가 있는 경우 건설부터 한다
-            if len(constructions) > 0 and not creep_body_has_work:
+            if len(constructions) > 0 and creep_body_has_work:
                 creep.say('🚧 건설투쟁!', True)
                 creep.memory.priority = 1
             # 컨테이너 체력이 60% 이하고 메모리에 container_full 가 없는 경우 수리 들어간다

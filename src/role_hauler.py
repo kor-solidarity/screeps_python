@@ -265,8 +265,7 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                             return
 
                     # todo 다른방법 강구요망
-                    if creep.room.terminal and \
-                            creep.room.terminal.store[RESOURCE_ENERGY] >= \
+                    if creep.room.terminal and creep.room.terminal.store[RESOURCE_ENERGY] >= \
                             terminal_capacity + creep.carryCapacity:
                         creep.memory.pickup = creep.room.terminal.id
                     elif creep.room.storage and \

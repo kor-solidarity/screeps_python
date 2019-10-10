@@ -106,10 +106,15 @@ class Costs:
 
         objects = self.room.find(FIND_STRUCTURES)
         if _.size(Game.constructionSites):
-            sites = self.room.find(FIND_CONSTRUCTION_SITES, {'filter':
-                lambda s: OBSTACLE_OBJECT_TYPES.includes(s.structureType)
-            })
-            objects = objects.concat(sites)
+            sites = self.room.find(FIND_CONSTRUCTION_SITES)
+            # , {'filter':
+            #     lambda s: OBSTACLE_OBJECT_TYPES.includes(s.structureType)
+            # })
+            sites = _.filter(sites, lambda s: OBSTACLE_OBJECT_TYPES.includes(s.structureType))
+            roads = _.filter(sites, lambda s: STRUCTURE_ROAD.includes(s.structureType))
+            print('looking for constructions in room {}, and theres {}, {} roads'
+                  .format(self.room.name, len(sites), len(roads)))
+            objects.extend(sites)
 
         for obj in objects:
 
