@@ -1181,9 +1181,9 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
 
                     # 에너지소스에 담당 컨테이너가 존재하는가?
                     container_exist = False
-                    # 컨테이너가 소스보다 적으면 새로 짓는거
+                    # 컨테이너가 소스보다 적으면 새로 짓는거.
+                    # todo one at a time.
                     if len(flag_energy_sources) > len(flag_containers):
-                        print('build containers')
                         for es in flag_energy_sources:
                             # 현재 컨테이너가 있는 경우 소스에서 가장 가까운걸 찾는다.
                             if len(flag_containers):
@@ -1201,9 +1201,10 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
 
                         if flag_room_controller:
                             objs.append(flag_room_controller)
-                        # todo does this room have keeper lairs?
                         if len(flag_mineral) > 0:
                             objs.extend(flag_mineral)
+                        if len(flag_lairs):
+                            objs.extend(flag_lairs)
 
                         # 찍을 위치정보. 소스에서 본진방향으로 두번째칸임.
                         target_to_spawn = carrier_source_obj.pos.findPathTo(spawn.room.controller, {'ignoreCreeps': True})
@@ -1342,7 +1343,6 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                                 # print('same_creep', len(same_creep), _.sum(same_creep, lambda c: c.memory.size))
                                 # 크립이 있는 경우 사이즈 총합이 2 이상이면 배정 다 되있는거. 고로 통과.
                                 if len(same_creep) and _.sum(same_creep, lambda c: c.memory.size) >= 2:
-                                    # print('cont??')
                                     continue
                                 # 위에 걸리지 않았으면 소스가 있는거임.
                                 carrier_source_id = s.id
@@ -1429,7 +1429,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                                                               haul_resource: haul_all,
                                                               to_pickup: path_spawn_to_pickup,
                                                               to_home: path_to_home}})
-                        # print('spawning', spawning)
+
                         if spawning == 0:
                             continue
                         # 자원부족하면 반토막내서 넣는다. 어차피 두번 넣는거잖음.
@@ -1451,28 +1451,6 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
 
                             print('spawning to {}: {}'.format(room_name, spawning))
                             continue
-                        # NULLIFIED - 컨테이너가 무조건 있어야만 스폰하기에 프론티어가 필요가 없다.
-                        # 픽업이 존재하지 않는다는건 현재 해당 건물이 없다는 뜻이므로 새로 지어야 함.
-                        # else:
-                        #     # 중간에 프론티어가 붙은 이유: 이거 속성 건설용이기 때문에 운송용으로 쓸 수 없음.
-                        #     spawning = spawn.spawnCreep(
-                        #         [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, WORK,
-                        #          WORK, WORK, WORK, CARRY, CARRY],
-                        #         'cr_{}_{}'.format(room_name_low, rand_int),
-                        #         {memory: {'role': 'carrier', 'assigned_room': room_name,
-                        #                   'work': 1, 'home_room': spawn.room.name,
-                        #                   'source_num': carrier_source_id, 'frontier': 1, 'size': 2,
-                        #                   to_pickup: path_spawn_to_pickup, to_home: path_to_home}})
-                        #     if spawning == ERR_NOT_ENOUGH_RESOURCES:
-                        #         spawn.spawnCreep(
-                        #             [WORK, WORK, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, MOVE,
-                        #              MOVE, MOVE, MOVE, MOVE],
-                        #             'cr_{}_{}'.format(room_name_low, rand_int),
-                        #             {memory: {'role': 'carrier', 'assigned_room': room_name,
-                        #                       'work': 1, home_room: spawn.room.name,
-                        #                       'source_num': carrier_source_id, 'frontier': 1, 'size': 2,
-                        #                       to_pickup: path_spawn_to_pickup, to_home: path_to_home}})
-                        #     continue
                     continue
                     # todo 철거반 손봐야함!!
                     # 시퓨 딸리면 안만드는건데... 사실 이제 필요하나 싶긴함.
