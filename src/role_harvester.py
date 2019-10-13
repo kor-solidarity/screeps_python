@@ -214,47 +214,33 @@ def run_harvester(creep, all_structures, constructions, room_creeps, dropped_all
                 proper_link.append(Game.getObjectById(i.id))
 
             source_obj = Game.getObjectById(creep.memory.source_num)
-            # if len(proper_link) > 0:
-            #     containers.extend(proper_link)
+
             # 스토리지가 존재하면 스토리지부터 찾는다.
             if creep.room.storage and creep.room.controller.my:
                 print(creep.name, 'add container')
-                # containers.append(creep.room.storage)
                 # 소스에서 지정된 거리 이내에 스토리지가 있으면 거기로 옮긴다
                 if len(source_obj.pos.findPathTo(creep.room.storage, {ignoreCreeps: True})) <= max_range_to_container:
                     creep.memory.container = creep.room.storage.id
 
-            # 이 시점에 컨테이너가 없다는건 스토리지는 멀리있거나 없는거.
-            # 그럼 링크가 주변에 있나 확인하고 거기서도 없으면 컨테이너 찾는다.
+            # 원래 링크가 우선이었는데 캐리어랑 공유할 경우 자원을 제때 못캐는 문제점이 발생했음.
+            # 위에 안걸렸으면 컨테이너를 찾는다.
+            if not creep.memory.container:
+                closest = source_obj.pos.findClosestByPath(containers, {ignoreCreeps: True})
+                if closest and len(source_obj.pos.findPathTo(closest, {ignoreCreeps: True})) <= max_range_to_container:
+                    creep.memory.container = closest.id
+
+            # 여기까지도 안걸리면 링크.
             if not creep.memory.container:
                 closest = None
-                # print('proper_links', proper_links)
                 # 운송용 링크가 존재하는가?
                 if len(proper_links):
                     link_list = []
                     for pl in proper_links:
                         link_list.append(Game.getObjectById(pl.id))
                     closest = source_obj.pos.findClosestByPath(link_list, {ignoreCreeps: True})
-                # print('ch1')
                 # 스토리지와 동일한 거리계산
                 if closest and len(source_obj.pos.findPathTo(closest, {ignoreCreeps: True})) <= max_range_to_container:
                     creep.memory.container = closest.id
-                # 위에 이프문이 안걸렸으면 컨테이너를 찾는다.
-                else:
-                    closest = source_obj.pos.findClosestByPath(containers, {ignoreCreeps: True})
-                    if closest and len(source_obj.pos.findPathTo(closest, {ignoreCreeps: True})) <= max_range_to_container:
-                        creep.memory.container = closest.id
-            # print('storage', closest)
-
-            # if not closest:
-            #     pass
-            # NULLIFIED - 위에서 다 끝남
-            # 근처에 스토리지가 있는게 아니면 낭비임. 그냥 주변에 건설이나 실시한다.
-            # if closest and \
-            #         not Game.getObjectById(creep.memory.source_num).pos.inRangeTo(closest, max_range_to_container):
-            #     del creep.memory.container
-            # else:
-            #     creep.memory.container = closest.id
 
         if creep.memory.container:
             container_obj = Game.getObjectById(creep.memory.container)

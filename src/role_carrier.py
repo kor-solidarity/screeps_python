@@ -120,9 +120,10 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
         del creep.memory.haul_target
         del creep.memory.build_target
         creep.say('가즈아 ✈', True)
-
-    elif _.sum(creep.carry) >= creep.carryCapacity * .6 and creep.memory.laboro != 1 \
+    # 절반이상 찬 상태에서 laboro 가 1이 아니고 container_full 가 안걸린 상태면 1로 바꾼다..??
+    elif _.sum(creep.carry) >= creep.carryCapacity * .5 and creep.memory.laboro != 1 \
             and not creep.memory.container_full:
+        creep.say("초기화, 1전환")
         creep.memory.laboro = 1
 
     if creep.memory.haul_target and not Game.getObjectById(creep.memory.haul_target):
@@ -324,8 +325,9 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
             if len(constructions) > 0 and creep_body_has_work:
                 creep.say('🚧 건설투쟁!', True)
                 creep.memory.priority = 1
-            # 컨테이너 체력이 60% 이하고 메모리에 container_full 가 없는 경우 수리 들어간다
-            elif pickup_obj and pickup_obj.hits <= pickup_obj.hitsMax * .6 and not creep.memory.container_full:
+            # 컨테이너 체력이 60% 이하고 크립에서 3칸내 위치하고 있으며 메모리에 container_full 가 없는 경우 수리 들어간다.
+            elif pickup_obj and pickup_obj.hits <= pickup_obj.hitsMax * .6 and \
+                    creep.pos.inRangeTo(pickup_obj, 3) and not creep.memory.container_full:
                 creep.say('🔧REGULAR✔⬆', True)
                 creep.memory.priority = 3
             # 위에 해당사항 없으면 바로 운송시작
@@ -567,10 +569,10 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                     # 또는 만일 사이즈 반쪽짜리 크립인데 완전체가 존재할 경우도 자살한다.
                     elif creep.memory.size == 1:
                         # 같은 자원을 캐는 사이즈 2 이상의 캐리어. 하나라도 있으면 자살대상임.
-                        same_creep = _.filter(Game.creeps, lambda c: not c.spawning and not c.id == creep.id
+                        same_creep = _.filter(Game.creeps, lambda c: not c.id == creep.id
                                                         and c.memory.source_num == creep.memory.source_num
-                                                        and c.size >= 2 and c.memory.role == 'carrier'
-                                                        and c.ticksToLive > 150)
+                                                        and c.memory.size >= 2 and c.memory.role == 'carrier'
+                                                        and (not c.spawning and c.ticksToLive > 150))
                         for c in same_creep:
                             print(c.name, 'size', c.memory.size, 'ttl', c.ticksToLive)
                         # print(creep.name, creep.pos, 'checking for full creep:', len(same_creep))
@@ -582,17 +584,6 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                                   'source at {}'.format(Game.getObjectById(creep.memory.source_num).pos))
                             creep.suicide()
                             return
-                    # 위와 대조하기 위한 용도. 디버깅 후 폐기
-                    # else:
-                    #     same_creep = _.filter(Game.creeps, lambda c: not c.spawning and c.memory.role == 'carrier'
-                    #                                       and c.memory.source_num == creep.memory.source_num
-                    #                                       and c.ticksToLive > 150)
-                    #     for c in same_creep:
-                    #         print(c.name, 'size', c.memory.size, 'ttl', c.ticksToLive)
-                    #     print(creep.name, creep.pos, 'size', creep.memory.size,
-                    #           'checking for full creep:', len(same_creep),
-                    #           # 2 넘기면 안됨...
-                    #           'total size', _.sum(same_creep, lambda c: c.memory.size))
                     # 바로 새로운 대상을 찾기위해 허울타겟 제거.
                     del creep.memory.haul_target
 

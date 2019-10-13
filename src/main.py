@@ -480,6 +480,7 @@ def main():
             else:
                 terminal_capacity = 10000
 
+        # todo 방렙 8 아래면?
         # 핵이 있으면 비상!! 수리수치를 올린다.
         if bool(nukes):
             if chambro.memory[options][repair] < 5:

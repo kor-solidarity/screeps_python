@@ -95,6 +95,7 @@ env
 config.json
 __py_build__/
 unrelated_sample/
+_ignore/
 
 # Misc files #
 ##############

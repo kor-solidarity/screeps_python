@@ -91,6 +91,13 @@ def refresh_base_stats(chambro, all_structures, fix_rating, min_wall, spawns):
                 and chambro.storage.storeCapacity - _.sum(chambro.storage.store) < chambro.memory[options][max_energy]:
             chambro.memory[options].fill_labs = 1
 
+        # 리페어레벨 건드리기
+        # 렙7 이하는 그냥 1로 초기화.
+        if not chambro.controller.level == 8:
+            chambro.memory[options][repair] = 1
+            # 만약 stop_fixer 카운터가 천을 초과했으면 초기화 시켜준다.
+            if Game.time - chambro.memory[options][stop_fixer] >= 400:
+                chambro.memory[options][stop_fixer] = Game.time
         # 방 안 스토리지 자원이 꽉 찼는데 수리레벨이 남아있을 경우 한단계 올린다.
         # max energy 계산법:
         # 스토리지 내 남은 공간이 max_energy 보다 적으면 발동하는거임.

@@ -455,50 +455,6 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                     counter += 1
                 if not spawn_res == OK and not spawn_res == ERR_NOT_ENOUGH_ENERGY:
                     print('ERROR ON spawning upgrader', spawn_res)
-                # NULLIFIED - 불필요한 반복문 다 없앤다.
-                # if spawn.room.controller.level != 8:
-                #     if mega:
-                #         # 워크 20짜리.
-                #         big = spawn.spawnCreep(
-                #             [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK,
-                #              WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK,
-                #              WORK, WORK, WORK, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY],
-                #             'up_{}_{}'.format(spawn_room_low, rand_int),
-                #             {memory: {'role': 'upgrader', 'assigned_room': spawn.pos.roomName, 'level': 5}})
-                #     else:
-                #         big = -6
-                #     if big == -6:
-                #         big = spawn.spawnCreep(
-                #             [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK,
-                #              WORK, WORK, WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY],
-                #             'up_{}_{}'.format(spawn_room_low, rand_int),
-                #             {memory: {'role': 'upgrader', 'assigned_room': spawn.pos.roomName, 'level': 5}})
-                # else:
-                #     big = -6
-                #
-                # # 스폰렙 만땅이면 쿨다운 유지만 하면됨....
-                # if spawn.room.controller.level == 8:
-                #     if spawn.room.controller.ticksToDowngrade < CONTROLLER_DOWNGRADE[8] - 100000 \
-                #         or (spawn.room.controller.ticksToDowngrade < CONTROLLER_DOWNGRADE[8] - 4900
-                #             and len(hostile_creeps) > 0):
-                #         spawn.spawnCreep([MOVE, WORK, CARRY],
-                #                          'up_{}_{}'.format(spawn_room_low, rand_int),
-                #                          {memory: {'role': 'upgrader', 'assigned_room': spawn.pos.roomName}})
-                # elif big == -6:
-                #     if spawn.spawnCreep(
-                #             [WORK, WORK, WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY,
-                #              CARRY, CARRY, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE],
-                #             'up_{}_{}'.format(spawn_room_low, rand_int),
-                #             {memory: {'role': 'upgrader', 'assigned_room': spawn.pos.roomName, 'level': 3}}) == -6:
-                #         if spawn.spawnCreep([MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, CARRY, CARRY],
-                #                           'up_{}_{}'.format(spawn_room_low, rand_int),
-                #                           {memory: {'role': 'upgrader', 'assigned_room': spawn.pos.roomName}}) == -6:
-                #             if spawn.spawnCreep([MOVE, MOVE, MOVE, WORK, WORK, WORK, CARRY, CARRY],
-                #                                 'up_{}_{}'.format(spawn_room_low, rand_int),
-                #                             {memory: {'role': 'upgrader', 'assigned_room': spawn.pos.roomName}}) == -6:
-                #                 spawn.spawnCreep([WORK, WORK, CARRY, CARRY, MOVE, MOVE],
-                #                                  'up_{}_{}'.format(spawn_room_low, rand_int),
-                #                                 {memory: {'role': 'upgrader', 'assigned_room': spawn.pos.roomName}})
 
         # 초기화 목적.
         if not chambro.memory[options][stop_fixer]:
@@ -1157,20 +1113,19 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                         # 컨트롤러의 예약시간이 reserve_cap 값 이하거나
                         # 컨트롤러가 다른사람꺼 + 아군 주둔중일때 만든다
                         if not Game.rooms[room_name].controller.reservation \
-                            or Game.rooms[room_name].controller.reservation.ticksToEnd < reserve_cap \
-                            or (Game.rooms[room_name].controller.reservation.username
-                                != spawn.room.controller.owner.username and len(remote_troops) > 0):
-                            spawning_creep = spawn.spawnCreep(
-                                [MOVE, MOVE, MOVE, MOVE, CLAIM, CLAIM, CLAIM, CLAIM],
-                                'res_{}_{}'.format(room_name_low, rand_int),
-                                {memory: {'role': 'reserver', 'home_room': spawn.room.name,
-                                          'assigned_room': room_name}})
-                            if spawning_creep == ERR_NOT_ENOUGH_RESOURCES:
-                                spawning_creep = spawn.spawnCreep(
-                                    [MOVE, MOVE, CLAIM, CLAIM],
-                                    'res_{}_{}'.format(room_name_low, rand_int),
-                                    {memory: {'role': 'reserver', 'home_room': spawn.room.name,
-                                              'assigned_room': room_name}})
+                                or Game.rooms[room_name].controller.reservation.ticksToEnd < reserve_cap \
+                                or (Game.rooms[room_name].controller.reservation.username
+                                    != spawn.room.controller.owner.username and len(remote_troops) > 0):
+                            spawn_res = ERR_NOT_ENOUGH_ENERGY
+                            # 몸체크기
+                            counter = 5
+                            while spawn_res == ERR_NOT_ENOUGH_ENERGY and counter > 1:
+                                momche = [MOVE for i in range(counter)]
+                                momche.extend([CLAIM for i in range(counter)])
+                                spawn_res = spawn.spawnCreep(momche, 'res_{}_{}'.format(room_name_low, rand_int),
+                                            {memory: {'role': 'reserver', 'home_room': spawn.room.name,
+                                                      'assigned_room': room_name}})
+                                counter -= 1
                             continue
 
                     # 캐리어 사이즈 계산: 모든 캐리어는 memory.size 가 존재한다.
