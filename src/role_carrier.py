@@ -326,7 +326,7 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                 creep.say('🚧 건설투쟁!', True)
                 creep.memory.priority = 1
             # 컨테이너 체력이 60% 이하고 크립에서 3칸내 위치하고 있으며 메모리에 container_full 가 없는 경우 수리 들어간다.
-            elif pickup_obj and pickup_obj.hits <= pickup_obj.hitsMax * .6 and \
+            elif creep_body_has_work and pickup_obj and pickup_obj.hits <= pickup_obj.hitsMax * .6 and \
                     creep.pos.inRangeTo(pickup_obj, 3) and not creep.memory.container_full:
                 creep.say('🔧REGULAR✔⬆', True)
                 creep.memory.priority = 3

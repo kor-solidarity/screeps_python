@@ -91,13 +91,6 @@ def refresh_base_stats(chambro, all_structures, fix_rating, min_wall, spawns):
                 and chambro.storage.storeCapacity - _.sum(chambro.storage.store) < chambro.memory[options][max_energy]:
             chambro.memory[options].fill_labs = 1
 
-        # 리페어레벨 건드리기
-        # 렙7 이하는 그냥 1로 초기화.
-        if not chambro.controller.level == 8:
-            chambro.memory[options][repair] = 1
-            # 만약 stop_fixer 카운터가 천을 초과했으면 초기화 시켜준다.
-            if Game.time - chambro.memory[options][stop_fixer] >= 400:
-                chambro.memory[options][stop_fixer] = Game.time
         # 방 안 스토리지 자원이 꽉 찼는데 수리레벨이 남아있을 경우 한단계 올린다.
         # max energy 계산법:
         # 스토리지 내 남은 공간이 max_energy 보다 적으면 발동하는거임.
@@ -117,6 +110,9 @@ def refresh_base_stats(chambro, all_structures, fix_rating, min_wall, spawns):
             chambro.memory[options][repair] = min_wall.hits // fix_rating + 1
             # 이때 픽서 수 하나짜리로 초기화.
             chambro.memory[options][stop_fixer] = Game.time - 400
+        # 렙8 아래면 픽서 카운터는 천을 넘지 않는다. 숫자 잔뜩뜨는거 보기싫어서..
+        elif not chambro.controller.level == 8 and Game.time - chambro.memory[options][stop_fixer] >= 1000:
+            chambro.memory[options][stop_fixer] = Game.time - 500
 
         # 매번 완전초기화 하면 너무 자원낭비. 수량 틀릴때만 돌린다.
         # 타워세기.

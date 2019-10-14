@@ -289,8 +289,6 @@ def get_bld_upg_path(creep, creeps, target, target_range=3):
     if typeof(target) == 'string':
         target = Game.getObjectById(target).pos
     # todo 크립이 안골라져 있으면 방 안에 모든 크립을 찾는다. 아직 미적용
-    # if not len(creeps):
-    #     creeps = creep.room.find(FIND_MY_CREEPS)
     # 표적 범위 내에 있는 크립들 중 역할특성상 한곳에 머무는 애 전부
     upgraders = _.filter(creeps,
                          lambda c: c.memory.assigned_room == creep.room.name

@@ -1130,12 +1130,12 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
 
                     # 캐리어 사이즈 계산: 모든 캐리어는 memory.size 가 존재한다.
                     # 소스 하나당 누적 점수 최소 2여야함.
-                    carrier_size = 0
+                    carrier_mem_size = 0
                     for c in remote_carriers:
-                        carrier_size += c.memory.size
+                        carrier_mem_size += c.memory.size
 
                     # 에너지소스에 담당 컨테이너가 존재하는가?
-                    container_exist = False
+                    # container_exist = False
                     # 컨테이너가 소스보다 적으면 새로 짓는거.
                     # todo one at a time.
                     if len(flag_energy_sources) > len(flag_containers):
@@ -1254,14 +1254,11 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                     # 예전엔 그냥 하베스터랑 똑같은 방식썼는데 다 만들고 갑시다. 거 차봤자 얼마나 찬다고.
                     # 캐리어가 지어진 컨테이너 수 만큼 있는가?
                     # todo 미네랄 생각해봐야함
-                    elif len(flag_built_containers) and len(flag_built_containers) * 2 > carrier_size:
-                        # print(r, 'len(flag_built_containers)*2 == {} carrier_size {}'
-                        #       .format(len(flag_built_containers)*2, carrier_size))
-                        # print(JSON.stringify(flag_built_containers))
+                    elif len(flag_built_containers) and len(flag_built_containers) * 2 > carrier_mem_size:
+
                         for i in flag_built_containers:
                             print(i.id, i.structureType, i.pos, i.progress)
-                        # print('spawn carriers')
-                        # creep.memory.pickup = carrier_pickup_id
+
                         # 픽업으로 배정하는 것이 아니라 자원으로 배정한다.
                         if len(remote_carriers) == 0:
                             # 캐리어가 아예 없으면 지어진 첫 컨테이너로.
@@ -1283,7 +1280,6 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
 
                         # 이제 컨테이너에서 가장 가까운 소스 확인한다
                         # 소스 둘 이상에 컨테이너 하나가 배정되는 경우도 있으니 감안해야함.
-                        # print('carrier_pickup_obj', carrier_pickup_obj.id, carrier_pickup_obj.pos)
                         for s in flag_energy_sources:
                             # 소스 배정됬나?
                             source_assigned = False
@@ -1295,7 +1291,6 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                                 same_creep = _.filter(Game.creeps, lambda c: c.memory.source_num == s.id
                                                                              and c.memory.role == 'carrier'
                                                                              and (c.spawning or c.ticksToLive > 150))
-                                # print('same_creep', len(same_creep), _.sum(same_creep, lambda c: c.memory.size))
                                 # 크립이 있는 경우 사이즈 총합이 2 이상이면 배정 다 되있는거. 고로 통과.
                                 if len(same_creep) and _.sum(same_creep, lambda c: c.memory.size) >= 2:
                                     continue
@@ -1319,7 +1314,6 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                             objs.extend(flag_mineral)
 
                         # 대충 해야하는일: 캐리어의 픽업위치에서 본진거리 확인. 그 후 거리만큼 추가.
-
                         # 컨테이너에서 본진까지의 거리 크립의 크기는 이거에 좌우된다.
                         distance = 0
 
@@ -1352,15 +1346,19 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
 
                         work_chance = 0
                         # 캐리어는 방에 건설거리가 있거나 컨테이너 체력이 2/3 이하일때만 워크바디를 넣는다.
-                        if Game.getObjectById(carrier_pickup_id).hits \
-                                <= Game.getObjectById(carrier_pickup_id).hitsMax / 3 * 2 \
-                                or len(flag_constructions) > 0:
-
+                        if carrier_pickup_obj.hits <= carrier_pickup_obj.hitsMax / 3 * 2 or len(flag_constructions):
                             work_chance = 1
 
                         # 거리의 절반만큼의 거리를 캐리어 사이즈로...
                         # 정확히 뭘 근거였는지 기억이 안나는데 여튼 돌아감.
                         carrier_size = distance / 2
+
+                        # 만약 바로 옆에 있는 멀티고 캐리어가 전혀 없는데 꽉찼으면 몸 하나 더준다.
+                        if _.sum(carrier_pickup_obj.store) == carrier_pickup_obj.storeCapacity \
+                                and Game.map.getRoomLinearDistance(spawn.room.name, room_name) == 1\
+                                and not carrier_mem_size:
+                            print('extra BODY for {}'.format(carrier_pickup_obj.pos))
+                            carrier_size += 1
 
                         # 여기서 확인해야 하는 사항. 바디크기가 50 이상인가?
                         # 이상이면 반으로 쪼개서 재계산해야한다.

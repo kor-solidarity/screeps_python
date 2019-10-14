@@ -77,7 +77,7 @@ def run_harvester(creep, all_structures, constructions, room_creeps, dropped_all
         # 3 - more than 2 room_creeps working
         # kazo 1
         if len(rikoltist_kripoj) == 0:
-            print('creep {} assigning harvest - rikoltist_kripoj 0'.format(creep.name))
+            # print('creep {} assigning harvest - rikoltist_kripoj 0'.format(creep.name))
             # 담당구역이 현재 크립이 있는곳이다?
             # if my_room == creep.room.name:
             #     se tie ne estas iu kripoj simple asignu 0
@@ -217,7 +217,7 @@ def run_harvester(creep, all_structures, constructions, room_creeps, dropped_all
 
             # 스토리지가 존재하면 스토리지부터 찾는다.
             if creep.room.storage and creep.room.controller.my:
-                print(creep.name, 'add container')
+                # print(creep.name, 'add container')
                 # 소스에서 지정된 거리 이내에 스토리지가 있으면 거기로 옮긴다
                 if len(source_obj.pos.findPathTo(creep.room.storage, {ignoreCreeps: True})) <= max_range_to_container:
                     creep.memory.container = creep.room.storage.id
@@ -387,9 +387,6 @@ def run_miner(creep, all_structures):
                 if creep.memory.path:
                     del creep.memory.path
                 movement.movi(creep, creep.memory.mineral, 0, 3)
-            # creep.moveTo(Game.getObjectById(creep.memory.mineral), {'visualizePathStyle':
-            #                                                         {'stroke': '#0000FF', 'opacity': .25},
-            #                                                         'ignoreCreeps': True, 'reusePath': 40})
             return
         # 쿨다운이 존재하면 어차피 못캐니 통과합시다.
         elif Game.getObjectById(creep.memory.extractor).cooldown:
@@ -411,7 +408,6 @@ def run_miner(creep, all_structures):
 
     # put them into the container
     elif creep.memory.laboro == 1:
-
         if Game.time % 2 == 0:
             creep.say('⚒s of 🌏', True)
         else:
@@ -423,8 +419,8 @@ def run_miner(creep, all_structures):
                                                           or s.structureType == STRUCTURE_CONTAINER)
             # print(storages)
             storage = creep.pos.findClosestByRange(storages)
-            print('storage:', storage)
-            print('id:', storage.id)
+            # print('storage:', storage)
+            # print('id:', storage.id)
             creep.memory.container = storage.id
             # for_harvest 설정 바꾼다.
             miscellaneous.check_for_carrier_setting(creep, creep.memory.container)
@@ -439,7 +435,6 @@ def run_miner(creep, all_structures):
                     creep.moveTo(Game.getObjectById(creep.memory.container), {'visualizePathStyle': {'stroke': '#ffffff'}})
                     break
                 elif mineral_transfer == 0:
-                    # print('OK')
                     break
                 elif mineral_transfer == ERR_INVALID_TARGET:
                     print('ERROR?')

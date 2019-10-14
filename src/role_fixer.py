@@ -115,7 +115,7 @@ def run_fixer(creep, all_structures, constructions, creeps, repairs, min_wall, t
             pickup_id = miscellaneous.pick_pickup(creep, creeps, storages, terminal_capacity)
             # 아무것도 없는 상태에서 이 크립이 절대!! 스폰되선 안됨.... 그건 있을 수 없는 일임....
             if pickup_id == ERR_INVALID_TARGET:
-                creep.say('🧟..🧠', True)
+                creep.say('뽑아갈게없다?', True)
                 return
             else:
                 creep.memory.pickup = pickup_id
