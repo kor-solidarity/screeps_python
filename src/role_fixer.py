@@ -25,7 +25,7 @@ def run_fixer(creep, all_structures, constructions, creeps, repairs, min_wall, t
     :param constructions: creep.room.find(FIND_CONSTRUCTION_SITES)
     :param creeps: creep.room.find(FIND_MY_CREEPS)
     :param repairs: look at main.
-    :param min_wall: 최저 방벽.
+    :param min_wall: hits 최저 방벽.
     :param terminal_capacity: 방 안의 터미널 내 에너지 최소값.
     :param dropped_all:
     :return:
@@ -166,7 +166,6 @@ def run_fixer(creep, all_structures, constructions, creeps, repairs, min_wall, t
                     creep.memory.repair_target = closest.id
                 # 그마저도 없으면 더이상 수리크립이 있을 이유가 없음.
                 else:
-
                     creep.memory.die = 1
                     return
         # 수리대상이 3칸이내에 있으면 기존 목록 다 없애고 수리대상만 넣고 수리 실시

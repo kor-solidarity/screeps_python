@@ -217,7 +217,7 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                     # 건설장 있나?
                     if len(constructions):
                         pass
-                    # 꽉찬건지 확인
+                    # 에너지가 꽉찬건지 확인
                     elif Game.getObjectById(creep.memory.upgrade_target).room.energyAvailable == \
                             Game.getObjectById(creep.memory.upgrade_target).room.energyCapacityAvailable:
                         # 전부 차있음?
@@ -263,7 +263,7 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                             if not creep.memory.all_full:
                                 creep.memory.all_full = 1
                             return
-
+                    # 위에 걸리는거 없으면
                     # todo 다른방법 강구요망
                     if creep.room.terminal and creep.room.terminal.store[RESOURCE_ENERGY] >= \
                             terminal_capacity + creep.carryCapacity:

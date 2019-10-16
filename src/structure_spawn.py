@@ -1478,21 +1478,51 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
             for creep in room_creeps:
                 # 방 안에 있는 크립 중에 회복대상자
                 if (100 < creep.ticksToLive < 500) and creep.memory.level >= level and spawn.pos.isNearTo(creep):
+                    # 회복대상이 아닌가?
+                    no_renew = False
+                    # 임시용도. 디버깅 끝나면 폐기
+                    # if creep.ticksToLive > 500:
+                    #     no_renew = True
                     # 일부 크립은 스토리지에 자원이 있는 경우에만 채운다.
                     storage_amount = 0
+                    # 허울러는 중간중간 추가 허울러가 무의미하게 스폰될 가능성이 있는 특성상 틱 200이상은 채우지 않는다.
+                    # 너무 자주 충전되면 스폰 사이 무의미하게 왔다갔다하는 현상 발생. 타임계산은 이를 방지
                     # 허울러는 기본값으로 한명으로 유지해야 하기에 하나 이상이면 안건든다.
+                    # 셋중 하나라도 성립하면 통과
                     if creep.memory.role == 'hauler' \
-                            and len(_.filter(room_creeps, lambda c: c.memory.role == 'hauler')) > 1:
-                        continue
-
+                        and (len(_.filter(room_creeps, lambda c: c.memory.role == 'hauler')) > 1
+                             or creep.ticksToLive > 200 or not Game.time % 3 == 0):
+                        # if not Game.time % 3 == 0 or :
+                        #     no_renew = True
+                        # print("hauler num: ", len(_.filter(room_creeps, lambda c: c.memory.role == 'hauler')))
+                        # print(creep.name, "TTL", creep.ticksToLive, "Game.time % 3 =", Game.time % 3)
+                        # if (len(_.filter(room_creeps, lambda c: c.memory.role == 'hauler')) > 1 \
+                        #         or creep.ticksToLive > 200 or not Game.time % 3 == 0):
+                        no_renew = True
+                    # 업글러는 스토리지 자원 오천당 수리대상의 업글러의 수로 계산한다.
                     elif creep.memory.role == 'upgrader':
-                        storage_amount = 5000 * len(_.filter(room_creeps, lambda c: c.memory.role == 'upgrader'))
+                        # print(creep.name, ' # of upgs',
+                        #       len(_.filter(room_creeps, lambda c: c.memory.role == 'upgrader'
+                        #                                           and c.memory.level >= level)))
+                        storage_amount = 5000 * len(_.filter(room_creeps, lambda c: c.memory.role == 'upgrader'
+                                                                                    and c.memory.level >= level))
+                        # print('storage_amount', storage_amount)
                     elif creep.memory.role == 'fixer':
+                        # 수리대상 10개 이하면 거의 끝이란 소리니 회복대상에서 제외
+                        if len(wall_repairs) <= 10:
+                            no_renew = True
                         storage_amount = 50000 * len(_.filter(room_creeps, lambda c: c.memory.role == 'fixer'))
                     # 자원조건이 할당된 경우 스토리지를 확인.
+                    # 스토리지가 없거나 거기 안에 에너지가 storage_amount 보다 적으면 회복은 없다
+                    print('not spawn.room.storage {} or spawn.room.storage[RESOURCE_ENERGY] {} < {} {}'
+                          .format(bool(not spawn.room.storage), spawn.room.storage.store[RESOURCE_ENERGY], storage_amount, bool(spawn.room.storage.store[RESOURCE_ENERGY] < storage_amount)))
                     if storage_amount \
-                            and not spawn.room.storage or spawn.room.storage[RESOURCE_ENERGY] < storage_amount:
+                            and (not spawn.room.storage or spawn.room.storage.store[RESOURCE_ENERGY] < storage_amount):
+                        no_renew = True
+                    if no_renew:
+                        # print('stopped')
                         continue
+                    print('healing', creep.name, creep.ticksToLive)
                     result = spawn.renewCreep(creep)
                     break
 

@@ -501,6 +501,7 @@ def main():
                                                   and s.hits < s.hitsMax)
         # print('WTFR', JSON.stringify(repairs))
         if chambro.controller and chambro.controller.my:
+            # 방에 있는 모든 수리대상 장벽·방어막
             wall_repairs = all_structures.filter(lambda s: (s.structureType == STRUCTURE_RAMPART
                                                             or s.structureType == STRUCTURE_WALL)
                                                            and s.hits < chambro.memory[options][
