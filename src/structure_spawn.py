@@ -1106,7 +1106,6 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                     # 에너지소스에 담당 컨테이너가 존재하는가?
                     # container_exist = False
                     # 컨테이너가 소스보다 적으면 새로 짓는거.
-                    # todo one at a time.
                     if len(flag_energy_sources) > len(flag_containers):
                         for es in flag_energy_sources:
                             # 현재 컨테이너가 있는 경우 소스에서 가장 가까운걸 찾는다.
@@ -1292,6 +1291,9 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                                                               lambda room_name:
                                                               pathfinding.Costs(room_name, opts).load_matrix()
                                                           }, ).path
+                        # 하나하나 세서 집까지 도착하면 거기서 우선 한번 끊고
+                        # 캐리어를 위한 컨테이너가 구석지역에 지어졌는지 확인해본다
+
 
                         # 위에 길 역순.
                         path_spawn_to_pickup = []
@@ -1485,28 +1487,21 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                     #     no_renew = True
                     # 일부 크립은 스토리지에 자원이 있는 경우에만 채운다.
                     storage_amount = 0
-                    # 허울러는 중간중간 추가 허울러가 무의미하게 스폰될 가능성이 있는 특성상 틱 200이상은 채우지 않는다.
+                    # 스폰을 자주 지나다니는 허울러 특성상
                     # 너무 자주 충전되면 스폰 사이 무의미하게 왔다갔다하는 현상 발생. 타임계산은 이를 방지
                     # 허울러는 기본값으로 한명으로 유지해야 하기에 하나 이상이면 안건든다.
+                    # 허울러는 중간중간 추가 허울러가 무의미하게 스폰될 가능성이 있는 특성상 틱 200이상은 채우지 않는다.
                     # 셋중 하나라도 성립하면 통과
                     if creep.memory.role == 'hauler' \
-                        and (len(_.filter(room_creeps, lambda c: c.memory.role == 'hauler')) > 1
-                             or creep.ticksToLive > 200 or not Game.time % 3 == 0):
-                        # if not Game.time % 3 == 0 or :
-                        #     no_renew = True
-                        # print("hauler num: ", len(_.filter(room_creeps, lambda c: c.memory.role == 'hauler')))
-                        # print(creep.name, "TTL", creep.ticksToLive, "Game.time % 3 =", Game.time % 3)
-                        # if (len(_.filter(room_creeps, lambda c: c.memory.role == 'hauler')) > 1 \
-                        #         or creep.ticksToLive > 200 or not Game.time % 3 == 0):
+                            and not Game.time % 3 == 0 \
+                            and (len(_.filter(room_creeps, lambda c: c.memory.role == 'hauler')) > 1
+                                 or creep.ticksToLive > 200):
                         no_renew = True
                     # 업글러는 스토리지 자원 오천당 수리대상의 업글러의 수로 계산한다.
                     elif creep.memory.role == 'upgrader':
-                        # print(creep.name, ' # of upgs',
-                        #       len(_.filter(room_creeps, lambda c: c.memory.role == 'upgrader'
-                        #                                           and c.memory.level >= level)))
                         storage_amount = 5000 * len(_.filter(room_creeps, lambda c: c.memory.role == 'upgrader'
                                                                                     and c.memory.level >= level))
-                        # print('storage_amount', storage_amount)
+
                     elif creep.memory.role == 'fixer':
                         # 수리대상 10개 이하면 거의 끝이란 소리니 회복대상에서 제외
                         if len(wall_repairs) <= 10:
@@ -1515,7 +1510,8 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                     # 자원조건이 할당된 경우 스토리지를 확인.
                     # 스토리지가 없거나 거기 안에 에너지가 storage_amount 보다 적으면 회복은 없다
                     print('not spawn.room.storage {} or spawn.room.storage[RESOURCE_ENERGY] {} < {} {}'
-                          .format(bool(not spawn.room.storage), spawn.room.storage.store[RESOURCE_ENERGY], storage_amount, bool(spawn.room.storage.store[RESOURCE_ENERGY] < storage_amount)))
+                          .format(bool(not spawn.room.storage), spawn.room.storage.store[RESOURCE_ENERGY],
+                                  storage_amount, bool(spawn.room.storage.store[RESOURCE_ENERGY] < storage_amount)))
                     if storage_amount \
                             and (not spawn.room.storage or spawn.room.storage.store[RESOURCE_ENERGY] < storage_amount):
                         no_renew = True

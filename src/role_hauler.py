@@ -227,7 +227,8 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                         if creep.room.memory[STRUCTURE_TOWER]:
                             for t in creep.room.memory[STRUCTURE_TOWER]:
                                 # print('Game.getObjectById({}).energy {}'.format(t, Game.getObjectById(t).energy))
-                                if Game.getObjectById(t).energy < Game.getObjectById(t).energyCapacity * .8:
+                                if Game.getObjectById(t).store[RESOURCE_ENERGY] \
+                                        < Game.getObjectById(t).store.getCapacity(RESOURCE_ENERGY) * .8:
                                     print('tower not full')
                                     _full = False
                                     break

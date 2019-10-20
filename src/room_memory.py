@@ -83,20 +83,22 @@ def refresh_base_stats(chambro, all_structures, fix_rating, min_wall, spawns):
             past_lvl = chambro.memory[room_lvl]
             chambro.memory[room_lvl] = chambro.controller.level
 
+        # 방 안에 스토리지 오브젝트. 너무 길어서.
+        room_storage = chambro.storage
         # 만일 스토리지 용량이 부족한데 랩 채우게끔 되있으면 뽑아간다.
-        if chambro.memory[options].fill_labs and chambro.storage and chambro.storage.store.energy < 2000:
+        if chambro.memory[options].fill_labs and room_storage and room_storage.store.energy < 2000:
             chambro.memory[options].fill_labs = 0
         # 역으로 스토리지가 꽉 찼는데 안채우게 되있으면 넣는다.
-        if not chambro.memory[options].fill_labs and chambro.storage \
-                and chambro.storage.storeCapacity - _.sum(chambro.storage.store) < chambro.memory[options][max_energy]:
+        if not chambro.memory[options].fill_labs and room_storage \
+                and room_storage.storeCapacity - _.sum(room_storage.store) < chambro.memory[options][max_energy]:
             chambro.memory[options].fill_labs = 1
 
         # 방 안 스토리지 자원이 꽉 찼는데 수리레벨이 남아있을 경우 한단계 올린다.
         # max energy 계산법:
         # 스토리지 내 남은 공간이 max_energy 보다 적으면 발동하는거임.
         # 이름이 좀 꼬였는데 별수없음...
-        if chambro.storage \
-                and chambro.storage.storeCapacity - _.sum(chambro.storage.store) < chambro.memory[options][max_energy] + 10000 \
+        if room_storage \
+                and room_storage.storeCapacity - _.sum(room_storage.store) < chambro.memory[options][max_energy] + 10000 \
                 and not len(min_wall) and chambro.memory[options][repair] < 150 \
                 and chambro.controller.level == 8:
             chambro.memory[options][repair] += 1
@@ -111,7 +113,8 @@ def refresh_base_stats(chambro, all_structures, fix_rating, min_wall, spawns):
             # 이때 픽서 수 하나짜리로 초기화.
             chambro.memory[options][stop_fixer] = Game.time - 400
         # 렙8 아래면 픽서 카운터는 천을 넘지 않는다. 숫자 잔뜩뜨는거 보기싫어서..
-        elif not chambro.controller.level == 8 and Game.time - chambro.memory[options][stop_fixer] >= 1000:
+        elif chambro.controller.level < 8 and Game.time - chambro.memory[options][stop_fixer] >= 1000:
+            print('reset repair time')
             chambro.memory[options][stop_fixer] = Game.time - 500
 
         # 매번 완전초기화 하면 너무 자원낭비. 수량 틀릴때만 돌린다.
@@ -125,18 +128,18 @@ def refresh_base_stats(chambro, all_structures, fix_rating, min_wall, spawns):
         # add links. 위와 동일한 원리.
         # todo 여기뿐 아니라 캐려쪽도 해당인데, 거리에 따라 업글용인지 등등을 확인하는건 다 여기서만!
         str_links = _.filter(all_structures, lambda s: s.structureType == STRUCTURE_LINK)
-        if not len(str_links) == len(chambro.memory[STRUCTURE_LINK]) or \
-            not past_lvl == chambro.memory[room_lvl]:
+        if not len(str_links) == len(chambro.memory[STRUCTURE_LINK]) or not past_lvl == chambro.memory[room_lvl]:
             chambro.memory[STRUCTURE_LINK] = []
             range_required = 5
             # 안보내는 조건은 주변 range_required 거리 내에 컨트롤러·스폰·스토리지가 있을 시.
             storage_points = _.filter(all_structures, lambda s: s.structureType == STRUCTURE_STORAGE
                                                                or s.structureType == STRUCTURE_SPAWN
                                                                or s.structureType == STRUCTURE_TERMINAL)
-            # or s.structureType == STRUCTURE_EXTENSION)
+            print("roomName", chambro.name, 'lvl', chambro.controller.level)
+            # NULLIFIED - 거리기준 문제로 별도로센다.
             # 만렙이 아닐 경우 컨트롤러 근처에 있는것도 센다.
-            if not chambro.controller.level == 8:
-                storage_points.append(chambro.controller)
+            # if not chambro.controller.level == 8:
+            #     storage_points.append(chambro.controller)
 
             # 링크는 크게 두 종류가 존재한다. 하나는 보내는거, 또하난 받는거.
             for stl in str_links:
@@ -148,13 +151,20 @@ def refresh_base_stats(chambro, all_structures, fix_rating, min_wall, spawns):
                 closest_storage = stl.pos.findClosestByPath(storage_points, {ignoreCreeps: True})
                 # 링크에서 가장 가까이 있는 storage_points 까지의 거리
                 path_to_closest_storage = stl.pos.findPathTo(closest_storage, {ignoreCreeps: True})
-
                 # 링크에서 컨트롤러까지의 길
                 path_to_controller = stl.pos.findPathTo(chambro.controller, {'ignoreCreeps': True, 'range': 3})
 
                 # 거리가 조건에 충족하면 우선 저장용임.
                 if len(path_to_closest_storage) <= range_required or len(path_to_controller) <= range_required:
                     _store = 1
+
+                # print(stl.id, stl.pos, _store,
+                #       stl.store.getUsedCapacity(RESOURCE_ENERGY), bool(len(path_to_controller) <= range_required))
+                # 만일 저장용이긴 한데  컨트롤러 근처에만 있는 경우 너무 먼거라 더이상 쓸모없음.
+                # 이 경우 안에 남아있는 자원이 없으면 더 이상 운송용으로 쓰지 않는다.
+                if _store and not len(path_to_closest_storage) <= range_required\
+                        and stl.store.getUsedCapacity(RESOURCE_ENERGY) == 0:
+                    _store = 0
 
                 # 저장용이면 컨트롤러 근처에 있는지도 센다. 업글용인지 확인할 용도
                 if _store and not chambro.controller.level == 8:
@@ -208,8 +218,8 @@ def refresh_base_stats(chambro, all_structures, fix_rating, min_wall, spawns):
                     closest_spawn = stc.pos.findClosestByPath(spawns, {'ignoreCreeps': True})
                     # 컨테이너에서 가장 가까운 스폰까지 거리
                     closest_spawn_dist = len(stc.pos.findPathTo(closest_spawn, {'ignoreCreeps': True}))
-                    if chambro.storage:
-                        len(stc.pos.findPathTo(chambro.storage, {'ignoreCreeps': True}))
+                    if room_storage:
+                        len(stc.pos.findPathTo(room_storage, {'ignoreCreeps': True}))
 
                     # 조건충족하면 업글용으로 분류 - 5칸이내거리 + 스폰보다 가깝
                     # 렙4까지 무시.
