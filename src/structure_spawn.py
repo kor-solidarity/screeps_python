@@ -182,45 +182,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                     {memory: {'role': 'harvester', 'assigned_room': spawn.pos.roomName, 'size': momche[counter][3],
                               'level': momche[counter][4]}})
                 counter += 1
-            # NULLIFIED - 간소화
-            # # check if energy_source capacity is 4.5k(4k in case they update, not likely).
-            # # if is, go for size 4500.
-            # if room_sources[0].energyCapacity > 4000:
-            #     regular_spawn = spawn.spawnCreep(
-            #         [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK,
-            #          WORK, WORK, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY],
-            #         'hv_{}_{}'.format(spawn_room_low, rand_int),
-            #         {memory: {'role': 'harvester', 'assigned_room': spawn.pos.roomName, 'size': 2}})
-            # else:
-            #     # perfect for 3000 cap
-            #     # 7 WORK, 200 cap.
-            #     regular_spawn = spawn.spawnCreep(
-            #         [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, WORK,
-            #          CARRY, CARRY, CARRY, CARRY],
-            #         # [WORK, WORK, WORK, WORK, WORK, WORK,
-            #         #  CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE],
-            #         'hv_{}_{}'.format(spawn_room_low, rand_int),
-            #         {memory: {'role': 'harvester', 'assigned_room': spawn.pos.roomName, 'size': 2}})
-            # # print('what happened:', regular_spawn)
-            # # 이 이하는 렙4 아래거나 자원이 부족할때만 뜬다.
-            # if regular_spawn == -6:
-            #     # todo 만약 방에 수용가능한 자원이 800 미만 또는 허울러가 없을 경우에만 이거보다 더 작은 하베스터를 생산한다.
-            #     if spawn.spawnCreep(
-            #         [MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, CARRY],
-            #         'hv_{}_{}'.format(spawn_room_low, rand_int),
-            #         {memory: {'role': 'harvester', 'assigned_room': spawn.pos.roomName,
-            #                   'size': 1}}) == -6 \
-            #                 and (chambro.energyCapacityAvailable < 800 or accumulated_size <= 1):
-            #         # 3 WORK
-            #         if spawn.spawnCreep([MOVE, MOVE, WORK, WORK, WORK, CARRY, CARRY],
-            #                             'hv_{}_{}'.format(spawn_room_low, rand_int),
-            #                             {memory: {'role': 'harvester', 'assigned_room': spawn.pos.roomName,
-            #                                       'size': 1}}) == -6:
-            #             # final barrier
-            #             spawn.spawnCreep([MOVE, WORK, WORK, CARRY],
-            #                              'hv_{}_{}'.format(spawn_room_low, rand_int),
-            #                              {memory: {'role': 'harvester', 'assigned_room': spawn.pos.roomName,
-            #                                        'size': 1}})
+                
             return
 
         # 꽉찬 컨테이너 수
@@ -1492,10 +1454,24 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                     # 허울러는 기본값으로 한명으로 유지해야 하기에 하나 이상이면 안건든다.
                     # 허울러는 중간중간 추가 허울러가 무의미하게 스폰될 가능성이 있는 특성상 틱 200이상은 채우지 않는다.
                     # 셋중 하나라도 성립하면 통과
+
+                    # if creep.memory.role == 'hauler':
+                    #     print('Game.time % 3 ==', Game.time % 3, "not Game.time % 3 == 0", bool(not Game.time % 3 == 0))
+                    #     print("len(_.filter(room_creeps, lambda c: c.memory.role == 'hauler'))",
+                    #           len(_.filter(room_creeps, lambda c: c.memory.role == 'hauler')))
+                    #     print('creep.ticksToLive', creep.ticksToLive,
+                    #           "creep.ticksToLive > 200", bool(creep.ticksToLive > 200))
+                    """
+                    Game.time % 3 == 2 not Game.time % 3 == 0 True
+                    len(_.filter(room_creeps, lambda c: c.memory.role == 'hauler')) 2
+                    creep.ticksToLive 418 creep.ticksToLive > 200 True
+                    no_renew on hl
+                    """
                     if creep.memory.role == 'hauler' \
-                            and not Game.time % 3 == 0 \
-                            and (len(_.filter(room_creeps, lambda c: c.memory.role == 'hauler')) > 1
+                            and (not Game.time % 3 == 0
+                                 or len(_.filter(room_creeps, lambda c: c.memory.role == 'hauler')) > 1
                                  or creep.ticksToLive > 200):
+                        # print("no_renew on hl")
                         no_renew = True
                     # 업글러는 스토리지 자원 오천당 수리대상의 업글러의 수로 계산한다.
                     elif creep.memory.role == 'upgrader':
