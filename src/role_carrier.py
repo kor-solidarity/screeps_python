@@ -53,7 +53,8 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
     elif _.sum(creep.carry) == 0 and creep.ticksToLive < end_is_near:
         creep.suicide()
         return
-    elif _.sum(creep.carry) >= creep.carryCapacity * .5:
+    # 50% 이상 차있으면 바로 운송으로 가되 container_full 이 걸렸으면 자원을 최대한 뽑아가야하는 상황임.
+    elif _.sum(creep.carry) >= creep.carryCapacity * .5 and not creep.memory.container_full:
         creep.memory.laboro = 1
 
     elif not creep.memory.upgrade_target:

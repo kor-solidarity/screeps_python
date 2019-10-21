@@ -1451,27 +1451,13 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                     storage_amount = 0
                     # 스폰을 자주 지나다니는 허울러 특성상
                     # 너무 자주 충전되면 스폰 사이 무의미하게 왔다갔다하는 현상 발생. 타임계산은 이를 방지
-                    # 허울러는 기본값으로 한명으로 유지해야 하기에 하나 이상이면 안건든다.
                     # 허울러는 중간중간 추가 허울러가 무의미하게 스폰될 가능성이 있는 특성상 틱 200이상은 채우지 않는다.
+                    # 허울러는 기본값으로 한명으로 유지해야 하기에 하나 이상이면 안건든다.
                     # 셋중 하나라도 성립하면 통과
-
-                    # if creep.memory.role == 'hauler':
-                    #     print('Game.time % 3 ==', Game.time % 3, "not Game.time % 3 == 0", bool(not Game.time % 3 == 0))
-                    #     print("len(_.filter(room_creeps, lambda c: c.memory.role == 'hauler'))",
-                    #           len(_.filter(room_creeps, lambda c: c.memory.role == 'hauler')))
-                    #     print('creep.ticksToLive', creep.ticksToLive,
-                    #           "creep.ticksToLive > 200", bool(creep.ticksToLive > 200))
-                    """
-                    Game.time % 3 == 2 not Game.time % 3 == 0 True
-                    len(_.filter(room_creeps, lambda c: c.memory.role == 'hauler')) 2
-                    creep.ticksToLive 418 creep.ticksToLive > 200 True
-                    no_renew on hl
-                    """
                     if creep.memory.role == 'hauler' \
                             and (not Game.time % 3 == 0
-                                 or len(_.filter(room_creeps, lambda c: c.memory.role == 'hauler')) > 1
-                                 or creep.ticksToLive > 200):
-                        # print("no_renew on hl")
+                                 or creep.ticksToLive > 200
+                                 or len(_.filter(room_creeps, lambda c: c.memory.role == 'hauler')) > 1):
                         no_renew = True
                     # 업글러는 스토리지 자원 오천당 수리대상의 업글러의 수로 계산한다.
                     elif creep.memory.role == 'upgrader':

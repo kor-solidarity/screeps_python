@@ -619,9 +619,9 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
         elif creep.memory.priority == 3:
             if creep.memory.repair_target:
                 repair = Game.getObjectById(creep.memory.repair_target)
-                # 수리대상 체력이 꽉차거나 방 안에 채워진 에너지가 절반 이하면 교체확인
+                # 수리대상 체력이 꽉차거나 방 안에 채워진 에너지가 2/3 이하면 교체확인
                 if repair.hits == repair.hitsMax \
-                        or creep.room.energyAvailable < creep.room.energyCapacityAvailable / 2:
+                        or creep.room.energyAvailable < creep.room.energyCapacityAvailable * .65:
                     del creep.memory.repair_target
                     # 당장 수리대상이 수리완료했을 때 채워야 하는 대상이 있으면 바로 전환한다.
                     hauling_need = False
