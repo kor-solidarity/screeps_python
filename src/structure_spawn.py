@@ -1440,8 +1440,15 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
             # ^ not applied yet idk
 
             for creep in room_creeps:
+                # 먼저 무조건 거르는 대상: 근접이 아니거나 TTL 100미만
+                if not spawn.pos.isNearTo(creep) or creep.ticksToLive < 100:
+                    continue
+                # 일꾼은 무조건 항시 채워준다. 어차피 근접할 가능성 거의없기도 함.
+                if creep.memory.role == 'harvester' and creep.memory.level >= level and creep.ticksToLive < 1400:
+                    spawn.renewCreep(creep)
+                    break
                 # 방 안에 있는 크립 중에 회복대상자
-                if (100 < creep.ticksToLive < 500) and creep.memory.level >= level and spawn.pos.isNearTo(creep):
+                elif creep.ticksToLive < 500 and creep.memory.level >= level:
                     # 회복대상이 아닌가?
                     no_renew = False
                     # 임시용도. 디버깅 끝나면 폐기
@@ -1451,12 +1458,13 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                     storage_amount = 0
                     # 스폰을 자주 지나다니는 허울러 특성상
                     # 너무 자주 충전되면 스폰 사이 무의미하게 왔다갔다하는 현상 발생. 타임계산은 이를 방지
-                    # 허울러는 중간중간 추가 허울러가 무의미하게 스폰될 가능성이 있는 특성상 틱 200이상은 채우지 않는다.
+                    # 허울러는 중간중간 추가 허울러가 무의미하게 스폰될 가능성이 있는 특성상 틱 250이상은 채우지 않는다.
+                    # 250인 이유는 허울러 둘이 생겼을 경우 약간 보조하기 위한 용도. 둘이 동시생성되는건 지양합시다.
                     # 허울러는 기본값으로 한명으로 유지해야 하기에 하나 이상이면 안건든다.
                     # 셋중 하나라도 성립하면 통과
                     if creep.memory.role == 'hauler' \
                             and (not Game.time % 3 == 0
-                                 or creep.ticksToLive > 200
+                                 or creep.ticksToLive > 250
                                  or len(_.filter(room_creeps, lambda c: c.memory.role == 'hauler')) > 1):
                         no_renew = True
                     # 업글러는 스토리지 자원 오천당 수리대상의 업글러의 수로 계산한다.

@@ -163,6 +163,7 @@ def grab_energy_new(creep, resource_type, min_capacity=.5):
     if not pickup_obj:
         return ERR_INVALID_TARGET
     elif not (pickup_obj.store or pickup_obj.energy or pickup_obj.mineralAmount):
+        print(creep.name, "harvest_stuff.grab_energy_new")
         return ERR_NOT_ENOUGH_ENERGY
 
     # if there's no energy in the pickup target, delete it
@@ -207,15 +208,19 @@ def grab_energy_new(creep, resource_type, min_capacity=.5):
 
     # 모든 종류의 자원을 뽑아가려는 경우. 여기서 끝낸다.
     if resource_type == haul_all:
+        # for a in Object.keys(carry_objects):
+        #     print(a)
+        # print(len(carry_objects))
         # 포문 돌려서 하나하나 빼간다.
-        if len(carry_objects) > 1:
+        if len(carry_objects) >= 1:
             for resource in Object.keys(carry_objects):
-                # 우선 에너지면 통과.
-                if resource == RESOURCE_ENERGY:
+                # 리소스가 에너지인데 carry_objects 가 1개 이상이면 통과
+                if resource == RESOURCE_ENERGY and len(carry_objects) != 1:
                     continue
+                # NULLIFIED - no needed as RESOURCE_ENERGY is no longer default in Store
                 # if there's no such resource, pass it to next loop.
-                if pickup_obj.store[resource] == 0:
-                    continue
+                # if pickup_obj.store[resource] == 0:
+                #     continue
 
                 # pick it up.
                 result = creep.withdraw(pickup_obj, resource)
@@ -225,8 +230,8 @@ def grab_energy_new(creep, resource_type, min_capacity=.5):
 
                 return result
         else:
-            result = creep.withdraw(pickup_obj, RESOURCE_ENERGY)
-            return result
+            # result = creep.withdraw(pickup_obj, RESOURCE_ENERGY)
+            return ERR_NOT_ENOUGH_RESOURCES
 
     # 에너지 빼고 모든걸 뽑을 경우
     elif resource_type == haul_all_but_energy:
@@ -295,7 +300,8 @@ def filter_drops(creep, _drops, target_range, only_energy=False):
                 index = drops.indexOf(drop)
                 drops.splice(index, 1)
                 continue
-        # 안에 자원 계산. 스토어가 있으면 무덤
+        # 안에 자원 계산. 스토어가 있으면 무덤·폐허, 없으면 걍 떨궈진 자원
+        # todo 지금 폐허 못잡음
         if drop.store:
             resource_amount = _.sum(drop.store)
         else:

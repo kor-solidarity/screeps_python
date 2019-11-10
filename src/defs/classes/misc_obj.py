@@ -1,5 +1,5 @@
 # noinspection PyPep8Naming
-from typing import Optional, Type, Union
+from typing import Optional, Type, Union, Dict
 
 from .memory import _Memory
 from .room import Room, RoomPosition
@@ -11,10 +11,11 @@ class RoomObject:
     :type room: Room
     """
 
-    def __init__(self, pos: RoomPosition, room: Room) -> None:
+    def __init__(self, effects: Dict[str, int], pos: RoomPosition, room: Room) -> None:
         """
         WARNING: This constructor is purely for type completion, and does not exist in the game.
         """
+        self.effects = effects
         self.pos = pos
         self.room = room
 

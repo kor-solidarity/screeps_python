@@ -256,10 +256,16 @@ def main():
         # 바로아래 이유로 딕셔너리화하진 않음.
         dropped_all = chambro.find(FIND_DROPPED_RESOURCES)
         tombs = chambro.find(FIND_TOMBSTONES)
+        # FIND_RUINS - use numbers cuz api code not implemented yet
+        ruins = chambro.find(123)
         if tombs:
             for t in tombs:
                 if _.sum(t.store) > 0:
                     dropped_all.append(t)
+        if ruins:
+            for r in ruins:
+                if _.sum(r.store) > 0:
+                    dropped_all.append(r)
         dropped_all = {'dropped_all': dropped_all}
 
         # 필터하면서 목록을 삭제하는거 같음.... 그래서 이리 초기화
