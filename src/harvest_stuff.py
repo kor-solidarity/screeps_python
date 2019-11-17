@@ -293,14 +293,13 @@ def filter_drops(creep, _drops, target_range, only_energy=False):
 
         # only_energy 면 에너지 있나만 본다. 다른건 무시
         if only_energy:
-            # if tomestone and no energy
-            # or dropped_all source thats not an energy
-            if (drop.store and not drop.store[RESOURCE_ENERGY])\
+            # 스토어에 에너지가 없거나 리소스타입이 존재하면 에너지가 아닌게 있는거임.
+            if (drop.store and not drop.store[RESOURCE_ENERGY]) \
                     or (drop.resourceType and drop.resourceType != RESOURCE_ENERGY):
                 index = drops.indexOf(drop)
                 drops.splice(index, 1)
                 continue
-        # 안에 자원 계산. 스토어가 있으면 무덤·폐허, 없으면 걍 떨궈진 자원
+        # 안에 자원 계산.
         # todo 지금 폐허 못잡음
         if drop.store:
             resource_amount = _.sum(drop.store)

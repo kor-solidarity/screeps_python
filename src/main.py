@@ -236,49 +236,49 @@ def main():
         avg_cpu = round(all_cpu / len(Memory.cpu_usage), 2)
         last_cpu = Memory.cpu_usage[Memory.cpu_usage.length - 1]
 
+    # todo 당장 안쓰고있지만 조만간 처리요망
     # 모든 방 안에 있는 모든 주요 오브젝트는 여기에 다 통합보관된다.
     all_objs = {}
     # 사전에 자원·건물현황·적 구분 등을 싹 다 돌린다.
-    for chambra_nomo in Object.keys(Game.rooms):
-        # 찾아야 하는 대상: 각 방에 대한 모든것.
-        chambro = Game.rooms[chambra_nomo]
-
-        # ALL .find() functions are done in here. THERE SHOULD BE NONE INSIDE CREEP FUNCTIONS!
-        # filters are added in between to lower cpu costs.
-        all_structures = {'all_structures': chambro.find(FIND_STRUCTURES)}
-
-        room_creeps = {'room_creeps': chambro.find(FIND_MY_CREEPS)}
-
-        malsanaj_amikoj = {'malsanaj_amikoj': _.filter(room_creeps, lambda c: c.hits < c.hitsMax)}
-
-        enemy_constructions = {'enemy_constructions': chambro.find(FIND_HOSTILE_CONSTRUCTION_SITES)}
-        my_constructions = {'my_constructions': chambro.find(FIND_MY_CONSTRUCTION_SITES)}
-        # 바로아래 이유로 딕셔너리화하진 않음.
-        dropped_all = chambro.find(FIND_DROPPED_RESOURCES)
-        tombs = chambro.find(FIND_TOMBSTONES)
-        # FIND_RUINS - use numbers cuz api code not implemented yet
-        ruins = chambro.find(123)
-        if tombs:
-            for t in tombs:
-                if _.sum(t.store) > 0:
-                    dropped_all.append(t)
-        if ruins:
-            for r in ruins:
-                if _.sum(r.store) > 0:
-                    dropped_all.append(r)
-        dropped_all = {'dropped_all': dropped_all}
-
-        # 필터하면서 목록을 삭제하는거 같음.... 그래서 이리 초기화
-        foreign_creeps = chambro.find(FIND_HOSTILE_CREEPS)
-        nukes = {'nukes': chambro.find(FIND_NUKES)}
-        # [[적 전부], [적 NPC], [적 플레이어], [동맹]]
-        friends_and_foes = miscellaneous.filter_friend_foe(foreign_creeps)
-        # init. list
-        hostile_creeps = {'hostile_creeps': friends_and_foes[0]}
-        allied_creeps = {'allied_creeps': friends_and_foes[3]}
-
-        room_objs = {chambra_nomo: {all_structures, room_creeps, malsanaj_amikoj, enemy_constructions, my_constructions,
-                                    dropped_all, nukes, hostile_creeps, allied_creeps}}
+    # for chambra_nomo in Object.keys(Game.rooms):
+    #     # 찾아야 하는 대상: 각 방에 대한 모든것.
+    #     chambro = Game.rooms[chambra_nomo]
+    #
+    #     # ALL .find() functions are done in here. THERE SHOULD BE NONE INSIDE CREEP FUNCTIONS!
+    #     # filters are added in between to lower cpu costs.
+    #     all_structures = {'all_structures': chambro.find(FIND_STRUCTURES)}
+    #
+    #     room_creeps = {'room_creeps': chambro.find(FIND_MY_CREEPS)}
+    #
+    #     malsanaj_amikoj = {'malsanaj_amikoj': _.filter(room_creeps, lambda c: c.hits < c.hitsMax)}
+    #
+    #     enemy_constructions = {'enemy_constructions': chambro.find(FIND_HOSTILE_CONSTRUCTION_SITES)}
+    #     my_constructions = {'my_constructions': chambro.find(FIND_MY_CONSTRUCTION_SITES)}
+    #     # 바로아래 이유로 딕셔너리화하진 않음.
+    #     dropped_all = chambro.find(FIND_DROPPED_RESOURCES)
+    #     tombs = chambro.find(FIND_TOMBSTONES)
+    #     ruins = chambro.find(FIND_RUINS)
+    #     if tombs:
+    #         for t in tombs:
+    #             if _.sum(t.store) > 0:
+    #                 dropped_all.append(t)
+    #     if ruins:
+    #         for r in ruins:
+    #             if _.sum(r.store) > 0:
+    #                 dropped_all.append(r)
+    #     dropped_all = {'dropped_all': dropped_all}
+    #
+    #     # 필터하면서 목록을 삭제하는거 같음.... 그래서 이리 초기화
+    #     foreign_creeps = chambro.find(FIND_HOSTILE_CREEPS)
+    #     nukes = {'nukes': chambro.find(FIND_NUKES)}
+    #     # [[적 전부], [적 NPC], [적 플레이어], [동맹]]
+    #     friends_and_foes = miscellaneous.filter_friend_foe(foreign_creeps)
+    #     # init. list
+    #     hostile_creeps = {'hostile_creeps': friends_and_foes[0]}
+    #     allied_creeps = {'allied_creeps': friends_and_foes[3]}
+    #
+    #     room_objs = {chambra_nomo: {all_structures, room_creeps, malsanaj_amikoj, enemy_constructions, my_constructions,
+    #                                 dropped_all, nukes, hostile_creeps, allied_creeps}}
 
     # run everything according to each rooms.
     for chambra_nomo in Object.keys(Game.rooms):
@@ -461,6 +461,11 @@ def main():
         my_constructions = chambro.find(FIND_MY_CONSTRUCTION_SITES)
         dropped_all = chambro.find(FIND_DROPPED_RESOURCES)
         tombs = chambro.find(FIND_TOMBSTONES)
+        ruins = chambro.find(FIND_RUINS)
+        if ruins:
+            for r in ruins:
+                if _.sum(r.store) > 0:
+                    dropped_all.append(r)
         if tombs:
             for t in tombs:
                 if _.sum(t.store) > 0:

@@ -138,14 +138,14 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
         energy_only = False
         if not Game.rooms[creep.memory.assigned_room].storage:
             energy_only = True
-        # print(creep.name, energy_only, creep.pos)
+
         # if there's no dropped_all but there's dropped_all
         if not creep.memory.dropped and len(dropped_all) > 0:
             # 떨어진거 확인 범위.
             drop_range = 5
             # 모든게 꽉 찬 상황이면 정리
             if creep.memory.all_full:
-                drop_range = 40
+                drop_range = 50
 
             dropped_target = filter_drops(creep, dropped_all, drop_range, energy_only)
 
@@ -696,7 +696,7 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
             # if having anything other than energy when not on priority 1 switch to 1
             # 운송크립은 발전에 심혈을 기울이면 안됨.
             if creep.carry[RESOURCE_ENERGY] <= 0 \
-                    or creep.room.energyAvailable < creep.room.energyCapacityAvailable * .5\
+                    or creep.room.energyAvailable < creep.room.energyCapacityAvailable * outer_work_perc\
                     or len(constructions):
                 creep.memory.priority = 1
                 creep.say('복귀!', True)

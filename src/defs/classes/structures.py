@@ -168,7 +168,7 @@ class StructureController(OwnedStructure):
         self.ticksToDowngrade = ticksToDowngrade
         self.upgradeBlocked = upgradeBlocked
 
-    def activateSafeMode(self) -> int:
+    def activateSafemode(self) -> int:
         pass
 
     def unclaim(self) -> int:
