@@ -256,6 +256,15 @@ def move_with_mem(creep, target, target_range=0, path_mem='path', repath=True):
                 # 현재 포문상 위치가 이 크립의 위치와 동일한가? 그럼 이 위치 다음 크립과 교체하는거임.
                 if JSON.stringify(p) == JSON.stringify(creep.pos):
                     creep_located = True
+            # 위 포문에서 안걸렸으면 도로 첫위치 바로 옆에있을 가능성이 매우 높음.
+            if not creep_located and creep.pos.isNearTo(path[0]):
+                if path[0].lookFor(LOOK_CREEPS):
+                    # 찾았으면 그 앞에 크립이 길막중이니 교대한다
+                    front_creep = p.lookFor(LOOK_CREEPS)[0]
+                    if front_creep and front_creep.my:
+                        front_creep.moveTo(creep)
+                        move_by_path = creep.moveTo(front_creep)
+                        creep.say('교대좀', True)
 
         # 혹시 패스가 크립위가 아니라 바로 옆에 있어서 패스 안겹치는 경우가 있으면 맨 앞에 크립위치 패스에 추가함.
         mem_in_path = False

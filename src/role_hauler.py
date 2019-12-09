@@ -824,8 +824,6 @@ def grab_haul_list(creep, roomName, totalStructures, add_storage=False):
     :param add_storage: 스토리지를 포함할 것인가? priority == 0 인 상황 아니면 포함할일이 없음.
     :return: 허울러의 에너지 채울 대상목록
     """
-    # 초기화
-    structures = []
 
     # defining structures to fill the energy on. originally above of this spot but replaced for cpu eff.
     # towers only fills 80% since it's gonna repair here and there all the time.
@@ -862,7 +860,6 @@ def grab_haul_list(creep, roomName, totalStructures, add_storage=False):
     # 렙 3-8 사이 에너지가 있을때만 찾는다
     # if 3 <= Game.rooms[roomName].controller.level < 8 and creep.carry[RESOURCE_ENERGY]:
     if not Game.rooms[roomName].controller.level == 8 and creep.carry[RESOURCE_ENERGY]:
-
         for rcont in Game.rooms[roomName].memory[STRUCTURE_CONTAINER]:
             if not Game.getObjectById(rcont.id):
                 continue

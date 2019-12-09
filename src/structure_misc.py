@@ -1,4 +1,5 @@
 from defs import *
+from typing import List
 from structure_display import *
 import random
 
@@ -28,8 +29,9 @@ def run_tower(tower, hostile_creeps, repairs, malsana_amikoj):
     # 2. heal creeps. and then 3
     # 3. se tie ne estas malamikojn, serĉas por konstruaĵoj kiu bezonas repari kaj repari ĝin.
 
-    if tower.energy < tower.energyCapacity * 0.25 and len(hostile_creeps) == 0\
-            and len(malsana_amikoj) == 0:
+    # 타워에 에너지가 25% 미만이고 적 또는 치료해야 할 아군이 없으면 통과한다.
+    if tower.store[RESOURCE_ENERGY] < tower.store.getCapacity(RESOURCE_ENERGY) * 0.25 and \
+        len(hostile_creeps) == 0 and len(malsana_amikoj) == 0:
         return
 
     if tower.room.memory.options.tow_atk and len(hostile_creeps) > 0 and len(malsana_amikoj) > 0:
@@ -47,7 +49,7 @@ def run_tower(tower, hostile_creeps, repairs, malsana_amikoj):
         malsana_amiko = tower.pos.findClosestByRange(malsana_amikoj)
         tower.heal(malsana_amiko)
     else:
-        if tower.energy < tower.energyCapacity * 0.25:
+        if tower.store[RESOURCE_ENERGY] < tower.store.getCapacity(RESOURCE_ENERGY) * 0.25:
             return
         # 타워는 수리 최후의 보루다. 당장 수리 안하면 박살날 위기에 처해지지 않는 이상 안건든다.
         else:
@@ -69,8 +71,6 @@ def run_links(link_id, objs_for_disp):
     # if link.room.controller.level >= 7:
     # 쏘기 시작하는 최저수량. 무조건 꽉찼을때 지른다.
     amount_to_shoot = 800
-    # else:
-    #     amount_to_shoot = 200
 
     # current link
     me = _.filter(Game.getObjectById(link_id).room.memory[STRUCTURE_LINK],
@@ -86,31 +86,35 @@ def run_links(link_id, objs_for_disp):
     # 저장용 링크인건가?
     if me.for_store:
         # 만일 링크에 에너지가 있으면 표시한다. 굳이 눌러볼 필요 없게.
-        if link.energy > 0:
-            link.room.visual.text(' {}'.format(link.energy),
+        if link.store[RESOURCE_ENERGY] > 0:
+            link.room.visual.text(' {}'.format(link.store[RESOURCE_ENERGY]),
                                   link.pos.x, display_loc.y,
                                   {'align': align, 'color': '#EE5927'})
         return
 
     # 여기 밑으로 내려왔으면 해당 링크는 에너지 전송용이다.
-    link.room.visual.text('{}|{}'.format(link.energy, link.cooldown),
+    link.room.visual.text('{}|{}'.format(link.store[RESOURCE_ENERGY], link.cooldown),
                           link.pos.x, display_loc.y,
                           {'align': align, 'color': '#EE5927'})
     # 에너지가 없으면 아래를 돌릴 이유가 없음.
-    if not link.energy:
+    if not link.store[RESOURCE_ENERGY]:
         return
 
     # all links that are for_store and have energy store left
-    inside_links = _.filter(Game.getObjectById(link_id).room.memory[STRUCTURE_LINK],
-                            lambda l:
-                            Game.getObjectById(l.id)
-                            and
-                            l.for_store == 1
-                            and
-                            Game.getObjectById(l.id).energy < Game.getObjectById(l.id).energyCapacity - 100)
+    _inside_links = _.filter(Game.getObjectById(link_id).room.memory[STRUCTURE_LINK],
+                             lambda l:
+                             Game.getObjectById(l.id)
+                             and
+                             l.for_store == 1
+                             and
+                             Game.getObjectById(l.id).store[RESOURCE_ENERGY] <
+                             Game.getObjectById(l.id).store.getCapacity(RESOURCE_ENERGY) - 100)
+    inside_links = []  # type: List[RoomObject]
+    for l in _inside_links:
+        inside_links.append(Game.getObjectById(l.id))
 
     # 쏠준비 됨? 그럼 날려!
-    if link.cooldown == 0 and link.energy >= amount_to_shoot and len(inside_links) > 0:
+    if link.cooldown == 0 and link.store[RESOURCE_ENERGY] >= amount_to_shoot and len(inside_links) > 0:
         # 내부(테두리 5칸 이상 이내)에 있는 링크 중 무작위 하나를 고르고 거기에 보낸다.
         # 만일 없으면? 애초부터 이 설계와 안맞게 만든거. 몰라ㅆㅂ
         # random_int = random.randint(0, len(inside_links) - 1)
@@ -118,16 +122,41 @@ def run_links(link_id, objs_for_disp):
         # todo 만약 중복이면 가장 가까운거에 던진다.
         if not len(inside_links) == 1:
             # print(JSON.stringify(inside_links))
-            inside_links = _.min(inside_links,
-                             lambda l: Game.getObjectById(l.id).energy)
+            # inside_links = _.min(inside_links, lambda l: Game.getObjectById(l.id).store[RESOURCE_ENERGY])
+            inside_links = find_closest_and_empty(link, inside_links, RESOURCE_ENERGY)
         else:
             inside_links = inside_links[0]
             # print('min_link', min_link)
         # 해당 링크가 에너지를 받은 시간 갱신. 링크의 전송시간을 낭비하지 않게 하기 위해 고안.
         if not inside_links.received_time or \
-                not inside_links.received_time == Game.time:
+            not inside_links.received_time == Game.time:
             transfer_result = link.transferEnergy(Game.getObjectById(inside_links.id))
 
             if transfer_result == OK:
                 inside_links.received_time = Game.time
 
+
+# 링크 쏠 위치를 정하기 위한 스크립트.
+def find_closest_and_empty(target_obj: RoomObject, stores: List[RoomObject], resource_type):
+    """
+    링크가 에너지를 전송할 때 가장 가까이 그리고 많이 보낼 수 있는 표적 고르기
+
+    :param target_obj:
+    :param stores:
+    :param resource_type:
+    :return:
+    """
+    print(stores, resource_type)
+    # 먼저 가장 적은 양의 에너지를 가진 녀석을 고른다.
+    minimum_stored = _.min(stores, lambda l: l.store[resource_type])
+    minimum_val = minimum_stored.store[resource_type]
+    print(minimum_val)
+    list_of_minimums = []
+    # 여럿 있는지 확인
+    for s in stores:
+        if s.store[resource_type] == minimum_val:
+            list_of_minimums.append(s)
+    # 그중에 가장 가까이 있는걸 고른다.
+    obj_for_return = target_obj.pos.findClosestByRange(list_of_minimums)
+
+    return obj_for_return

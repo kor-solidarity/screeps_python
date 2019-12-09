@@ -1479,16 +1479,16 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                         storage_amount = 50000 * len(_.filter(room_creeps, lambda c: c.memory.role == 'fixer'))
                     # 자원조건이 할당된 경우 스토리지를 확인.
                     # 스토리지가 없거나 거기 안에 에너지가 storage_amount 보다 적으면 회복은 없다
-                    print('not spawn.room.storage {} or spawn.room.storage[RESOURCE_ENERGY] {} < {} {}'
-                          .format(bool(not spawn.room.storage), spawn.room.storage.store[RESOURCE_ENERGY],
-                                  storage_amount, bool(spawn.room.storage.store[RESOURCE_ENERGY] < storage_amount)))
+                    # print('not spawn.room.storage {} or spawn.room.storage[RESOURCE_ENERGY] {} < {} {}'
+                    #       .format(bool(not spawn.room.storage), spawn.room.storage.store[RESOURCE_ENERGY],
+                    #               storage_amount, bool(spawn.room.storage.store[RESOURCE_ENERGY] < storage_amount)))
                     if storage_amount \
                             and (not spawn.room.storage or spawn.room.storage.store[RESOURCE_ENERGY] < storage_amount):
                         no_renew = True
                     if no_renew:
                         # print('stopped')
                         continue
-                    print('healing', creep.name, creep.ticksToLive)
+                    # print('healing', creep.name, creep.ticksToLive)
                     result = spawn.renewCreep(creep)
                     break
 
