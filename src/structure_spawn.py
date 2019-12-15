@@ -1013,6 +1013,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                                                                    and (c.spawning or c.ticksToLive > 150))
                     remote_reservers = _.filter(creeps, lambda c: c.memory.role == 'reserver'
                                                                   and c.memory.assigned_room == room_name)
+                    # 멀티지역에 만일 인베이더 건물 출몰할 시에 대한 대응방안.
                     remote_guard = _.filter(creeps, lambda c: c.memory.role == 'k_guard'
                                                                    and c.memory.assigned_room == room_name
                                                                    and (c.spawning or c.ticksToLive > 250))
@@ -1033,9 +1034,14 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                     flag_containers_const = flag_constructions.filter(lambda s: s.structureType == STRUCTURE_CONTAINER)
 
                     flag_containers.extend(flag_containers_const)
+                    # 컨트롤러가 있고 남의 소유이거나 예약점수가 100 이하일 경우.
+                    # 리서버를 하나 파견한다.
+                    # if flag_room_controller and len(remote_reservers) == 0 or \
+                    #         flag_room_reserved_by_other and flag_room_controller.reservation.ticksToEnd < 100:
+                    if flag_room_controller and \
+                            (flag_room_reserved_by_other or flag_room_controller.reservation.ticksToEnd < 100) \
+                            and len(remote_reservers) == 0:
 
-                    if flag_room_controller and len(remote_reservers) == 0 or \
-                            flag_room_reserved_by_other and flag_room_controller.reservation.ticksToEnd < 70:
                         if chambro.controller.level < 7:
                             reserve_cap = 400
                         else:

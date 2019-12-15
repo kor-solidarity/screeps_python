@@ -202,7 +202,13 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
 
         # 본진이 아닌 상태에서 떨궈진게 5칸내로 있으면 줍는다
         if not creep.memory.home_room == creep.pos.roomName and not creep.memory.dropped and len(dropped_all) > 0:
-            dropped_target = filter_drops(creep, dropped_all, 5, True)
+            # 만약에 당장 컨테이너가 없거나 내용물이 적으면 넓은 반경을 찾아본다.
+            if not creep.memory.container or \
+                    _.sum(Game.getObjectById(creep.memory.container).store) < creep.carryCapacity * .4:
+                drop_search_distance = 10
+            else:
+                drop_search_distance = 5
+            dropped_target = filter_drops(creep, dropped_all, drop_search_distance, True)
 
         # if there is a dropped_all target and it's there.
         if creep.memory.dropped:
