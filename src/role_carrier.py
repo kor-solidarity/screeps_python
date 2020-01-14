@@ -32,10 +32,10 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
     """
 
     # todo 현 문제점:
-    # - 건설 필요 시 배정.(?)
-    # - 운송 시 목표지점 배정관련: 자꾸 스폰당시 위치에서 가장 가까운거에 해버림.
-    # - 원래 픽업위치 파괴됐을 시 배정 관련. 방에 자원이 둘일때 엉켜버림. 수리가 시급함.
-    # - 운송중 떨어진거 주웠는데 일정량보다 많으면 걍 돌아가게끔. 방금 뭔 10남았는데 계속가...
+    #  - 건설 필요 시 배정.(?)
+    #  - 운송 시 목표지점 배정관련: 자꾸 스폰당시 위치에서 가장 가까운거에 해버림.
+    #  - 원래 픽업위치 파괴됐을 시 배정 관련. 방에 자원이 둘일때 엉켜버림. 수리가 시급함.
+    #  - 운송중 떨어진거 주웠는데 일정량보다 많으면 걍 돌아가게끔. 방금 뭔 10남았는데 계속가...
 
     # 임시 초기화 방편 - todo 추후 필요 없어야함.
     if not creep.memory.size:
@@ -330,12 +330,12 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
             pickup_obj = Game.getObjectById(creep.memory.pickup)
             # 건설대상이 있고 크립에 워크바디가 있는 경우 건설부터 한다
             if len(constructions) > 0 and creep_body_has_work:
-                creep.say('🚧 건설투쟁!', True)
+                creep.say('🏗️건설장으로!', True)
                 creep.memory.priority = 1
             # 컨테이너 체력이 60% 이하고 크립에서 3칸내 위치하고 있으며 메모리에 container_full 가 없는 경우 수리 들어간다.
             elif creep_body_has_work and pickup_obj and pickup_obj.hits <= pickup_obj.hitsMax * .6 and \
                     creep.pos.inRangeTo(pickup_obj, 3) and not creep.memory.container_full:
-                creep.say('🔧REGULAR✔⬆', True)
+                creep.say('🔧🔧', True)
                 creep.memory.priority = 3
             # 위에 해당사항 없으면 바로 운송시작
             else:

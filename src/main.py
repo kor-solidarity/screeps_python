@@ -188,13 +188,10 @@ def main():
                     # 100만틱마다 경축빰빠레!
                     elif Game.time % 1000000 < 2000:
                         # 첫시작인 경우
-                        if Game.time < 2100:
+                        if Game.time < 5000:
                             creep.say('NewTick!🎉', True)
                         else:
                             creep.say('{}M ticks🎉🍾'.format(int(Game.time / 1000000)), True)
-                    # creep.memory.age += 1
-                    # if creep.memory.age % 1500 == 0 and creep.ticksToLive > 50:
-                    #     creep.say("{}차생일!🎂🎉".format(int(creep.memory.age / 1500)), True)
                 else:
                     continue
             except:

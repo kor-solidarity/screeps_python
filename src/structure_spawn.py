@@ -100,6 +100,14 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
 
         # 배정된 허울러 기본값.
         hauler_capacity = 1
+        # 배정된 업글러 기본값.
+        upgrader_quota = 0
+        # 현재 혹시 방에서 건설중인 구조물 수
+        num_of_constructions = len(spawn.room.find(FIND_CONSTRUCTION_SITES))
+
+        # todo 허울러와 업글러의 배정 수를 이곳에서 먼저 계산을 한다.
+
+
 
         # 뒤에 몸체 포문 돌릴때 쓰일 기본 구성순서.
         def_body_content = [MOVE, WORK, CARRY]
@@ -200,7 +208,19 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
         # if chambro.controller.level >= 4:
         # 컨테이너가 하나라도 꽉찬게 있으면 허울러 추가.
         if container_full and container_full <= 2:
-            hauler_capacity += 1
+            # 방 안에 건설된 익스텐션 수
+            extensions_in_room = _.filter(all_structures, lambda s: s.structureType == STRUCTURE_EXTENSION)
+            # 현재 방에서 가질 수 있는 최대 익스텐션 수
+            max_extensions = CONTROLLER_STRUCTURES[chambro.controller.level]
+            # 스토리지를 만들 수 없는 레벨이면 허울러 추가보다 업글러를 더 우선한다.
+            # 발동조건:
+            # 방렙 4 미만이고(정확히는 스토리지 건설불가), 방에 업글러를 뽑을 만큼의 에너지 수용량이 존재하고
+            # 건설중인 것이 없거나 또는 방렙 최대 익스텐션만큼의 수를 보유했을때 발동
+            if chambro.controller.level < 4 and chambro.energyCapacityAvailable >= 400 and \
+                    (not num_of_constructions or extensions_in_room == max_extensions):
+                upgrader_quota += 1
+            else:
+                hauler_capacity += 1
         # 그게 셋 이상이면 둘 추가.
         elif container_full >= 3:
             hauler_capacity += 2
@@ -304,10 +324,8 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
             # 초대형 업글러 투입 고려
             mega = False
 
-            # upgrader_quota 이게 실제 할당될 업글러 수.
             # 렙8인 경우는 세이프모드가 발동되는 상태를 유지하게끔만 한다.
             if spawn.room.controller.level == 8:
-                upgrader_quota = 0
                 if spawn.room.controller.ticksToDowngrade < CONTROLLER_DOWNGRADE[8] - 100000 \
                         or (spawn.room.controller.ticksToDowngrade < CONTROLLER_DOWNGRADE[8] - 4900
                             and len(hostile_creeps) > 0):
@@ -336,17 +354,16 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
             # 방렙 4인데 여기로 왔다는건 스토리지 건설이 안됬다는소리임.
             # 이경우 스토리지 건설이 최우선이기에 업글쪽은 잠시 지양
             # 뭔가 건설중일때도 업글러는 지양
-            elif chambro.controller.level == 4 or len(spawn.room.find(FIND_CONSTRUCTION_SITES)) \
-                    or len(hostile_creeps):
+            elif chambro.controller.level == 4 or num_of_constructions or len(hostile_creeps):
                 upgrader_quota = 1
             # 렙4부터는 스토리지 건설이 최우선이기에 업글러 스폰에 총력가하면 망함...
             elif chambro.controller.level < 4:
                 # 저렙인 상태에선 레벨 + 1 값이 적당할거같음. 아직 확실하겐 모르겠음.
-                upgrader_quota = 3
+                upgrader_quota += 3
                 # 다만 컨테이너 용량에 따른 업글러 수량변환은 이때 반영한다. 허울러 먼저 뽑히는걸 막기위함임.
                 for mcont in spawn.room.memory[STRUCTURE_CONTAINER]:
                     cont_obj = Game.getObjectById(mcont.id)
-                    if cont_obj and _.sum(cont_obj.store) >= cont_obj.storeCapacity * .9:
+                    if cont_obj and _.sum(cont_obj.store) >= cont_obj.storeCapacity:
                         upgrader_quota += 3
             else:
                 # print('checkWTF')

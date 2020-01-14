@@ -197,9 +197,6 @@ def run_reserver(creep):
     if creep_action == ERR_NOT_IN_RANGE:
         # 5칸이내 들어가기 전까진 패스파인딩 갑시다.
         if not creep.pos.inRangeTo(Game.getObjectById(creep.memory.upgrade_target), 5):
-            # path = []
-            # if creep.memory.path:
-            #     path = _.map(creep.memory.path, lambda p: __new__(RoomPosition(p.x, p.y, p.roomName)))
             move_by_path = movement.move_with_mem(creep, creep.memory.upgrade_target, 1)
 
             if move_by_path[0] == OK and move_by_path[1]:
@@ -213,9 +210,7 @@ def run_reserver(creep):
             creep.say(res)
     elif creep_action == OK:
         if Game.time % 2 == 0:
-            creep.say('🇰🇵 🇰🇷', True)
-        else:
-            creep.say('ONWARD!!', True)
+            creep.say('우리가 접수!', True)
     # not my controller == attack
     elif creep_action == ERR_INVALID_TARGET:
         creep.attackController(Game.getObjectById(creep.memory.upgrade_target))
@@ -245,7 +240,7 @@ def get_path(creep, creeps, target):
     upgraders = _.filter(creeps,
                          lambda c: (c.memory.role == 'upgrader' or c.memory.role == 'hauler')
                          and c.memory.assigned_room == creep.room.name and c.pos.inRangeTo(target, 4))
-    # print(upgraders)
+
     opts = {'trackCreeps': False, 'refreshMatrix': True, 'pass_walls': False,
             'costByArea': {'objects': upgraders, 'size': 0, 'cost': 100}}
 

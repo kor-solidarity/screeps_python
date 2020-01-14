@@ -45,7 +45,7 @@ def collector(creep, creeps, dropped_all, all_structures):
     # setting laboro
     if _.sum(creep.carry) == 0 and creep.memory.laboro == 1:
         creep.memory.laboro = 0
-        creep.say('찌꺼기를 긁어내러!', True)
+        creep.say('🧹쓸러~', True)
     # if carry is full and upgrading is false: go and upgrade
     elif _.sum(creep.carry) == creep.carryCapacity and creep.memory.laboro == 0:
         creep.say('티끌모아태산', True)

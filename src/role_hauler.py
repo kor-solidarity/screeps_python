@@ -382,13 +382,6 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                 creep.say('🔄물류,염려말라!', True)
                 creep.memory.priority = 1
 
-                # NULLIFIED - 이러지 말고 스토리지는 걍 꽉채운다.
-                # 여기서 스토리지를 목록에서 없앤다.
-                # 스토리지는 항상 마지막에 채운다. 우선 있는지 확인부터 한거
-                # if creep.room.storage and \
-                #     creep.room.storage.store[RESOURCE_ENERGY] < max_energy_in_storage:
-                #     index = structures.indexOf(creep.room.storage)
-                #     structures.splice(index, 1)
                 # 스토리지는 항상 마지막에 채운다. 우선 있는지 확인부터 한거
                 if creep.room.storage and creep.room.storage.storeCapacity - _.sum(creep.room.storage.store):
                     index = structures.indexOf(creep.room.storage)
@@ -397,8 +390,8 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
             elif len(constructions) > 0:
                 creep.say('🚧건설,염려말라!', True)
                 creep.memory.priority = 2
-            elif len(repairs) > 0 and creep.room.controller.level > 3:
-                creep.say('☭ 세상을 고치자!', True)
+            elif len(repairs) > 0 and creep.room.controller.level >= 3:
+                creep.say('🔧 세상을 고치자!', True)
                 creep.memory.priority = 3
             else:
                 creep.say('⚡ 위대한 발전!', True)
