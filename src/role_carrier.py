@@ -56,7 +56,10 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
     # 50% 이상 차있으면 바로 운송으로 가되 container_full 이 걸렸으면 자원을 최대한 뽑아가야하는 상황임.
     elif _.sum(creep.carry) >= creep.carryCapacity * .5 and not creep.memory.container_full:
         creep.memory.laboro = 1
-
+    # 모든게 다 꽉 찬 상태면 바로 다음으로 간다.
+    # todo 잘되나 확인요망
+    elif _.sum(creep.carry) == creep.carryCapacity:
+        creep.memory.laboro = 1
     elif not creep.memory.upgrade_target:
         creep.memory.upgrade_target = creep.room.controller['id']
     elif not creep.memory.home_room:
