@@ -210,6 +210,7 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                     labs = all_structures \
                         .filter(lambda s: s.structureType == STRUCTURE_LAB and s.energy >= creep.carryCapacity * .5)
                     storages.extend(labs)
+                    # todo 터미널의 경우 얼마나 뽑을 수 있는지 명확하게 해야할 것.
                 pickup_id = miscellaneous.pick_pickup(creep, creeps, storages, terminal_capacity)
 
                 # 뽑아갈 게 없는 경우

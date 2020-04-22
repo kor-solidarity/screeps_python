@@ -63,14 +63,15 @@ def get_to_da_room(creep, roomName, ignoreRoads=False):
     else:
         return move_with_mem(creep, __new__(RoomPosition(25, 25, roomName)), 20)
 
-    if creep.room.name == roomName and creep.pos.inRangeTo(creep.room.controller, 5):
-        # return ERR_NO_PATH
-        return 'yolo'
+    # todo 이거 왜 쓴거였지...? 아마도 크립이 컨트롤러 업글 길막 때문인듯...? 조치바람
+    # if creep.room.name == roomName and creep.pos.inRangeTo(creep.room.controller, 5):
+    #     # return ERR_NO_PATH
+    #     return 'yolo'
 
     result = creep.moveTo(__new__(RoomPosition(25, 25, roomName)),
     # result = creep.moveTo(Game.rooms[roomName].controller,
                           {'visualizePathStyle': {'stroke': '#ffffff'}, 'reusePath': 15,
-                           'range': 21, 'maxOps': 1000, 'ignoreRoads': ignoreRoads})
+                           'range': 21, 'maxOps': 1500, 'ignoreRoads': ignoreRoads})
     return result
 
 

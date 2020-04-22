@@ -17,8 +17,6 @@ __pragma__('noalias', 'set')
 __pragma__('noalias', 'type')
 __pragma__('noalias', 'update')
 
-
-
 """
 원래 메인에 있던 방별 메모리 갱신을 편의상 이곳으로 옮김.  
 """
@@ -133,8 +131,8 @@ def refresh_base_stats(chambro, all_structures, fix_rating, min_wall, spawns):
             range_required = 5
             # 안보내는 조건은 주변 range_required 거리 내에 컨트롤러·스폰·스토리지가 있을 시.
             storage_points = _.filter(all_structures, lambda s: s.structureType == STRUCTURE_STORAGE
-                                                               or s.structureType == STRUCTURE_SPAWN
-                                                               or s.structureType == STRUCTURE_TERMINAL)
+                                                                or s.structureType == STRUCTURE_SPAWN
+                                                                or s.structureType == STRUCTURE_TERMINAL)
             print("roomName", chambro.name, 'lvl', chambro.controller.level)
             # NULLIFIED - 거리기준 문제로 별도로센다.
             # 만렙이 아닐 경우 컨트롤러 근처에 있는것도 센다.
@@ -158,11 +156,9 @@ def refresh_base_stats(chambro, all_structures, fix_rating, min_wall, spawns):
                 if len(path_to_closest_storage) <= range_required or len(path_to_controller) <= range_required:
                     _store = 1
 
-                # print(stl.id, stl.pos, _store,
-                #       stl.store.getUsedCapacity(RESOURCE_ENERGY), bool(len(path_to_controller) <= range_required))
                 # 만일 저장용이긴 한데  컨트롤러 근처에만 있는 경우 너무 먼거라 더이상 쓸모없음.
                 # 이 경우 안에 남아있는 자원이 없으면 더 이상 운송용으로 쓰지 않는다.
-                if _store and not len(path_to_closest_storage) <= range_required\
+                if _store and not len(path_to_closest_storage) <= range_required \
                         and stl.store.getUsedCapacity(RESOURCE_ENERGY) == 0:
                     _store = 0
 
@@ -178,7 +174,8 @@ def refresh_base_stats(chambro, all_structures, fix_rating, min_wall, spawns):
 
         # 컨테이너
         str_cont = _.filter(all_structures, lambda s: s.structureType == STRUCTURE_CONTAINER)
-        if not len(str_cont) == len(chambro.memory[STRUCTURE_CONTAINER]):
+        # if not len(str_cont) == len(chambro.memory[STRUCTURE_CONTAINER]):
+        if True:
             chambro.memory[STRUCTURE_CONTAINER] = []
             # 컨테이너는 크게 세종류가 존재한다.
             # 하베스터용, 캐리어용, 업그레이더용.
@@ -211,19 +208,29 @@ def refresh_base_stats(chambro, all_structures, fix_rating, min_wall, spawns):
                     # 컨테이너와의 거리가 컨트롤러에 비해 다른 스폰 또는 스토리지보다 더 먼가?
                     # 컨트롤러부터의 실제 거리가 10 이하인가?
 
-                    # 컨테이너와 스폰간의 거리
+                    # 컨테이너와 컨트롤러간의 거리
                     controller_dist = \
                         len(stc.pos.findPathTo(chambro.controller, {'ignoreCreeps': True, 'range': 3}))
                     # 컨테이너에서 가장 가까운 스폰
                     closest_spawn = stc.pos.findClosestByPath(spawns, {'ignoreCreeps': True})
                     # 컨테이너에서 가장 가까운 스폰까지 거리
                     closest_spawn_dist = len(stc.pos.findPathTo(closest_spawn, {'ignoreCreeps': True}))
+                    # 스토리지가 있으면 그 거리도 쟨다
+                    closest_storage_dist = 1000
                     if room_storage:
-                        len(stc.pos.findPathTo(room_storage, {'ignoreCreeps': True}))
+                        closest_storage_dist = len(stc.pos.findPathTo(room_storage, {'ignoreCreeps': True}))
 
+                    # NULLIFIED
                     # 조건충족하면 업글용으로 분류 - 5칸이내거리 + 스폰보다 가깝
                     # 렙4까지 무시.
-                    if chambro.controller.level > 4 and controller_dist <= 5 and controller_dist < closest_spawn_dist:
+                    # if chambro.controller.level > 4 and controller_dist <= 5 and controller_dist < closest_spawn_dist:
+
+                    # 조건충족하면 업글용으로 분류 - 컨트롤러에서 10칸이내 + 스폰과 스토리지보다 가깝
+                    # 그리고 이 조건은 스토리지 지어질때까지 무시.
+                    # print('container at x{}y{}, controller_dist {}, closest_spawn_dist {}, closest_storage_dist {}'
+                    #       .format(stc.pos.x, stc.pos.y, controller_dist, closest_spawn_dist, closest_storage_dist))
+                    if room_storage and controller_dist <= 10 and \
+                            controller_dist < closest_storage_dist and controller_dist < closest_spawn_dist:
                         _upgrade = 1
                         print('x{}y{}에 {}, 업글컨테이너로 분류'.format(stc.pos.x, stc.pos.y, stc.id))
                 chambro.memory[STRUCTURE_CONTAINER] \

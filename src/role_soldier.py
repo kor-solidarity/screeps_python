@@ -26,10 +26,7 @@ def run_remote_defender(all_structures, creep, creeps, hostile_creeps, lairs=Non
     :return:
     """
 
-    # random blurtin'
-    listo = ['Charge!', "KILL!!", "Ypa!", 'CodeIn 🐍!', 'Python 🤘!']
-
-    # incase there's no creep for visual
+    # in case there's no creep for visual
     if creep.room.name != creep.memory.assigned_room:
         if len(hostile_creeps) > 0:
             close_enemy = _.filter(hostile_creeps, lambda c: c.pos.inRangeTo(creep, 3))
@@ -102,6 +99,7 @@ def run_remote_defender(all_structures, creep, creeps, hostile_creeps, lairs=Non
                 creep.moveTo(closest, {'visualizePathStyle': {'stroke': '#FF0000', 'opacity': .25}})
 
         # elif creep.memory.keeper_lair:
+        # 방에 컨트롤러가 없다는건 키퍼레어가 있단 소리니..
         elif not creep.room.controller:
             # 스폰시간이 가장 낮은 키퍼레어로 다가가서 대기탄다.
             if not creep.memory.keeper_lair_spawning:
@@ -116,7 +114,7 @@ def run_remote_defender(all_structures, creep, creeps, hostile_creeps, lairs=Non
         else:
             # 아무것도 없으면 대기탄다
             if not creep.pos.inRangeTo(__new__(RoomPosition(25, 25, creep.memory.assigned_room)), 22):
-                movement.get_to_da_room(creep, creep.memory.assigned_room, False)
+                res = movement.get_to_da_room(creep, creep.memory.assigned_room, False)
 
 
 # todo 키퍼방 키퍼제거용

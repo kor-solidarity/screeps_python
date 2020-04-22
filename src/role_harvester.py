@@ -103,6 +103,7 @@ def run_harvester(creep, all_structures, constructions, room_creeps, dropped_all
                     # print('is checker({}) == i({})? : '.format(checker, i), bool(checker == i))
                 if not source_assigned:
                     creep.memory.source_num = sources[i]
+                    creep.memory.source_num = sources[i]
                     break
 
         # kazo 3 -
@@ -153,7 +154,7 @@ def run_harvester(creep, all_structures, constructions, room_creeps, dropped_all
     if _.sum(creep.carry) == 0 and not creep.memory.laboro == 0:
         if creep.ticksToLive < 5:
             return
-        creep.say('☭ 다이나믹 로동!', True)
+        creep.say('☭☭', True)
         creep.memory.laboro = 0
     # if capacity is full(and on harvest phase), get to next work.
     elif (_.sum(creep.carry) >= creep.carryCapacity and creep.memory.laboro == 0) or creep.ticksToLive < 5:
@@ -348,7 +349,7 @@ def run_miner(creep, all_structures):
         # if about to die, just die lol
         if creep.ticksToLive < 5:
             return
-        creep.say('☭ 다이나믹 로동!', True)
+        creep.say('☭☭', True)
         creep.memory.laboro = 0
     # if capacity is full(and on harvest phase), get to next work.
     elif (_.sum(creep.carry) >= creep.carryCapacity and creep.memory.laboro == 0) or creep.ticksToLive < 5:

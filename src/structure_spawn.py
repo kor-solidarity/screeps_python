@@ -1089,6 +1089,7 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                                 counter -= 1
                             continue
 
+                    # todo 변경: 거리별 점수 할당. 크던 적던 할당을 최우선으로 채운다.
                     # 캐리어 사이즈 계산: 모든 캐리어는 memory.size 가 존재한다.
                     # 소스 하나당 누적 점수 최소 2여야함.
                     carrier_mem_size = 0
