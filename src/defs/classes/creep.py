@@ -1,7 +1,7 @@
 from typing import Any, ClassVar, Dict, List, Optional, Union
 
 from .memory import _Memory
-from .misc_obj import Mineral, Resource, RoomObject, Source
+from .misc_obj import Mineral, Resource, RoomObject, Source, Store
 from .room import Room, RoomPosition, _Owner
 from .structures import ConstructionSite, Structure, StructureController
 
@@ -45,7 +45,8 @@ class Creep(RoomObject):
 
     def __init__(self, pos: RoomPosition, room: Room, body: List[_CreepPart], carry: Dict[str, int],
                  carryCapacity: int, fatigue: int, hits: int, hitsMax: int, _id: str, memory: _Memory,
-                 my: bool, name: str, owner: _Owner, saying: Optional[str], spawning: bool, ticksToLive: int) -> None:
+                 my: bool, name: str, owner: _Owner, saying: Optional[str], spawning: bool,
+                 store: Store, ticksToLive: int) -> None:
         """
         WARNING: This constructor is purely for type completion, and does not exist in the game.
         """
@@ -63,6 +64,7 @@ class Creep(RoomObject):
         self.owner = owner
         self.saying = saying
         self.spawning = spawning
+        self.store = store
         self.ticksToLive = ticksToLive
 
     def attack(self, target: Union[Structure, 'Creep']) -> int:

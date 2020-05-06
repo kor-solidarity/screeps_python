@@ -5,7 +5,9 @@ cpu_count = 20
 max_distance = 6
 
 # 잡다한거
-err_undone_constant = -100
+# ERR_NOT_ENOUGH_RESOURCES + 크립이 뭔갈 들고있다.
+ERR_NOT_ENOUGH_RESOURCES_AND_CARRYING_SOMETHING = -101
+ERR_UNDONE_CONSTANT = -200
 
 home_room = 'home_room'
 lab_type = 'lab_type'

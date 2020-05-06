@@ -94,7 +94,8 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
         opts = {'trackCreeps': False, 'refreshMatrix': True, 'pass_walls': False,
                 'costByArea': {'objects': objs, 'size': 1, 'cost': 6}}
         if creep.memory.birthplace:
-            birthplace = RoomPosition(creep.memory.birthplce.x, creep.memory.birthplce.y, creep.memory.birthplce.roomName)
+            birthplace = RoomPosition(creep.memory.birthplce.x, creep.memory.birthplce.y,
+                                      creep.memory.birthplce.roomName)
         else:
             birthplace = creep.pos
         # 가는길 저장.
@@ -238,7 +239,7 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                 creep.say('BEEP BEEP⛟', True)
                 # 컨테이너 안에 에너지 외 다른게 들어가 있으면 빼내 없애야 하기에 한 조치.
                 if (len(Game.getObjectById(creep.memory.pickup).store) == 2
-                        and Game.getObjectById(creep.memory.pickup).store[RESOURCE_ENERGY] == 0) \
+                    and Game.getObjectById(creep.memory.pickup).store[RESOURCE_ENERGY] == 0) \
                         or len(Game.getObjectById(creep.memory.pickup).store) == 1:
                     creep.memory.laboro = 1
 
@@ -279,7 +280,7 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
         # no pickup target? then it's a start!
         else:
             # 방이 안보이거나 크립이 자원과 떨어져있을 경우 우선 길따라 방으로 간다.
-            if not Game.rooms[creep.memory.assigned_room]\
+            if not Game.rooms[creep.memory.assigned_room] \
                     or not creep.pos.inRangeTo(Game.getObjectById(creep.memory.source_num), 5):
 
                 carrier_movement(creep, 'to_pickup')
@@ -419,10 +420,15 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                     for s in lookat:
                         if s.structureType == STRUCTURE_CONTAINER:
                             container_above = True
+
                     # 컨테이너가 있는 곳은 도로를 깔지 않는다.
                     if not container_above:
-                        build_road = creep.pos.createConstructionSite(STRUCTURE_ROAD)
-                    creep.say('noRoad {}'.format(build_road))
+                        for i in creep.memory.to_home:
+                            # 현 위치가 원래 가야하는 길 위인 경우에만 건설
+                            if JSON.stringify(i) == JSON.stringify(creep.pos):
+                                build_road = creep.pos.createConstructionSite(STRUCTURE_ROAD)
+                                break
+                    # creep.say('noRoad {}'.format(build_road))
 
             # 본진도착
             else:
@@ -499,7 +505,8 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                         else:
                             for c in creep.room.memory[STRUCTURE_CONTAINER]:
                                 c_obj = Game.getObjectById(c.id)
-                                if c_obj and len(c_obj.pos.findPathTo(gijun, {'ignoreCreeps': True})) <= max_drop_distance:
+                                if c_obj and len(
+                                        c_obj.pos.findPathTo(gijun, {'ignoreCreeps': True})) <= max_drop_distance:
                                     haul_target_objs.append(c_obj)
 
                         for i in haul_target_objs:
@@ -511,10 +518,10 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                 # 배정된 목표지가 있는가?
                 if not creep.memory.haul_target:
                     # 링크인 동시에 내용물이 빈 애를 찾는다.
-                    links = creep.memory.haul_destos\
+                    links = creep.memory.haul_destos \
                         .filter(lambda h: Game.getObjectById(h.id)
-                                and h.type == STRUCTURE_LINK and Game.getObjectById(h.id)
-                                and Game.getObjectById(h.id).energy < Game.getObjectById(h.id).energyCapacity)
+                                          and h.type == STRUCTURE_LINK and Game.getObjectById(h.id)
+                                          and Game.getObjectById(h.id).energy < Game.getObjectById(h.id).energyCapacity)
 
                     target_objs = []
                     # 링크가 있으면 링크가 우선권을 가진다.
@@ -576,13 +583,15 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                     if not Game.getObjectById(creep.memory.pickup) and not creep.memory.work:
                         creep.suicide()
                         return
+                    # todo 사이즈 개편중. 이렇게 하면 안됨.
                     # 또는 만일 사이즈 반쪽짜리 크립인데 완전체가 존재할 경우도 자살한다.
                     elif creep.memory.size == 1:
                         # 같은 자원을 캐는 사이즈 2 이상의 캐리어. 하나라도 있으면 자살대상임.
                         same_creep = _.filter(Game.creeps, lambda c: not c.id == creep.id
-                                                        and c.memory.source_num == creep.memory.source_num
-                                                        and c.memory.size >= 2 and c.memory.role == 'carrier'
-                                                        and (not c.spawning and c.ticksToLive > 150))
+                                                                     and c.memory.source_num == creep.memory.source_num
+                                                                     and c.memory.size >= 2
+                                                                     and c.memory.role == 'carrier'
+                                                                     and (not c.spawning and c.ticksToLive > 150))
                         for c in same_creep:
                             print(c.name, 'size', c.memory.size, 'ttl', c.ticksToLive)
                         # print(creep.name, creep.pos, 'checking for full creep:', len(same_creep))
@@ -603,10 +612,10 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                     # 링크일 경우 컨테이너 데스토가 존재하면 거기에 있는거 한번 빼야함. 캐리어는 기본적으로 링크에 자원을 넣는다.
                     if haul_obj.structureType == STRUCTURE_LINK:
                         # 에너지가 있는 컨테이너가 있는지 확인...?
-                        containers = creep.memory.haul_destos\
+                        containers = creep.memory.haul_destos \
                             .filter(lambda h: h.type == STRUCTURE_CONTAINER
-                                    and Game.getObjectById(h.id)
-                                    and Game.getObjectById(h.id).store.energy)
+                                              and Game.getObjectById(h.id)
+                                              and Game.getObjectById(h.id).store.energy)
 
                         # 있으면 어쨌건 리필 가동.
                         if len(containers):
@@ -707,7 +716,7 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                                        lambda s: (s.structureType == STRUCTURE_EXTENSION
                                                   or s.structureType == STRUCTURE_SPAWN
                                                   or s.structureType == STRUCTURE_TOWER)
-                                       and not s.energy == s.energyCapacity and creep.pos.isNearTo(s))
+                                                 and not s.energy == s.energyCapacity and creep.pos.isNearTo(s))
 
                     # print(creep.name, spn_ext)
                     if len(spn_ext):

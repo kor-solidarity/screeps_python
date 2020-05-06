@@ -13,7 +13,6 @@ __pragma__('noalias', 'set')
 __pragma__('noalias', 'type')
 __pragma__('noalias', 'update')
 
-
 '''
 - harvester:  
         1. harvest stuff to areas. in this case they also must harvest dropped_all resources.
@@ -39,9 +38,11 @@ def run_harvester(creep, all_structures, constructions, room_creeps, dropped_all
     """
     vis_key = "visualizePathStyle"
     stroke_key = "stroke"
-    # 할당된 방에 없으면 방으로 우선 가고 본다.
+
+    # NULLIFIED
+    # 할당된 방을 볼 수 없으면 방으로 우선 가고 본다.
     # if not creep.memory.source_num and creep.room.name != creep.memory.assigned_room:
-    if creep.room.name != creep.memory.assigned_room:
+    if creep.room.name != creep.memory.assigned_room and not Game.rooms[creep.memory.assigned_room]:
         movement.get_to_da_room(creep, creep.memory.assigned_room, False)
         return
 
@@ -57,7 +58,7 @@ def run_harvester(creep, all_structures, constructions, room_creeps, dropped_all
         print(creep.name, 'sourceNum:', creep.memory.source_num, bool(creep.memory.source_num))
 
     # if there's no source_num, need to distribute it.
-    if not creep.memory.source_num:
+    if not creep.memory.source_num and Game.rooms[creep.memory.assigned_room]:
         # print(creep.name, 'no source', JSON.stringify(Game.rooms[creep.memory.assigned_room].memory.resources))
         # 하베스터의 담당 방 내 소스 아이디 목록
         sources = []
@@ -67,10 +68,11 @@ def run_harvester(creep, all_structures, constructions, room_creeps, dropped_all
         # 같은 방에 있는 모든 하베스터를 찾는다.
         rikoltist_kripoj = _.filter(Game.creeps,
                                     lambda c: (c.spawning or c.ticksToLive > 100)
-                                               and c.memory.role == 'harvester'
-                                               and not c.name == creep.name
-                                               and creep.memory.assigned_room == c.memory.assigned_room)
+                                              and c.memory.role == 'harvester'
+                                              and not c.name == creep.name
+                                              and creep.memory.assigned_room == c.memory.assigned_room)
 
+        # print(rikoltist_kripoj)
         # tie estas 3 kazojn en ĉi tie:
         # 1 - no room_creeps at all.
         # 2 - there is a creep working already(1 or 2)
@@ -96,7 +98,6 @@ def run_harvester(creep, all_structures, constructions, room_creeps, dropped_all
 
                     # if memory.source_num == i, means it's already taken. pass.
                     if kripo.memory.source_num == sources[i]:
-
                         source_assigned = True
                         break
                         # add the number to check.
@@ -126,7 +127,7 @@ def run_harvester(creep, all_structures, constructions, room_creeps, dropped_all
                         counter += kripo.memory.size
                     # print('counter:', counter)
                 # se counter estas malpli ol du, asignu la nuna i.
-                # print('counter:', counter)
+                # print('counter:', counter, typeof(counter))
                 if counter < 2:
                     # print('counter is less than 2')
                     creep.memory.source_num = sources[i]
@@ -141,14 +142,16 @@ def run_harvester(creep, all_structures, constructions, room_creeps, dropped_all
         # 이럴때는 우선 크립의 ttl, 그리고 크립의 담당 수확지역을 찾는다.
 
         if not creep.memory.source_num:
+            # print(sources, len(sources), sources[0])
             my_creeps = room_creeps
-            harvester_that_is_gonna_die_soon = _.filter(my_creeps, lambda c: c.memory.role == 'harvester'
-                                                                             and c.tickstolive < 100)
+            harvester_that_is_gonna_die_soon = _.filter(my_creeps,
+                                                        lambda c: c.memory.role == 'harvester' and c.tickstolive < 100
+                                                                  and c.memory.source_num)
             # print('harvester_that_is_gonna_die_soon:', harvester_that_is_gonna_die_soon)
             if len(harvester_that_is_gonna_die_soon) > 0:
                 creep.memory.source_num = harvester_that_is_gonna_die_soon[0].memory.source_num
             else:
-                creep.memory.source_num = sources[0].id
+                creep.memory.source_num = sources[0]
 
     # If you have nothing but on laboro 1 => get back to harvesting.
     if _.sum(creep.carry) == 0 and not creep.memory.laboro == 0:
@@ -166,7 +169,7 @@ def run_harvester(creep, all_structures, constructions, room_creeps, dropped_all
 
         # 혹여나 배정된 컨테이너가 너무 멀리 있으면 리셋 용도.
         if Game.getObjectById(creep.memory.container):
-            if not Game.getObjectById(creep.memory.source_num)\
+            if not Game.getObjectById(creep.memory.source_num) \
                     .pos.inRangeTo(Game.getObjectById(creep.memory.container), max_range_to_container):
                 del creep.memory.pickup
 
@@ -197,51 +200,86 @@ def run_harvester(creep, all_structures, constructions, room_creeps, dropped_all
         else:
             # print(creep.name, creep.pos, creep.memory.source_num)
             harvest = harvest_stuff.harvest_energy(creep, creep.memory.source_num)
-            # print('fin')
+
+            # 대부분의 harvest_energy() 에서 실행됬음. 다만 일부 안된거 조치.
+            if harvest == ERR_INVALID_TARGET:
+                # 없는 타겟이면 어 우선 같은 방인지 확인하고 방이 맞으면 방으로 먼저 보내고 아니면 삭제조치.
+                if creep.room.name == creep.memory.assigned_room:
+                    del creep.memory.source_num
+                else:
+                    movement.get_to_da_room(creep, creep.memory.assigned_room, False)
 
     # if carryCapacity is full - then go to nearest container or storage to store the energy.
     if creep.memory.laboro == 1:
-        # 자원을 옮길 곳이 없는 경우
-        if not creep.memory.container:
+        # print(creep.name, creep.room.name, creep.memory.assigned_room)
+        if creep.room.name != creep.memory.assigned_room:
+            movement.get_to_da_room(creep, creep.memory.assigned_room)
+            return
+
+        # 새 작동원리:
+        #   조건에 맞는 목록뽑기.
+        #   뽑았으면 우선 링크로. 전부 꽉찼으면 근처 다른 컨테이너로.
+        # 자원을 옮길 잠정적 목록부터 생성.
+        if not creep.memory.haul_destos or len(creep.memory.haul_destos) == 0:
+            creep.memory.haul_destos = []
+
             # find ALL containers(whether its full doesn't matter)
             containers = _.filter(all_structures,
                                   lambda s: s.structureType == STRUCTURE_CONTAINER)
             # store 0으로 분류된 링크 - 전송용인거
             proper_links = _.filter(creep.room.memory[STRUCTURE_LINK],
                                     lambda s: s.for_store == 0 and Game.getObjectById(s.id))
-            # 게임오브젝트화해서 넣는거.
-            proper_link = []
+            # 오브젝트화해서 넣는거.
+            proper_link_objs = []
             for i in proper_links:
-                proper_link.append(Game.getObjectById(i.id))
+                proper_link_objs.append(Game.getObjectById(i.id))
 
             source_obj = Game.getObjectById(creep.memory.source_num)
-
+            # print(source_obj, creep.memory.source_num)
             # 스토리지가 존재하면 스토리지부터 찾는다.
             if creep.room.storage and creep.room.controller.my:
                 # print(creep.name, 'add container')
                 # 소스에서 지정된 거리 이내에 스토리지가 있으면 거기로 옮긴다
                 if len(source_obj.pos.findPathTo(creep.room.storage, {ignoreCreeps: True})) <= max_range_to_container:
-                    creep.memory.container = creep.room.storage.id
+                    creep.memory.haul_destos.append(creep.room.storage.id)
 
-            # 원래 링크가 우선이었는데 캐리어랑 공유할 경우 자원을 제때 못캐는 문제점이 발생했음.
-            # 위에 안걸렸으면 컨테이너를 찾는다.
-            if not creep.memory.container:
-                closest = source_obj.pos.findClosestByPath(containers, {ignoreCreeps: True})
-                if closest and len(source_obj.pos.findPathTo(closest, {ignoreCreeps: True})) <= max_range_to_container:
-                    creep.memory.container = closest.id
-
-            # 여기까지도 안걸리면 링크.
-            if not creep.memory.container:
-                closest = None
-                # 운송용 링크가 존재하는가?
+            # 스토리지가 없으면 무조건 다 넣는다.
+            if not len(creep.memory.haul_destos):
+                if len(containers):
+                    for c in containers:
+                        if len(source_obj.pos.findPathTo(c, {ignoreCreeps: True})) <= max_range_to_container:
+                            creep.memory.haul_destos.append(c.id)
                 if len(proper_links):
-                    link_list = []
-                    for pl in proper_links:
-                        link_list.append(Game.getObjectById(pl.id))
-                    closest = source_obj.pos.findClosestByPath(link_list, {ignoreCreeps: True})
-                # 스토리지와 동일한 거리계산
-                if closest and len(source_obj.pos.findPathTo(closest, {ignoreCreeps: True})) <= max_range_to_container:
-                    creep.memory.container = closest.id
+                    for l in proper_link_objs:
+                        if len(source_obj.pos.findPathTo(l, {ignoreCreeps: True})) <= max_range_to_container:
+                            creep.memory.haul_destos.append(l.id)
+
+        # 자원을 옮길 곳이 없는 경우 배정
+        if not creep.memory.container:
+            desto_objs = []
+            for i in range(len(creep.memory.haul_destos)):
+                target_obj = Game.getObjectById(creep.memory.haul_destos[i])
+                if target_obj:
+                    desto_objs.append(target_obj)
+                else:
+                    del creep.memory.haul_destos[i]
+
+            storage_obj = _.filter(desto_objs, lambda o: o.structureType == STRUCTURE_STORAGE)
+            link_objs = _.filter(desto_objs, lambda o: o.structureType == STRUCTURE_LINK
+                                                       and o.store.getFreeCapacity(RESOURCE_ENERGY))
+            container_objs = _.filter(desto_objs, lambda o: o.structureType == STRUCTURE_CONTAINER
+                                                            and o.store.getFreeCapacity())
+
+            if len(storage_obj):
+                creep.memory.container = storage_obj[0].id
+            if not creep.memory.container and len(link_objs):
+                for i in link_objs:
+                    creep.memory.container = i.id
+                    break
+            if not creep.memory.container and len(container_objs):
+                for i in container_objs:
+                    creep.memory.container = i.id
+                    break
 
         if creep.memory.container:
             container_obj = Game.getObjectById(creep.memory.container)
@@ -249,31 +287,46 @@ def run_harvester(creep, all_structures, constructions, room_creeps, dropped_all
                 del creep.memory.container
                 return
 
-            if not Game.getObjectById(creep.memory.source_num).pos\
+            if not Game.getObjectById(creep.memory.source_num).pos \
                     .inRangeTo(container_obj, max_range_to_container):
                 # print('huh?')
                 del creep.memory.container
                 return
 
-            # HARVESTER ONLY HARVEST ENERGY(AND MAYBE RARE METALS(?)). JUST LET'S NOT MAKE IT DO SOMETHING ELSE.
+            # HARVESTER ONLY HARVEST ENERGY(AND MAYBE RARE METALS(?)).
+            # LET'S JUST NOT MAKE IT DO SOMETHING ELSE.
             # result = creep.transfer(storage, RESOURCE_ENERGY)
-            if not creep.pos.isNearTo(container_obj):
-                result = ERR_NOT_IN_RANGE
+            # todo 그리고 만약 링크랑 컨테이너가 같이있는 경우 링크가 꽉찰 시 컨테이너로 바꿔버림.
+            #   컨테이너로 바꾸는게 아니라 바로 마저캐러 가야함 유의좀.
+            result = creep.transfer(Game.getObjectById(creep.memory.container), RESOURCE_ENERGY)
+            if result == ERR_NOT_IN_RANGE:
                 creep.moveTo(Game.getObjectById(creep.memory.container),
                              {'reusePath': 3, vis_key: {stroke_key: '#ffffff'}})
-            elif not container_obj:
-                result = ERR_INVALID_TARGET
+            elif result == ERR_INVALID_TARGET:
                 del creep.memory.container
-            elif container_obj.structureType == STRUCTURE_LINK \
-                    and container_obj.energy == container_obj.energyCapacity\
-                    or _.sum(container_obj.store) == container_obj.storeCapacity:
-                result = ERR_FULL
+            elif result == ERR_FULL:
                 creep.say('차면 찬대로!', True)
                 creep.memory.laboro = 0
-            else:
-                result = creep.transfer(Game.getObjectById(creep.memory.container), RESOURCE_ENERGY)
+                del creep.memory.container
 
-            # todo 링크 하베스트 최우선으로. nu, ankaŭ devas havi la....  
+            # NULLIFIED
+            # if not creep.pos.isNearTo(container_obj):
+            #     result = ERR_NOT_IN_RANGE
+            #     creep.moveTo(Game.getObjectById(creep.memory.container),
+            #                  {'reusePath': 3, vis_key: {stroke_key: '#ffffff'}})
+            # elif not container_obj:
+            #     result = ERR_INVALID_TARGET
+            #     del creep.memory.container
+            # elif container_obj.structureType == STRUCTURE_LINK \
+            #         and container_obj.energy == container_obj.energyCapacity \
+            #         or _.sum(container_obj.store) == container_obj.storeCapacity:
+            #     result = ERR_FULL
+            #     creep.say('차면 찬대로!', True)
+            #     creep.memory.laboro = 0
+            #     del creep.memory.container
+            # else:
+            #     result = creep.transfer(Game.getObjectById(creep.memory.container), RESOURCE_ENERGY)
+
             # 본인의 소스 담당 크립중에 사이즈 2짜리 크립이 존재하는지 확인. 있으면 자살한다. 이때는 굳이 있어봐야 공간낭비.
             if result == 0 and creep.memory.size == 1:
                 # print('{} the {}: 0'.format(creep.name, creep.memory.role))
@@ -283,6 +336,10 @@ def run_harvester(creep, all_structures, constructions, room_creeps, dropped_all
                         if c.memory.source_num == creep.memory.source_num:
                             creep.moveTo(Game.getObjectById(creep.memory.source_num))
                             creep.suicide()
+            if result == 0:
+                del creep.memory.container
+                creep.say("🚜🌾🌾", True)
+                creep.memory.laboro = 0
 
         else:
             # if there's no storage to go to, technically do the hauler's job(transfer and building).
@@ -398,7 +455,7 @@ def run_miner(creep, all_structures):
         # se ne estas en atingopovo(reach), iru.
         if mine_result == ERR_NOT_IN_RANGE or mine_result == ERR_NOT_ENOUGH_ENERGY:
             creep.moveTo(Game.getObjectById(creep.memory.mineral), {'visualizePathStyle':
-                                                                    {'stroke': '#0000FF', 'opacity': .25},
+                                                                        {'stroke': '#0000FF', 'opacity': .25},
                                                                     'ignoreCreeps': True, 'reusePath': 40})
         # if mined successfully or cooldown in effect
         elif mine_result == 0:
@@ -433,7 +490,8 @@ def run_miner(creep, all_structures):
                 mineral_transfer = creep.transfer(Game.getObjectById(creep.memory.container), resource)
                 # print('res: {}, trans: {}'.format(resource, mineral_transfer))
                 if mineral_transfer == ERR_NOT_IN_RANGE:
-                    creep.moveTo(Game.getObjectById(creep.memory.container), {'visualizePathStyle': {'stroke': '#ffffff'}})
+                    creep.moveTo(Game.getObjectById(creep.memory.container),
+                                 {'visualizePathStyle': {'stroke': '#ffffff'}})
                     break
                 elif mineral_transfer == 0:
                     break
@@ -450,6 +508,5 @@ def run_miner(creep, all_structures):
             print("WTF no container????")
 
     return
-
 
 # def run_demolition_collector(creep, dropped_all, )

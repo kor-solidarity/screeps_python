@@ -39,8 +39,15 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
     :param min_hits:
     :return:
     """
-    # print('yolo')
+
     memory = 'memory'
+
+    # harvester 용 몸체 부위별 크기, 큰 순서, MOVE WORK CARRY size lvl 순
+    # WORK SIZE: 8, 7, 5, 3, 2 순
+    harvester_body = [8, 8, 8, 2, 8], [6, 7, 4, 2, 8], [3, 5, 1, 1, 0], [2, 3, 2, 1, 0], [1, 2, 1, 1, 0]
+
+    # 위에 몸체 포문 돌릴때 쓰일 기본 구성순서.
+    def_body_content = [MOVE, WORK, CARRY]
 
     spawn_cpu = Game.cpu.getUsed()
     # if spawn is not spawning, try and make one i guess.
@@ -107,11 +114,6 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
 
         # todo 허울러와 업글러의 배정 수를 이곳에서 먼저 계산을 한다.
 
-
-
-        # 뒤에 몸체 포문 돌릴때 쓰일 기본 구성순서.
-        def_body_content = [MOVE, WORK, CARRY]
-
         # 크립의 누적 사이즈 2점당 hauler_capacity 하나에 대응
         accumulated_size = 0
         for h in creep_haulers:
@@ -167,29 +169,29 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                 # harvesters_bool = bool(len(creep_harvesters) < len(sources))
 
         if harvesters_bool:
-
-            # 몸체 부위별 크기, 큰 순서, MOVE WORK CARRY size lvl 순
-            # WORK SIZE: 8, 7, 5, 3, 2
-            momche = [8, 8, 8, 2, 8], [6, 7, 4, 2, 8], [3, 5, 1, 1, 0], [2, 3, 2, 1, 0], [1, 2, 1, 1, 0]
             counter = 1
             # check if energy_source capacity is 4.5k(4k in case they update, not likely).
             # if is, go for size 4500.
             if room_sources[0].energyCapacity > 4000:
                 counter = 0
             spawn_res = ERR_NOT_ENOUGH_ENERGY
-            while spawn_res == ERR_NOT_ENOUGH_ENERGY and counter <= len(momche) - 1:
+            while spawn_res == ERR_NOT_ENOUGH_ENERGY and counter <= len(harvester_body) - 1:
+                # 단, 레벨 4 이상인데 허울러가 존재하면 가장 작은 하베스터는 거른다.
+                if harvester_body == 4 and len(creep_haulers) \
+                        and chambro.controller.level >= 4 and chambro.energyCapacityAvailable > 300:
+                    break
                 hv_body = []
-                mom_counter = 0
+                upg_counter = 0
                 # 위에 몸체목록중에 하나를 골라서 그 안에 있는 값대로 하나하나 몸을 구성한다.
                 # 주석은 1이라고 가정하면 i 는 [8, 8, 8, 2, 8] 하나씩
-                for i in momche[counter]:
-                    if mom_counter < 3:
-                        hv_body.extend([def_body_content[mom_counter] for j in range(i)])
-                    mom_counter += 1
+                for i in harvester_body[counter]:
+                    if upg_counter < 3:
+                        hv_body.extend([def_body_content[upg_counter] for j in range(i)])
+                    upg_counter += 1
                 spawn_res = spawn.spawnCreep(hv_body, 'hv_{}_{}'.format(spawn_room_low, rand_int),
                                              {memory: {'role': 'harvester', 'assigned_room': spawn.pos.roomName,
-                                                       'size': momche[counter][3],
-                                                       'level': momche[counter][4]}})
+                                                       'size': harvester_body[counter][3],
+                                                       'level': harvester_body[counter][4]}})
                 counter += 1
 
             return
@@ -249,26 +251,27 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
 
             # 몸체 부위별 크기, 큰 순서, MOVE WORK CARRY size lvl 순
             # 1200, 800, 500, 250, 150, 100
-            momche = [15, 6, 24, 2, 8], [10, 4, 16, 2, 8], [7, 4, 10, 2, 0], [5, 4, 5, 1, 0], [3, 1, 3, 1, 0], [2, 1, 2,
-                                                                                                                1, 0]
+            hauler_body = [15, 6, 24, 2, 8], [10, 4, 16, 2, 8], [7, 4, 10, 2, 0], [5, 4, 5, 1, 0], [3, 1, 3, 1, 0], [
+                2, 1, 2,
+                1, 0]
             counter = 1
             # 크립이 둘 이상이면 긴급으로 간주하고 대형허울러 생성
             if len(creep_haulers) >= 2:
                 counter = 0
             spawn_res = ERR_NOT_ENOUGH_ENERGY
-            while spawn_res == ERR_NOT_ENOUGH_ENERGY and counter <= len(momche) - 1:
+            while spawn_res == ERR_NOT_ENOUGH_ENERGY and counter <= len(hauler_body) - 1:
                 hl_body = []
-                mom_counter = 0
+                upg_counter = 0
                 # 위에 몸체목록중에 하나를 골라서 그 안에 있는 값대로 하나하나 몸을 구성한다.
                 # 주석은 1이라고 가정하면 i 는 [10, 4, 16, 2, 8] 하나씩
-                for i in momche[counter]:
-                    if mom_counter < 3:
-                        hl_body.extend([def_body_content[mom_counter] for j in range(i)])
-                    mom_counter += 1
+                for i in hauler_body[counter]:
+                    if upg_counter < 3:
+                        hl_body.extend([def_body_content[upg_counter] for j in range(i)])
+                    upg_counter += 1
                 spawn_res = spawn.spawnCreep(hl_body, 'hl_{}_{}'.format(spawn_room_low, rand_int),
                                              {memory: {'role': 'hauler', 'assigned_room': spawn.pos.roomName,
-                                                       'size': momche[counter][3],
-                                                       'level': momche[counter][4]}})
+                                                       'size': hauler_body[counter][3],
+                                                       'level': hauler_body[counter][4]}})
                 counter += 1
             if not spawn_res == OK:
                 print('hauler err', spawn_res)
@@ -382,8 +385,8 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
             if len(creep_upgraders) < upgrader_quota:
                 # 업글러에 할당할 몸체. 이동 노동 운반 레벨.
                 # 뒤로 갈수록 작아지는걸로. 총 7개. 마지막이 렙8때꺼.
-                momche = [13, 20, 6, 7], [10, 10, 6, 7], [6, 6, 5, 5], [3, 4, 2, 0], [3, 3, 2, 0], [2, 2, 2, 0], [1, 1,
-                                                                                                                  1, 0]
+                upgrader_body = [13, 20, 6, 7], [10, 10, 6, 7], [6, 6, 5, 5], \
+                                [3, 4, 2, 0], [3, 3, 2, 0], [2, 2, 2, 0], [1, 1, 1, 0]
                 spawn_res = ERR_NOT_ENOUGH_ENERGY
                 # 위에 몇번째 몸체를 쓸꺼냐를 결정
                 counter = 1
@@ -395,16 +398,16 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                     if spawn.room.controller.level == 8:
                         counter = 6
                     upg_body = []
-                    mom_counter = 0
+                    upg_counter = 0
                     # 위에 몸체목록중에 하나를 골라서 그 안에 있는 값대로 하나하나 몸을 구성한다.
                     # 주석은 1이라고 가정하면 i 는 [10, 10, 6, 7] 하나씩
-                    for i in momche[counter]:
-                        if mom_counter < 3:
-                            upg_body.extend([def_body_content[mom_counter] for j in range(i)])
-                        mom_counter += 1
+                    for i in upgrader_body[counter]:
+                        if upg_counter < 3:
+                            upg_body.extend([def_body_content[upg_counter] for j in range(i)])
+                        upg_counter += 1
                     spawn_res = spawn.spawnCreep(upg_body, 'up_{}_{}'.format(spawn_room_low, rand_int),
                                                  {memory: {'role': 'upgrader', 'assigned_room': spawn.pos.roomName,
-                                                           'level': momche[counter][3]}})
+                                                           'level': upgrader_body[counter][3]}})
                     counter += 1
                 if not spawn_res == OK and not spawn_res == ERR_NOT_ENOUGH_ENERGY:
                     print('ERROR ON spawning upgrader', spawn_res)
@@ -462,15 +465,15 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
             if len(creep_fixers) < max_num_fixers:
                 body_structure = {'body': [], 'level': 0}
                 # 몸체·렙 구성
-                momche = [16, 25, 7, 8]
+                fixer_body = [16, 25, 7, 8]
                 if make_mini:
-                    momche = [6, 9, 2, 0]
+                    fixer_body = [6, 9, 2, 0]
                 counter = 0
-                for i in momche:
+                for i in fixer_body:
                     if counter < 3:
-                        body_structure['body'].extend([def_body_content[counter] for i in range(momche[counter])])
+                        body_structure['body'].extend([def_body_content[counter] for i in range(fixer_body[counter])])
                     else:
-                        body_structure['level'] = momche[counter]
+                        body_structure['level'] = fixer_body[counter]
                     counter += 1
                 spawn_res = spawn.spawnCreep(body_structure['body'], 'fx_{}_{}'.format(spawn_room_low, rand_int),
                                              {memory: {'role': 'fixer', 'assigned_room': spawn.pos.roomName,
@@ -1063,8 +1066,8 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                     # if flag_room_controller and len(remote_reservers) == 0 or \
                     #         flag_room_reserved_by_other and flag_room_controller.reservation.ticksToEnd < 100:
                     # 리서버 확인요령:
-                    if flag_room_controller and len(remote_reservers) == 0:
-                            # (flag_room_reserved_by_other and flag_room_controller.reservation.ticksToEnd < 100) and \
+                    if flag_room_controller and len(remote_reservers) == 0 and chambro.energyCapacityAvailable >= 1300:
+                        # (flag_room_reserved_by_other and flag_room_controller.reservation.ticksToEnd < 100) and \
                         # 본진렙 7이면 최소한의 유지만.
                         if chambro.controller.level < 7:
                             reserve_cap = 400
@@ -1075,26 +1078,20 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                         # 컨트롤러가 다른사람꺼 + 아군 주둔중일때 만든다
                         if not Game.rooms[room_name].controller.reservation \
                                 or (not flag_room_reserved_by_other and
-                                    Game.rooms[room_name].controller.reservation.ticksToEnd < reserve_cap)\
+                                    Game.rooms[room_name].controller.reservation.ticksToEnd < reserve_cap) \
                                 or (flag_room_reserved_by_other and len(remote_troops) > 0):
                             spawn_res = ERR_NOT_ENOUGH_ENERGY
                             # 몸체크기
                             counter = 5
                             while spawn_res == ERR_NOT_ENOUGH_ENERGY and counter > 1:
-                                momche = [MOVE for i in range(counter)]
-                                momche.extend([CLAIM for i in range(counter)])
-                                spawn_res = spawn.spawnCreep(momche, 'res_{}_{}'.format(room_name_low, rand_int),
+                                reserver_body = [MOVE for i in range(counter)]
+                                reserver_body.extend([CLAIM for i in range(counter)])
+                                spawn_res = spawn.spawnCreep(reserver_body,
+                                                             'res_{}_{}'.format(room_name_low, rand_int),
                                                              {memory: {'role': 'reserver', 'home_room': spawn.room.name,
                                                                        'assigned_room': room_name}})
                                 counter -= 1
                             continue
-
-                    # todo 변경: 거리별 점수 할당. 크던 적던 할당을 최우선으로 채운다.
-                    # 캐리어 사이즈 계산: 모든 캐리어는 memory.size 가 존재한다.
-                    # 소스 하나당 누적 점수 최소 2여야함.
-                    carrier_mem_size = 0
-                    for c in remote_carriers:
-                        carrier_mem_size += c.memory.size
 
                     # 에너지소스에 담당 컨테이너가 존재하는가?
                     # container_exist = False
@@ -1180,8 +1177,35 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                             pos.createConstructionSite(STRUCTURE_ROAD)
                         print('end container bld')
                         del carrier_source_obj
-                    # 하베스터도 소스 수 만큼! 컨테이너 건설여부에 따라 만들어줘야 할지말지 아직 미정임
-                    if len(flag_energy_sources) > len(remote_harvesters):
+
+                    flag_harvest_quota = 0
+                    for c in remote_harvesters:
+                        if typeof(c.memory.size) == 'object':
+                            c.suicide()
+                            return
+                        flag_harvest_quota += c.memory.size
+
+                    enough_remote_harvesters = bool(len(flag_energy_sources) * 2 <= flag_harvest_quota)
+
+                    print(" bool(len(flag_energy_sources)[{}] * 2 > flag_harvest_quota)[{}]"
+                          .format(len(flag_energy_sources), flag_harvest_quota))
+                    # 소스 하나당 하베스터 사이즈 2. 현재로선 하베스터가 건설도 한다.
+                    if not enough_remote_harvesters:
+                        target_energy_source = ''
+
+                        # 에너지 하나당 사이즈 2점씩
+                        for s in flag_energy_sources:
+                            points = 0
+                            print("s: ", s)
+                            for c in remote_harvesters:
+                                if c.memory.source_num == s.id:
+                                    points += c.memory.size
+                                print('c.memory.source_num', c.memory.source_num, 'pts:', points)
+                            # 2점 미만이면 생성대상
+                            if points < 2:
+                                target_energy_source = s.id
+                                break
+
                         # 4000 for keeper lairs
                         # todo 너무 쉽게죽음. 보강필요. and need medic for keeper remotes
                         # regular_spawn = -6
@@ -1192,23 +1216,48 @@ def run_spawn(spawn, all_structures, room_creeps, hostile_creeps, divider, count
                                  CARRY, CARRY, CARRY, CARRY],
                                 "hv_{}_{}".format(room_name_low, rand_int),
                                 {memory: {'role': 'harvester', 'assigned_room': room_name,
-                                          'home_room': spawn.room.name,
+                                          'home_room': spawn.room.name, 'source_num': target_energy_source,
                                           'size': 2}})
-                        # perfect for 3000 cap
-                        # if regular_spawn == -6:
+
+                        # 키퍼용이 아니면 여기로
                         else:
-                            regular_spawn = spawn.spawnCreep(
-                                [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK, WORK,
-                                 CARRY, CARRY, CARRY, CARRY],
-                                "hv_{}_{}".format(room_name_low, rand_int),
-                                {memory: {'role': 'harvester', 'assigned_room': room_name,
-                                          'home_room': spawn.room.name,
-                                          'size': 2}})
+                            # 용량 안될땐 두개도 허용. 그 후는 알짤없다.
+                            counter = 1
+                            if chambro.energyCapacityAvailable < 1200:
+                                counter = 2
+                            rm_hv_counter = 0
+                            rm_hv_body = []
+
+                            for i in harvester_body[counter]:
+                                if rm_hv_counter < 3:
+                                    rm_hv_body.extend([def_body_content[rm_hv_counter] for _ in range(i)])
+                                rm_hv_counter += 1
+
+                            spawn.spawnCreep(rm_hv_body, "hv_{}_{}".format(room_name_low, rand_int),
+                                             {memory: {'role': 'harvester', 'assigned_room': room_name,
+                                                       'home_room': spawn.room.name,
+                                                       'source_num': target_energy_source,
+                                                       'size': harvester_body[counter][3]}})
+
+                        return
+
+                    # todo 변경: 거리별 점수 할당. 크던 적던 할당을 최우선으로 채운다.
+                    #   캐리어의 사이즈는 캐리 하나당 하나씩 증가한다
+
+                    # 캐리어 사이즈 계산: 모든 캐리어는 memory.size 가 존재한다.
+                    # 소스 하나당 누적 점수 최소 2여야함.
+                    carrier_mem_size = 0
+                    for c in remote_carriers:
+                        carrier_mem_size += c.memory.size
+
+                    # 통으로 개편: 단순히 둘이 아니라 실제 거리에 맞게 만든다.
+                    # 이렇게 하기 위해선 거리를 매번 쟤야함. 저장하는것도 좀 그렇고. 시퓨 먹어봤자 얼마나 먹는다고.
 
                     # 예전엔 그냥 하베스터랑 똑같은 방식썼는데 다 만들고 갑시다. 거 차봤자 얼마나 찬다고.
                     # 캐리어가 지어진 컨테이너 수 만큼 있는가?
                     # todo 미네랄 생각해봐야함
-                    elif len(flag_built_containers) and len(flag_built_containers) * 2 > carrier_mem_size:
+                    if enough_remote_harvesters and len(flag_built_containers) \
+                            and len(flag_built_containers) * 2 > carrier_mem_size:
 
                         for i in flag_built_containers:
                             print(i.id, i.structureType, i.pos, i.progress)

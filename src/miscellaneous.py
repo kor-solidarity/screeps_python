@@ -358,7 +358,7 @@ def repair_on_the_way(creep, repairs, constructions, upgrader=False, irregular=F
         if creep.pos.inRangeTo(creep.room.controller, 3) and run_upg:
             creep.upgradeController(creep.room.controller)
     # 건설과 수리 둘중 하나만.
-    bld = err_undone_constant
+    bld = ERR_UNDONE_CONSTANT
     if len(constructions) > 0:
         building = creep.pos.findClosestByRange(constructions)
         if creep.pos.inRangeTo(building, 3):

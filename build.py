@@ -333,4 +333,4 @@ def main():
 if __name__ == "__main__":
     a = time.time()
     main()
-    print('elapsed time: {}'.format(time.time() - a))
+    print('elapsed time: {} sec'.format(int(time.time() - a) + 1))

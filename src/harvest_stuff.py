@@ -14,7 +14,7 @@ __pragma__('noalias', 'update')
 # 자원 얻는 방식에 대한 그 모든것은 여기로 간다.
 
 
-def harvest_energy(creep, source_id):
+def harvest_energy(creep: Creep, source_id):
     """
     자원을 캐고 없으면 다음껄로(다음번호) 보낸다.
 
@@ -23,34 +23,24 @@ def harvest_energy(creep, source_id):
     :return: harvest-related result
     """
 
-    if not creep.pos.isNearTo(Game.getObjectById(source_id)):
-        harvested = ERR_NOT_IN_RANGE
-    elif Game.getObjectById(source_id).energy == 0:
-        harvested = ERR_NOT_ENOUGH_RESOURCES
-    # activate the harvest cmd.
-    else:
-        harvested = creep.harvest(Game.getObjectById(source_id))
-    # print(creep.name, creep.pos, harvested, Game.getObjectById(source_id))
-    # is sources too far out?
-    if harvested == ERR_NOT_IN_RANGE and Game.getObjectById(source_id):
-        # print(creep.name, creep.pos, 'wut', Game.getObjectById(source_id))
+    # 개편: 어차피 다 게임 API 가 잡아주는데 굳이 미리 에러 띄우기 전에 에러배정 해줄 필요가 없음..
+    # 처음 만들때 OK 아니어도 시퓨 먹는줄 착각한것도 한몫
+
+    harvested = creep.harvest(Game.getObjectById(source_id))
+
+    # 떨어져있거나 비었는데 옆에 없으면 우선 간다.
+    if harvested == ERR_NOT_IN_RANGE or \
+            harvested == ERR_NOT_ENOUGH_RESOURCES and not creep.pos.isNearTo(Game.getObjectById(source_id)):
         if not creep.pos.inRangeTo(Game.getObjectById(source_id), 6):
             move_by_path = movement.move_with_mem(creep, source_id)
             if move_by_path[0] == OK and move_by_path[1]:
                 path = move_by_path[2]
-            # else:
-            #     creep.say('🌾 move{}'.format(move_by_path[0]))
         else:
             creep.moveTo(Game.getObjectById(source_id), {'visualizePathStyle': {'stroke': '#ffffff'}, 'maxOps': 5000})
-
-    # did the energy from the sources got depleted?
-    # PROCEED TO NEXT PHASE IF THERE ARE ANYTHING IN CARRY
-    # well.... not much important now i guess.
-    elif harvested == ERR_NOT_ENOUGH_RESOURCES:
-        # do with what you have anyways...
-        if _.sum(creep.carry) > 0:
-            creep.say('🐜 SOURCES')
-            creep.memory.laboro = 1
+    # 빈 상태에 안에 뭔가가 있으면 그대로 우선 있는거 처리
+    elif harvested == ERR_NOT_ENOUGH_RESOURCES and _.sum(creep.store.getUsedCapacity()) > 0:
+        creep.say('🐜 SOURCES')
+        harvested = ERR_NOT_ENOUGH_RESOURCES_AND_CARRYING_SOMETHING
 
     return harvested
 
