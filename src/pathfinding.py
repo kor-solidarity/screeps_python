@@ -47,11 +47,13 @@ class Costs:
         self.room = Game.rooms[room_name]
 
     def add_area(self, matrix):
-        """Sets all tiles in an area around all objects in cache.objects to the
+        """
+        Sets all tiles in an area around all objects in cache.objects to the
         value stored in cache.cost.
 
         Costs set in this method override previously set cost values for a tile
-        if that cost is < 255"""
+        if that cost is < 255
+        """
 
         """
         opts = {'trackCreeps': True, 'refreshMatrix': True, 
@@ -98,8 +100,10 @@ class Costs:
         return self.costs.creeps[self.id]
 
     def add_structures(self, matrix):
-        """Modifies matrix object to reflect structures in room; if the room
-        doesn't exist in Game.rooms, ERR_INVALID_TARGET is returned"""
+        """
+        Modifies matrix object to reflect structures in room; if the room
+        doesn't exist in Game.rooms, ERR_INVALID_TARGET is returned
+        """
         # print('add_structures')
         if not self.room:
             return ERR_INVALID_TARGET
@@ -291,8 +295,10 @@ def run_maintenance():
 
 
 def reset_cached_matrices():
-    """Deletes stored CostMatrix objects in js_global._costs.base if room object
-    associated with CostMatrix is visible"""
+    """
+    Deletes stored CostMatrix objects in js_global._costs.base if room object
+    associated with CostMatrix is visible
+    """
 
     for room in _.keys(js_global._costs.base):
         if not (room in Game.rooms):

@@ -262,9 +262,9 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                         creep.moveTo(Game.getObjectById(creep.memory.source_num),
                                      {'visualizePathStyle': {'stroke': '#ffffff'},
                                       'reusePath': 25})
-                    # 자원 캘수가 없으면 자원 채워질때까지 컨테이너 위치에서 대기탄다.
+                    # 자원 캘수가 없으면 자원 채워질때까지 컨테이너 근처에서 대기탄다.
                     elif harvest == ERR_NO_BODYPART or harvest == ERR_NOT_ENOUGH_RESOURCES:
-                        if not creep.pos.isNearTo(Game.getObjectById(creep.memory.pickup)):
+                        if not creep.pos.inRangeTo(Game.getObjectById(creep.memory.pickup), 2):
                             creep.moveTo(Game.getObjectById(creep.memory.pickup)
                                          , {'visualizePathStyle': {'stroke': '#ffffff'}, 'reusePath': 25})
                 return
@@ -583,26 +583,7 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                     if not Game.getObjectById(creep.memory.pickup) and not creep.memory.work:
                         creep.suicide()
                         return
-                    # todo 사이즈 개편중. 이렇게 하면 안됨.
-                    # 또는 만일 사이즈 반쪽짜리 크립인데 완전체가 존재할 경우도 자살한다.
-                    elif creep.memory.size == 1:
-                        # 같은 자원을 캐는 사이즈 2 이상의 캐리어. 하나라도 있으면 자살대상임.
-                        same_creep = _.filter(Game.creeps, lambda c: not c.id == creep.id
-                                                                     and c.memory.source_num == creep.memory.source_num
-                                                                     and c.memory.size >= 2
-                                                                     and c.memory.role == 'carrier'
-                                                                     and (not c.spawning and c.ticksToLive > 150))
-                        for c in same_creep:
-                            print(c.name, 'size', c.memory.size, 'ttl', c.ticksToLive)
-                        # print(creep.name, creep.pos, 'checking for full creep:', len(same_creep))
-                        # ss = Game.getObjectById(creep.memory.source_num)
-                        # cc = Game.getObjectById(creep.memory.pickup)
-                        # print(creep.memory.source_num, ss.pos, cc.pos)
-                        if len(same_creep):
-                            print(creep.name, 'suicide!',
-                                  'source at {}'.format(Game.getObjectById(creep.memory.source_num).pos))
-                            creep.suicide()
-                            return
+
                     # 바로 새로운 대상을 찾기위해 허울타겟 제거.
                     del creep.memory.haul_target
 

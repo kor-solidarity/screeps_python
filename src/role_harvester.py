@@ -2,6 +2,7 @@ from defs import *
 import harvest_stuff
 import miscellaneous
 from _custom_constants import *
+from typing import List
 import movement
 
 __pragma__('noalias', 'name')
@@ -26,7 +27,8 @@ __pragma__('noalias', 'update')
 '''
 
 
-def run_harvester(creep, all_structures, constructions, room_creeps, dropped_all):
+def run_harvester(creep: Creep, all_structures: List[Structure], constructions: List[ConstructionSite],
+                  room_creeps: List[Creep], dropped_all: List[Resource]):
     """
     Runs a creep as a generic harvester.
 
@@ -256,7 +258,7 @@ def run_harvester(creep, all_structures, constructions, room_creeps, dropped_all
 
         # 자원을 옮길 곳이 없는 경우 배정
         if not creep.memory.container:
-            desto_objs = []
+            desto_objs: List[RoomObject] = []
             for i in range(len(creep.memory.haul_destos)):
                 target_obj = Game.getObjectById(creep.memory.haul_destos[i])
                 if target_obj:
@@ -264,7 +266,7 @@ def run_harvester(creep, all_structures, constructions, room_creeps, dropped_all
                 else:
                     del creep.memory.haul_destos[i]
 
-            storage_obj = _.filter(desto_objs, lambda o: o.structureType == STRUCTURE_STORAGE)
+            storage_obj: List[StructureContainer] = _.filter(desto_objs, lambda o: o.structureType == STRUCTURE_STORAGE)
             link_objs = _.filter(desto_objs, lambda o: o.structureType == STRUCTURE_LINK
                                                        and o.store.getFreeCapacity(RESOURCE_ENERGY))
             container_objs = _.filter(desto_objs, lambda o: o.structureType == STRUCTURE_CONTAINER
@@ -289,15 +291,12 @@ def run_harvester(creep, all_structures, constructions, room_creeps, dropped_all
 
             if not Game.getObjectById(creep.memory.source_num).pos \
                     .inRangeTo(container_obj, max_range_to_container):
-                # print('huh?')
                 del creep.memory.container
                 return
 
             # HARVESTER ONLY HARVEST ENERGY(AND MAYBE RARE METALS(?)).
             # LET'S JUST NOT MAKE IT DO SOMETHING ELSE.
             # result = creep.transfer(storage, RESOURCE_ENERGY)
-            # todo 그리고 만약 링크랑 컨테이너가 같이있는 경우 링크가 꽉찰 시 컨테이너로 바꿔버림.
-            #   컨테이너로 바꾸는게 아니라 바로 마저캐러 가야함 유의좀.
             result = creep.transfer(Game.getObjectById(creep.memory.container), RESOURCE_ENERGY)
             if result == ERR_NOT_IN_RANGE:
                 creep.moveTo(Game.getObjectById(creep.memory.container),
@@ -308,24 +307,6 @@ def run_harvester(creep, all_structures, constructions, room_creeps, dropped_all
                 creep.say('차면 찬대로!', True)
                 creep.memory.laboro = 0
                 del creep.memory.container
-
-            # NULLIFIED
-            # if not creep.pos.isNearTo(container_obj):
-            #     result = ERR_NOT_IN_RANGE
-            #     creep.moveTo(Game.getObjectById(creep.memory.container),
-            #                  {'reusePath': 3, vis_key: {stroke_key: '#ffffff'}})
-            # elif not container_obj:
-            #     result = ERR_INVALID_TARGET
-            #     del creep.memory.container
-            # elif container_obj.structureType == STRUCTURE_LINK \
-            #         and container_obj.energy == container_obj.energyCapacity \
-            #         or _.sum(container_obj.store) == container_obj.storeCapacity:
-            #     result = ERR_FULL
-            #     creep.say('차면 찬대로!', True)
-            #     creep.memory.laboro = 0
-            #     del creep.memory.container
-            # else:
-            #     result = creep.transfer(Game.getObjectById(creep.memory.container), RESOURCE_ENERGY)
 
             # 본인의 소스 담당 크립중에 사이즈 2짜리 크립이 존재하는지 확인. 있으면 자살한다. 이때는 굳이 있어봐야 공간낭비.
             if result == 0 and creep.memory.size == 1:
@@ -344,30 +325,31 @@ def run_harvester(creep, all_structures, constructions, room_creeps, dropped_all
         else:
             # if there's no storage to go to, technically do the hauler's job(transfer and building).
             # below is exact copy.
-            spawns_and_extensions = _.filter(all_structures,
-                                             lambda s: ((s.structureType == STRUCTURE_SPAWN
-                                                         or s.structureType == STRUCTURE_EXTENSION)
-                                                        and s.energy < s.energyCapacity))
-            spawn_or_extension = creep.pos.findClosestByRange(spawns_and_extensions)
-            transfer_result = creep.transfer(spawn_or_extension, RESOURCE_ENERGY)
+            transfer_result = ERR_INVALID_TARGET
+            # 렙1일때만 채운다. 그 후는 순전히 허울러 몫.
+            if creep.room.controller.my and creep.room.controller.level == 1:
+                spawns_and_extensions = _.filter(all_structures,
+                                                 lambda s: ((s.structureType == STRUCTURE_SPAWN
+                                                             or s.structureType == STRUCTURE_EXTENSION)
+                                                            and s.energy < s.energyCapacity))
+                spawn_or_extension = creep.pos.findClosestByRange(spawns_and_extensions)
+                transfer_result = creep.transfer(spawn_or_extension, RESOURCE_ENERGY)
             if transfer_result == ERR_NOT_IN_RANGE:
                 creep.moveTo(spawn_or_extension, {'visualizePathStyle': {'stroke': '#ffffff'},
                                                   'ignoreCreeps': True})
             elif transfer_result == ERR_INVALID_TARGET:
-                construction = creep.pos.findClosestByRange(constructions)
+                construction: ConstructionSite = creep.pos.findClosestByRange(constructions)
                 build_result = creep.build(construction)
                 if build_result == ERR_NOT_IN_RANGE:
                     movement.movi(creep, construction.id, 3)
-    return
 
 
-def run_miner(creep, all_structures):
+def run_miner(creep: Creep, all_structures):
     """
     for mining minerals.
 
     :param creep: The creep to run
     :param all_structures: creep.room.find(FIND_STRUCTURES)
-    :param minerals: creep.room.find(FIND_MINERALS)
     :return:
     """
 
