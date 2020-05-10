@@ -219,12 +219,6 @@ def refresh_base_stats(chambro, all_structures, fix_rating, min_wall, spawns):
                     closest_storage_dist = 1000
                     if room_storage:
                         closest_storage_dist = len(stc.pos.findPathTo(room_storage, {'ignoreCreeps': True}))
-
-                    # NULLIFIED
-                    # 조건충족하면 업글용으로 분류 - 5칸이내거리 + 스폰보다 가깝
-                    # 렙4까지 무시.
-                    # if chambro.controller.level > 4 and controller_dist <= 5 and controller_dist < closest_spawn_dist:
-
                     # 조건충족하면 업글용으로 분류 - 컨트롤러에서 10칸이내 + 스폰과 스토리지보다 가깝
                     # 그리고 이 조건은 스토리지 지어질때까지 무시.
                     # print('container at x{}y{}, controller_dist {}, closest_spawn_dist {}, closest_storage_dist {}'

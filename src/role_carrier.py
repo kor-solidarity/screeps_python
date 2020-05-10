@@ -546,8 +546,19 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
 
                     if creep.room.storage:
                         haul_target_objs.append(creep.room.storage)
+                    # 여기까지 왔으면 진짜 아무것도 없단건데.. 가장 가까운 컨테이너나 링크 아무데나 가는걸로.
+                    else:
+                        for c in creep.room.memory[STRUCTURE_CONTAINER]:
+                            print(JSON.stringify(creep.room.memory[STRUCTURE_CONTAINER]))
+                            if Game.getObjectById(c.id):
+                                haul_target_objs.append(Game.getObjectById(c.id))
+                        for c in creep.room.memory[STRUCTURE_LINK]:
+                            if Game.getObjectById(c.id):
+                                haul_target_objs.append(Game.getObjectById(c.id))
+
                     if len(haul_target_objs):
                         creep.memory.haul_target = creep.pos.findClosestByRange(haul_target_objs).id
+                        print(creep.memory.haul_target)
                     else:
                         # 우선 무한대기 타는걸로...
                         return
