@@ -228,7 +228,7 @@ def refresh_base_stats(chambro, all_structures, fix_rating, min_wall, spawns):
                         _upgrade = 1
                         print('x{}y{}에 {}, 업글컨테이너로 분류'.format(stc.pos.x, stc.pos.y, stc.id))
                 chambro.memory[STRUCTURE_CONTAINER] \
-                    .push({'id': stc.id, for_upgrade: _upgrade, for_harvest: _harvest})
+                    .append({'id': stc.id, for_upgrade: _upgrade, for_harvest: _harvest})
 
         # todo 연구소
         # 연구소는 렙8 되기 전까지 건들지 않는다. 또한 모든 랩의 수가 10개여야만 찾는다.

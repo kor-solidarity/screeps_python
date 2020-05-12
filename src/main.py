@@ -152,7 +152,7 @@ def main():
                 del Memory.creeps[name]
                 continue
 
-            creep = Game.creeps[name]
+            creep: Creep = Game.creeps[name]
 
             # add creep's age. just for fun lol
             try:  # since this is new....
@@ -314,12 +314,12 @@ def main():
 
             # 각종현황(현재는 링크·타워만) 초기화 할것인가?
             if not Memory.rooms[chambra_nomo].options.reset \
-                and not Memory.rooms[chambra_nomo].options.reset == 0:
+                    and not Memory.rooms[chambra_nomo].options.reset == 0:
                 Memory.rooms[chambra_nomo].options.reset = 1
 
             # 화면안에 위에 설정값들 표기.
             if Memory.rooms[chambra_nomo].options.display \
-                and len(Memory.rooms[chambra_nomo].options.display) > 0:
+                    and len(Memory.rooms[chambra_nomo].options.display) > 0:
                 remotes_txt = ''
                 if Memory.rooms[chambra_nomo].options.remotes:
                     # 방이름으로 돌린다.
@@ -333,7 +333,7 @@ def main():
 
                         # 각 리모트에도 설정한다. 당연하지만 안에 시야를 확보했을 경우만...
                         if Memory.rooms[chambra_nomo].options.remotes[r].display \
-                            and Game.rooms[r]:
+                                and Game.rooms[r]:
                             rx = Memory.rooms[chambra_nomo].options.remotes[r].display.x
                             ry = Memory.rooms[chambra_nomo].options.remotes[r].display.y
                             Game.rooms[r].visual.text('-def {}'.format(defendistoj), rx, ry)
@@ -365,7 +365,8 @@ def main():
                 chambro.visual.text('fillNuke/Labs: {}/{}, tow_atk/reset: {}/{}'
                                     .format(nuke_txt, lab_txt, tow_txt, 10000 - Game.time % 10000),
                                     disp_x, disp_y + 3)
-                chambro.visual.text('E할당량: {} | 수리X: {}'.format(str(int(energy_txt / 1000)) + 'k', stop_fixer_txt), disp_x, disp_y + 4)
+                chambro.visual.text('E할당량: {} | 수리X: {}'.format(str(int(energy_txt / 1000)) + 'k', stop_fixer_txt),
+                                    disp_x, disp_y + 4)
                 # chambro.visual.text(display_txt, disp_x, disp_y+2)
 
             # 컨테이너 안에 물건들 총합
@@ -409,7 +410,7 @@ def main():
                             pass
                         else:
                             # 건설시도.
-                            place_plan = __new__(RoomPosition(plan.pos.x, plan.pos.y, plan.pos.roomName))\
+                            place_plan = __new__(RoomPosition(plan.pos.x, plan.pos.y, plan.pos.roomName)) \
                                 .createConstructionSite(plan.type)
                             # print(place_plan, 'place_plan')
                             # 어떤 타입의 건물인지 명시
@@ -455,7 +456,6 @@ def main():
         hostile_creeps = friends_and_foes[0]
         hostile_human = friends_and_foes[2]
         allied_creeps = friends_and_foes[3]
-
 
         # 초기화.
         terminal_capacity = 0
@@ -515,7 +515,7 @@ def main():
         spawns = chambro.find(FIND_MY_SPAWNS)
         damaged_bld = _.filter(my_structures,
                                lambda s: (s.structureType == STRUCTURE_EXTENSION or
-                                s.structureType == STRUCTURE_SPAWN) and s.hits < s.hitsMax)
+                                          s.structureType == STRUCTURE_SPAWN) and s.hits < s.hitsMax)
         # 건물이 공격당하고 있고 그게 잉간이면 세이프모드 발동
         if len(damaged_bld) and len(hostile_human) and \
                 chambro.controller.safeModeAvailable and not chambro.controller.safeModeCooldown:
@@ -586,7 +586,7 @@ def main():
 
             # run at (rate * 10)% rate at a time if bucket is less than 2k and ur on 10 cpu limit.
             if Game.cpu.bucket < cpu_bucket_emergency and not (
-                creep.memory.role == 'soldier' or creep.memory.role == 'harvester'):
+                    creep.memory.role == 'soldier' or creep.memory.role == 'harvester'):
                 rate = 2
                 if random.randint(0, rate) == 0:
                     # print('passed creep:', creep.name)
@@ -629,7 +629,6 @@ def main():
         # 방 안 건물/소스현황 갱신.
         # 1차 발동조건: structure_renew_count 만큼의 턴이 지났는가? 또는 스폰있는 방에 리셋명령을 내렸는가?
         if Game.time % structure_renew_count == 0 or (chambro.memory.options and chambro.memory.options.reset):
-
             room_memory.refresh_base_stats(chambro, all_structures, fix_rating, min_wall, spawns)
 
         # 스폰과 링크목록. 디스플레이 적용하거나 할때 걸릴 수도 있는 오브젝트 전부.
@@ -654,9 +653,9 @@ def main():
                                                    or (s.structureType == STRUCTURE_CONTAINER
                                                        and s.hits < 6000)
                                                    or (s.structureType == STRUCTURE_ROAD
-                                                        and (s.hits < 2000 and s.hitsMax == 5000)
-                                                        or (s.hits < 6000 and s.hitsMax == 25000)
-                                                        or (s.hits < 15500 and s.hitsMax > 50000)))
+                                                       and (s.hits < 2000 and s.hitsMax == 5000)
+                                                       or (s.hits < 6000 and s.hitsMax == 25000)
+                                                       or (s.hits < 15500 and s.hitsMax > 50000)))
             # 벽수리는 5천까지만. 다만 핵이 있으면 통과.
             if min_wall.hits < 5000 or bool(nukes):
                 # print('min_wall', min_wall)
@@ -700,7 +699,7 @@ def main():
 
         # check every 20 ticks.
         if Game.time % 20 == 0 and chambro.memory[STRUCTURE_CONTAINER] \
-            and len(chambro.memory[STRUCTURE_CONTAINER]) > 0:
+                and len(chambro.memory[STRUCTURE_CONTAINER]) > 0:
             for_str = 0
             for cc in chambro.memory[STRUCTURE_CONTAINER]:
                 if not Game.getObjectById(cc.id):
