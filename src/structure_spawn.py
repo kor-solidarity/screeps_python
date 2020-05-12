@@ -438,7 +438,7 @@ def run_spawn(spawn: StructureSpawn, all_structures: List[Structure], room_creep
                     upg_counter += 1
                 print("upg_body[{}]: {}".format(upg_body_counter, upgrader_body[upg_body_counter]))
                 spawn_res = spawn.spawnCreep(upg_body, 'up_{}_{}'.format(spawn_room_low, rand_int),
-                                                 {memory: {'role': 'upgrader', 'assigned_room': spawn.pos.roomName,
+                                             {memory: {'role': 'upgrader', 'assigned_room': spawn.pos.roomName,
                                                        'level': upgrader_body[upg_body_counter][3]}})
                 upg_body_counter += 1
             if not spawn_res == OK and not spawn_res == ERR_NOT_ENOUGH_ENERGY:
@@ -1399,17 +1399,20 @@ def run_spawn(spawn: StructureSpawn, all_structures: List[Structure], room_creep
                             for c in carrier_creep:
                                 carrier_size -= c.memory.size
 
-                            print(s.pos, 'total_carrier_size', total_carrier_size, 'leftover carrier_size',
-                                  carrier_size)
+                            # 중간에 용량부족으로 크립이 많이 생산됬을 시 이를 정리하기 위한 용도.
+                            if carrier_size > 0:
+                                # 모든 캐리어 값에 carrier_creep_healthy 에 해당하는 모든 크립의 사이즈를 뺀다.
+                                carrier_size_healthy = _.clone(total_carrier_size)
+                                for i in carrier_creep_healthy:
+                                    carrier_size_healthy -= i.memory.size
+                                if carrier_size_healthy:
+                                    carrier_size = carrier_size_healthy
 
-                            # 캐리어 사이즈가 존재하는 경우 carrier_creep_healthy 값 발동.
-                            # 중간에 용량부족으로 크립이 많이 생산됬을 시 이를 정리하기 위한 용도임.
-                            # todo 미완성. 조치요망
-                            # if carrier_size > 0:
-                            #     carrier_size = 0
-                            #     for i in carrier_creep_healthy:
-                            #         carrier_size += i.memory.size
-                            #     print('carrier_size > 0 = ', carrier_size)
+                            # 정수화, 소수점 올림처리
+                            if carrier_size % int(carrier_size) > 0 :
+                                carrier_size += 1
+                            carrier_size = int(carrier_size)
+                            print(s.pos, 'total_carrier_size', total_carrier_size, 'final carrier_size', carrier_size)
 
                             # 여기서 실질적인 캐리어 용량 계산
                             spawn_quota = None
@@ -1628,8 +1631,6 @@ def determine_carrier_size(criteria: int, work_chance=0, small=False):
     # 소수점 다 올림처리.
     if criteria % int(criteria) > 0:
         criteria += 1
-    # 무조건 크기는 기본값에서 하나 추가. 방 안에서 최대 10칸까지 들어갈 수 있기 때문에 이에 대한 대비책.
-    criteria += 1
     # 여기서 값을 넣는다.
     for i in range(criteria):
         # work 부분부터 넣어본다.
