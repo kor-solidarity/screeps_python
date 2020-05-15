@@ -38,7 +38,7 @@ def harvest_energy(creep: Creep, source_id):
         else:
             creep.moveTo(Game.getObjectById(source_id), {'visualizePathStyle': {'stroke': '#ffffff'}, 'maxOps': 5000})
     # 빈 상태에 안에 뭔가가 있으면 그대로 우선 있는거 처리
-    elif harvested == ERR_NOT_ENOUGH_RESOURCES and _.sum(creep.store.getUsedCapacity()) > 0:
+    elif harvested == ERR_NOT_ENOUGH_RESOURCES and creep.store.getUsedCapacity() > 0:
         creep.say('🐜 SOURCES')
         harvested = ERR_NOT_ENOUGH_RESOURCES_AND_CARRYING_SOMETHING
 
@@ -207,11 +207,6 @@ def grab_energy_new(creep, resource_type, min_capacity=.5):
                 # 리소스가 에너지인데 carry_objects 가 1개 이상이면 통과
                 if resource == RESOURCE_ENERGY and len(carry_objects) != 1:
                     continue
-                # NULLIFIED - no needed as RESOURCE_ENERGY is no longer default in Store
-                # if there's no such resource, pass it to next loop.
-                # if pickup_obj.store[resource] == 0:
-                #     continue
-
                 # pick it up.
                 result = creep.withdraw(pickup_obj, resource)
 

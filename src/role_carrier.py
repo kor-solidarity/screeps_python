@@ -223,6 +223,7 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
         # if there's pickup, no need to go through all them below.
         # creep.memory.pickup == id of the container carrier's gonna pick up
         if creep.memory.pickup and Game.getObjectById(creep.memory.pickup):
+            pickup_obj = Game.getObjectById(creep.memory.pickup)
             # 이때 해야하는 변수는 크게 두가지.
             # 중간에 떨궈진 물건이 있어서 주워야 해서 경로이탈, 돌아오는길에 컨테이너랑 길이 없는경우.
 
@@ -237,10 +238,13 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
 
             elif result == 0:
                 creep.say('BEEP BEEP⛟', True)
+                # 구석에 있으면 먹자마자 바로 다른방 가버린다. 컨테이너 체력확인 등의 조치가 필요한지라 그러면 안됨.
+                if creep.pos.x == 0 or creep.pos.x == 49 or creep.pos.y == 0 or creep.pos.y == 49:
+                    creep.moveTo(pickup_obj)
                 # 컨테이너 안에 에너지 외 다른게 들어가 있으면 빼내 없애야 하기에 한 조치.
-                if (len(Game.getObjectById(creep.memory.pickup).store) == 2
-                    and Game.getObjectById(creep.memory.pickup).store[RESOURCE_ENERGY] == 0) \
-                        or len(Game.getObjectById(creep.memory.pickup).store) == 1:
+                # todo API 업데이트된걸로 바꿔야함.
+                if (len(pickup_obj.store) == 2 and pickup_obj.store[RESOURCE_ENERGY] == 0) \
+                        or len(pickup_obj.store) == 1:
                     creep.memory.laboro = 1
 
                     if creep.memory.container_full:
@@ -255,7 +259,6 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                 if _.sum(creep.carry) > creep.carryCapacity * .4:
                     creep.memory.laboro = 1
                     creep.memory.priority = 0
-
                 else:
                     harvest = creep.harvest(Game.getObjectById(creep.memory.source_num))
                     if harvest == ERR_NOT_IN_RANGE:
@@ -264,10 +267,8 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                                       'reusePath': 25})
                     # 자원 캘수가 없으면 자원 채워질때까지 컨테이너 근처에서 대기탄다.
                     elif harvest == ERR_NO_BODYPART or harvest == ERR_NOT_ENOUGH_RESOURCES:
-                        if not creep.pos.inRangeTo(Game.getObjectById(creep.memory.pickup), 2):
-                            creep.moveTo(Game.getObjectById(creep.memory.pickup)
-                                         , {'visualizePathStyle': {'stroke': '#ffffff'}, 'reusePath': 25})
-                return
+                        if not creep.pos.inRangeTo(pickup_obj, 2):
+                            creep.moveTo(pickup_obj, {'visualizePathStyle': {'stroke': '#ffffff'}, 'reusePath': 25})
             # 파괴되거나 하면 메모리 삭제.
             elif result == ERR_INVALID_TARGET or result == ERR_INVALID_ARGS:
                 del creep.memory.pickup
@@ -275,7 +276,6 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
             else:
                 print(creep.name, 'grab_energy() ELSE ERROR:', result)
                 del creep.memory.pickup
-            return
 
         # no pickup target? then it's a start!
         else:

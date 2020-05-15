@@ -210,6 +210,8 @@ def run_harvester(creep: Creep, all_structures: List[Structure], constructions: 
                     del creep.memory.source_num
                 else:
                     movement.get_to_da_room(creep, creep.memory.assigned_room, False)
+            elif harvest == ERR_NOT_ENOUGH_RESOURCES_AND_CARRYING_SOMETHING:
+                creep.memory.laboro = 1
 
     # if carryCapacity is full - then go to nearest container or storage to store the energy.
     if creep.memory.laboro == 1:

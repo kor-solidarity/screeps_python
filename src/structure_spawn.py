@@ -177,9 +177,6 @@ def run_spawn(spawn: StructureSpawn, all_structures: List[Structure], room_creep
         if harvesters_bool and len(creep_haulers) == 0 and energy_at_hand >= 300:
             harvesters_bool = False
 
-        # print('harvesters_bool', harvesters_bool, 'len(creep_haulers)',
-        #       len(creep_haulers), 'energy_at_hand', energy_at_hand)
-
         if harvesters_bool:
             harvest_counter = 1
             # check if energy_source capacity is 4.5k(4k in case they update, not likely).
@@ -190,8 +187,7 @@ def run_spawn(spawn: StructureSpawn, all_structures: List[Structure], room_creep
             while spawn_res == ERR_NOT_ENOUGH_ENERGY and harvest_counter <= len(harvester_body) - 1:
                 # 단, 만렙하베스터 뽑을 용량이 되는데 허울러가 존재하고 그걸 채울 양이 있으면 그 이하는 거른다.
                 if harvest_counter > 1 and len(creep_haulers) and len(creep_harvesters) > 0 \
-                        and chambro.energyCapacityAvailable >= 1200 \
-                        and chambro.storage and chambro.storage.store.getUsedCapacity(RESOURCE_ENERGY) > 1000:
+                        and chambro.energyCapacityAvailable >= 1200:
                     break
                 # 두번째 애도 마찬가지.
                 if harvest_counter > 2 and len(creep_haulers) \
@@ -203,9 +199,9 @@ def run_spawn(spawn: StructureSpawn, all_structures: List[Structure], room_creep
                 # 주석은 1이라고 가정하면 i 는 [8, 8, 8, 2, 8] 하나씩
                 for i in harvester_body[harvest_counter]:
                     if harvest_body_counter < 3:
-                        hv_body.extend([def_body_content[harvest_body_counter] for j in range(i)])
+                        hv_body.extend([def_body_content[harvest_body_counter] for _ in range(i)])
                     harvest_body_counter += 1
-                print("harvester_body[{}]: {}".format(harvest_counter, harvester_body[harvest_counter]))
+                # print("harvester_body[{}]: {}".format(harvest_counter, harvester_body[harvest_counter]))
                 spawn_res = spawn.spawnCreep(hv_body, 'hv_{}_{}'.format(spawn_room_low, rand_int),
                                              {memory: {'role': 'harvester', 'assigned_room': spawn.pos.roomName,
                                                        'size': harvester_body[harvest_counter][3],
@@ -225,8 +221,7 @@ def run_spawn(spawn: StructureSpawn, all_structures: List[Structure], room_creep
             if cont_obj and cont_obj.store.getUsedCapacity() == cont_obj.store.getCapacity():
                 container_full += 1
 
-        # 여기서 업글러와 허울러의 할당량을 계산한다.
-
+        # 여기서부터 업글러와 허울러의 할당량을 계산한다.
         # 초대형 업글러 투입 고려
         mega_upgrader = False
         # 업글러 할당량 계산
@@ -236,7 +231,7 @@ def run_spawn(spawn: StructureSpawn, all_structures: List[Structure], room_creep
                     or (spawn.room.controller.ticksToDowngrade < CONTROLLER_DOWNGRADE[8] - 4900
                         and len(hostile_creeps) > 0):
                 upgrader_quota = 1
-        # start making upgraders after there's a storage
+        # 스토리지가 있으면 안에 에너지량이 절대적인 생성기준이 된다.
         elif spawn.room.storage:
             # 스토리지가 생기면 원칙적으로 스토리지 안 에너지 양 / expected_reserve 값으로 할당량 배정
             # 만약 1만 넘기면 5천단위로 세자. - 위에 초대형 애 감안한거. 단 렙7 아래에만. 그 아래는 뽑을수가 없음.
@@ -254,36 +249,27 @@ def run_spawn(spawn: StructureSpawn, all_structures: List[Structure], room_creep
                 upgrader_quota = 1
                 # extra upgrader every expected_reserve
                 upgrader_quota += int(spawn.room.storage.store[RESOURCE_ENERGY] / expected_reserve)
-            else:
-                upgrader_quota = 0
+        # 여기로 넘어왔다는건 스토리지가 없는 상황.
         # 건설할게 있으면 무조건 생산 중단.
         elif num_of_constructions:
             upgrader_quota = 0
         # 방렙 4인데 여기로 왔다는건 스토리지 건설이 안됬다는소리임.
         # 이경우 스토리지 건설이 최우선이기에 업글쪽은 잠시 지양
-        elif chambro.controller.level == 4 or len(hostile_creeps):
+        # 단, 적이 있는 경우는 예외. 이것도 세이프모드면 통과.
+        elif chambro.controller.level == 4 or len(hostile_creeps) and not chambro.controller.safeMode:
             upgrader_quota = 1
         # 렙4부터는 스토리지 건설이 최우선이기에 업글러 스폰에 총력가하면 망함...
         elif chambro.controller.level < 4:
             # 저렙인 상태에선 레벨 + 1 값이 적당할거같음. 아직 확실하겐 모르겠음.
-            upgrader_quota += 3
-            # 다만 컨테이너 용량에 따른 업글러 수량변환은 이때 반영한다. 허울러 먼저 뽑히는걸 막기위함임.
-            for mem_container in spawn.room.memory[STRUCTURE_CONTAINER]:
-                cont_obj = Game.getObjectById(mem_container.id)
-                if cont_obj and _.sum(cont_obj.store) >= cont_obj.storeCapacity:
-                    upgrader_quota += 3
-        else:
-            upgrader_quota = 0
+            upgrader_quota += chambro.controller.level + 1
 
         # 만약 모든 컨테이너중 꽉찬게 하나라도 있으면 업글러 수를 추가해준다.
-        if not spawn.room.controller.level == 8 and container_full:
-            if spawn.room.controller.level < 4:
-                upgrader_quota += 5
+        if spawn.room.controller.level < 8 and container_full:
             # 렙4에서 최우선은 스토리지다.
-            elif spawn.room.controller.level == 4 and not spawn.room.storage:
+            if spawn.room.controller.level == 4 and not spawn.room.storage:
                 upgrader_quota += 1
             else:
-                upgrader_quota += 3
+                upgrader_quota += container_full * 4
 
         # 허울러 계산.
         # 렙4부터 허울러 추가여부 적용한다. 컨테이너가 하나라도 꽉찬게 있으면 허울러 추가.
@@ -315,9 +301,12 @@ def run_spawn(spawn: StructureSpawn, all_structures: List[Structure], room_creep
             if upgrader_quota > len(creep_upgraders):
                 make_hauler = False
 
-        print('make_hauler', make_hauler, 'hauler_quota', hauler_quota,
-              'accumulated_size', accumulated_size, 'upgrader_quota', upgrader_quota,
-              'len(creep_upgraders)', len(creep_upgraders), 'energyCapacityAvailable', chambro.energyCapacityAvailable)
+        # print('make_hauler', make_hauler,
+        #       'hauler_quota', hauler_quota,
+        #       'accumulated_size', accumulated_size,
+        #       'upgrader_quota', upgrader_quota,
+        #       'len(creep_upgraders)', len(creep_upgraders),
+        #       'energyCapacityAvailable', chambro.energyCapacityAvailable)
 
         if make_hauler:
             # 순서는 무조건 아래와 같다. 무조건 덩치큰게 장땡.
@@ -338,17 +327,23 @@ def run_spawn(spawn: StructureSpawn, all_structures: List[Structure], room_creep
             while spawn_res == ERR_NOT_ENOUGH_ENERGY and hl_body_counter <= len(hauler_body) - 1:
                 hl_body = []
                 hl_counter = 0
+                hl_cost = 0
                 # 위에 몸체목록중에 하나를 골라서 그 안에 있는 값대로 하나하나 몸을 구성한다.
                 # 주석은 1이라고 가정하면 i 는 [10, 4, 16, 2, 8] 하나씩
                 for i in hauler_body[hl_body_counter]:
                     if hl_counter < 3:
-                        hl_body.extend([def_body_content[hl_counter] for j in range(i)])
+                        hl_body.extend([def_body_content[hl_counter] for _ in range(i)])
+                        # 생산비용 계산
+                        hl_cost += BODYPART_COST[def_body_content[hl_counter]] * i
                     hl_counter += 1
-                # 마지막 사이즈는
-                # 에너지가 그다음 바디를 뽑을 수 있는 동시에
-                # 허울러가 하나라도 있으면 뽑지 않는다.
-                if hl_body_counter == len(hauler_body) - 1 \
-                        and chambro.energyCapacityAvailable >= 400 \
+
+                # print("hl_body[{}]: {}, hl_cost: {}".format(hl_body_counter, hauler_body[hl_body_counter], hl_cost))
+                # print("chambro.energyCapacityAvailable: {}".format(chambro.energyCapacityAvailable))
+                # print('hauler_body[hl_body_counter({})][1] {}'
+                # .format(hl_body_counter, hauler_body[hl_body_counter][1]))
+                # WORK 1 짜리는 에너지가 그다음 바디를 뽑을 수 있는 상황이 되면
+                # 허울러가 전혀 없는게 아닌 한 뽑지 않는다.
+                if hauler_body[hl_body_counter][1] == 1 and chambro.energyCapacityAvailable > hl_cost \
                         and len(creep_haulers):
                     break
                 spawn_res = spawn.spawnCreep(hl_body, 'hl_{}_{}'.format(spawn_room_low, rand_int),
@@ -423,20 +418,21 @@ def run_spawn(spawn: StructureSpawn, all_structures: List[Structure], room_creep
             while spawn_res == ERR_NOT_ENOUGH_ENERGY and upg_body_counter < 6:
                 # 렙8인 경우는 세이프모드가 발동되는 상태를 유지하게끔만 한다.
                 if spawn.room.controller.level == 8:
-                    upg_body_counter = 6
+                    upg_body_counter = len(upgrader_body) - 1
                 upg_body = []
-                upg_counter = 0
+                upg_content_counter = 0
                 # 위에 몸체목록중에 하나를 골라서 그 안에 있는 값대로 하나하나 몸을 구성한다.
                 # 주석은 1이라고 가정하면 i 는 [10, 10, 6, 7] 하나씩
                 for i in upgrader_body[upg_body_counter]:
                     # 워크 2짜리는 3 뽑을 수 있으면 손절.
-                    if spawn.room.controller.level < 8 and upg_counter > 4 and chambro.energyCapacityAvailable >= 550:
+                    if spawn.room.controller.level < 8 and upg_body_counter > 4 \
+                            and chambro.energyCapacityAvailable >= 550:
                         break
 
-                    if upg_counter < 3:
-                        upg_body.extend([def_body_content[upg_counter] for j in range(i)])
-                    upg_counter += 1
-                print("upg_body[{}]: {}".format(upg_body_counter, upgrader_body[upg_body_counter]))
+                    if upg_content_counter < 3:
+                        upg_body.extend([def_body_content[upg_content_counter] for j in range(i)])
+                    upg_content_counter += 1
+                # print("upg_body[{}]: {}".format(upg_body_counter, upgrader_body[upg_body_counter]))
                 spawn_res = spawn.spawnCreep(upg_body, 'up_{}_{}'.format(spawn_room_low, rand_int),
                                              {memory: {'role': 'upgrader', 'assigned_room': spawn.pos.roomName,
                                                        'level': upgrader_body[upg_body_counter][3]}})
@@ -1084,7 +1080,7 @@ def run_spawn(spawn: StructureSpawn, all_structures: List[Structure], room_creep
                     # resources in flag's room
                     # 멀티에 소스가 여럿일 경우 둘을 스폰할 필요가 있다.
                     flag_energy_sources: List[Source] = Game.rooms[room_name].find(FIND_SOURCES)
-                    print('flag_energy_sources', flag_energy_sources)
+                    # print('flag_energy_sources', flag_energy_sources)
                     flag_containers = _.filter(flag_structures,
                                                lambda s: s.structureType == STRUCTURE_CONTAINER)
                     # 실제로 만들어져 있는 컨테이너. flag_containers 는 건설중인 컨테이너도 포함.
@@ -1129,6 +1125,12 @@ def run_spawn(spawn: StructureSpawn, all_structures: List[Structure], room_creep
                                                                        'assigned_room': room_name}})
                                 counter -= 1
                             continue
+
+                    # 에너지 뽑을 수 있을때까지 아래 뽑는건 지양.
+                    if (flag_room_controller.owner and not flag_room_controller.my) \
+                            or (flag_room_controller.reservation and
+                                not flag_room_controller.reservation.username == spawn.owner.username):
+                        continue
 
                     # 에너지소스에 담당 컨테이너가 존재하는가?
                     # container_exist = False
@@ -1222,7 +1224,7 @@ def run_spawn(spawn: StructureSpawn, all_structures: List[Structure], room_creep
                             return
                         flag_harvest_quota += c.memory.size
 
-                    print('flag_harvest_quota', flag_harvest_quota)
+                    # print('flag_harvest_quota', flag_harvest_quota)
                     enough_remote_harvesters = bool(len(flag_energy_sources) * 2 <= flag_harvest_quota)
 
                     # 소스 하나당 하베스터 사이즈 2. 현재로선 하베스터가 건설도 한다.
@@ -1281,11 +1283,6 @@ def run_spawn(spawn: StructureSpawn, all_structures: List[Structure], room_creep
                     # todo 변경: 거리별 점수 할당. 크던 적던 할당을 최우선으로 채운다.
                     #   캐리어의 사이즈는 캐리 하나당 하나씩 증가한다
 
-                    # 캐리어 사이즈 계산: 모든 캐리어는 memory.size 가 존재한다.
-                    # carrier_mem_size = 0
-                    # for c in remote_carriers:
-                    #     carrier_mem_size += c.memory.size
-
                     # 작동방식:
                     # 우선 flag_energy_sources(방 내 모든 소스) 로 포문 돌린다.
                     # 그리고 거기서 스폰까지의 거리를 구하고 이에 따라 할당된 사이즈값도 구함.
@@ -1301,7 +1298,7 @@ def run_spawn(spawn: StructureSpawn, all_structures: List[Structure], room_creep
                     # todo 미네랄 생각해봐야함
                     # 이제 컨테이너에서 가장 가까운 소스 확인한다
                     # 소스 둘 이상에 컨테이너 하나가 배정되는 경우도 있으니 감안해야함.
-                    print(len(flag_energy_sources), "flag_energy_sources in", room_name, ':', flag_energy_sources)
+                    # print(len(flag_energy_sources), "flag_energy_sources in", room_name, ':', flag_energy_sources)
                     for s in flag_energy_sources:
                         # 에너지에서 가장 가까운 컨테이너를 찾는다.
                         closest_cont_to_source: StructureContainer \
@@ -1311,7 +1308,7 @@ def run_spawn(spawn: StructureSpawn, all_structures: List[Structure], room_creep
                         if closest_cont_to_source:
                             # 저 컨테이너가 얼마나 떨어져 있는지 확인
                             path_to_cont = s.pos.findPathTo(closest_cont_to_source, {ignoreCreeps: True})
-                            print(s.id, s.pos, 'cont:', closest_cont_to_source.pos, len(path_to_cont))
+                            # print(s.id, s.pos, 'cont:', closest_cont_to_source.pos, len(path_to_cont))
                             # 4칸이내에 있으면 조건에 맞음.
                             source_assigned = len(path_to_cont) <= 4
 
@@ -1380,17 +1377,17 @@ def run_spawn(spawn: StructureSpawn, all_structures: List[Structure], room_creep
                             # 거리의 절반만큼의 거리를 캐리어 사이즈로...
                             # 정확히 뭘 근거였는지 기억이 안나는데 여튼 돌아감.
                             carrier_size = distance / 2
-                            print('init. carrier_size', carrier_size)
+                            # print('init. carrier_size', carrier_size)
                             # 저렙인 상황이면 1/3 처리. 어차피 자잘하게 나와서...
                             if chambro.controller.level < 4 or not chambro.storage:
                                 carrier_size /= 3
-                                print('optimized carrier_size', carrier_size)
+                                # print('optimized carrier_size', carrier_size)
 
-                            # 만약 캐리어가 전혀 없는데 꽉찼으면 몸 하나 더준다.
+                            # 만약 캐리어가 전혀 없는데 꽉찼으면 몸 더준다.
                             if closest_cont_to_source.store.getCapacity() \
                                     == closest_cont_to_source.store.getUsedCapacity() and not len(carrier_creep):
-                                print('extra BODY for {}'.format(closest_cont_to_source.pos))
-                                carrier_size += 1
+                                # print('extra BODY for {}'.format(closest_cont_to_source.pos))
+                                carrier_size += 3
 
                             # 만들어야 하는 총 캐리어 사이즈
                             total_carrier_size = _.clone(carrier_size)
@@ -1409,10 +1406,10 @@ def run_spawn(spawn: StructureSpawn, all_structures: List[Structure], room_creep
                                     carrier_size = carrier_size_healthy
 
                             # 정수화, 소수점 올림처리
-                            if carrier_size % int(carrier_size) > 0 :
+                            if carrier_size % int(carrier_size) > 0:
                                 carrier_size += 1
                             carrier_size = int(carrier_size)
-                            print(s.pos, 'total_carrier_size', total_carrier_size, 'final carrier_size', carrier_size)
+                            # print(s.pos, 'total_carrier_size', total_carrier_size, 'final carrier_size', carrier_size)
 
                             # 여기서 실질적인 캐리어 용량 계산
                             spawn_quota = None
@@ -1423,7 +1420,7 @@ def run_spawn(spawn: StructureSpawn, all_structures: List[Structure], room_creep
                                 if len(spawn_quota[0]) <= 50 and spawn_quota[1] <= chambro.energyAvailable:
                                     break
                                 carrier_size -= 1
-                            print('final carrier_size', carrier_size, spawn_quota)
+                            # print('final carrier_size', carrier_size, spawn_quota)
                             # 값이 남아있으면 작업에 들어가는거임.
                             if carrier_size > 0:
                                 spawning = spawn.spawnCreep(spawn_quota[0],
@@ -1438,7 +1435,7 @@ def run_spawn(spawn: StructureSpawn, all_structures: List[Structure], room_creep
                                                                       haul_resource: haul_all,
                                                                       to_pickup: path_spawn_to_pickup,
                                                                       to_home: path_to_home}})
-                                print(spawn.name, 'spawning carrier', spawning)
+                                # print(spawn.name, 'spawning carrier', spawning)
                                 return
                     continue
                     # todo 철거반 손봐야함!!
