@@ -1006,8 +1006,8 @@ def run_spawn(spawn: StructureSpawn, all_structures: List[Structure], room_creep
                             # 임시로 0으로 놨음. 구조 자체를 뜯어고쳐야함.
                             # 원래 두 크립이 연동하는거지만 한번 없이 해보자.
                             if len(remote_troops) < len(hostiles) + stationed_defenders and not keeper_lair:
-                                # 렙7 아래면 소형으로 뗀다.
-                                if spawn.room.controller.level < 7:
+                                # 저렙이면 소형으로 뗀다.
+                                if spawn.room.controller.level < 5:
                                     spawn_res = spawn.spawnCreep(
                                         [MOVE, MOVE, MOVE, MOVE, MOVE, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK,
                                          HEAL],
@@ -1025,7 +1025,13 @@ def run_spawn(spawn: StructureSpawn, all_structures: List[Structure], room_creep
                                         'df_{}_{}'.format(room_name_low, rand_int),
                                         {memory: {'role': 'soldier', 'soldier': 'remote_defender',
                                                   'assigned_room': room_name, 'home_room': spawn.pos.roomName}})
-
+                                    if spawn_res != OK:
+                                        spawn_res = spawn.spawnCreep(
+                                            [TOUGH, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, RANGED_ATTACK,
+                                             RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, HEAL, HEAL],
+                                            'df_{}_{}'.format(room_name_low, rand_int),
+                                            {memory: {'role': 'soldier', 'soldier': 'remote_defender',
+                                                      'assigned_room': room_name, 'home_room': spawn.pos.roomName}})
                             elif keeper_lair and (
                                     len(remote_troops) == 0 or len(remote_troops) < len(
                                 hostiles) + stationed_defenders):
