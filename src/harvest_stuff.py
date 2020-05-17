@@ -156,9 +156,9 @@ def grab_energy_new(creep, resource_type, min_capacity=.5):
         print(creep.name, "harvest_stuff.grab_energy_new")
         return ERR_NOT_ENOUGH_ENERGY
 
-    # if there's no energy in the pickup target, delete it
     # 스토어가 있는 경우면 에너지 외 다른것도 있을 수 있단거
-    if pickup_obj.store:
+    # 리소스가 여러 소스 다 수용할 수 있는 경우.
+    if pickup_obj.store.getCapacity():
         # storage: 뽑아가고 싶은 자원의 총량
         if resource_type == haul_all:
             storage = _.sum(pickup_obj.store)

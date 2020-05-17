@@ -43,6 +43,7 @@ def run_spawn(spawn: StructureSpawn, all_structures: List[Structure], room_creep
     """
 
     memory = 'memory'
+    room_level = spawn.room.controller.level
 
     # harvester 용 몸체 부위별 크기, 큰 순서, MOVE WORK CARRY size lvl 순
     # WORK SIZE: 8, 7, 5, 3, 2 순
@@ -71,7 +72,7 @@ def run_spawn(spawn: StructureSpawn, all_structures: List[Structure], room_creep
                 if spawn.pos.inRangeTo(enemy, 2):
                     hostile_around = True
                     break
-        if hostile_around and chambro.controller.level == 8:
+        if hostile_around and room_level == 8:
             return
 
         # ALL creeps you have
@@ -215,7 +216,7 @@ def run_spawn(spawn: StructureSpawn, all_structures: List[Structure], room_creep
         # 허울러가 추가로 필요한 경우는 꽉찬 컨테이너의 존재여부다. 2개까지 +1, 3개이상은 +2
         for mem_container in spawn.room.memory[STRUCTURE_CONTAINER]:
             # 업그레이드 용도면 안센다. 단 렙8미만일때만.
-            if spawn.room.controller.level < 8 and mem_container.for_upgrade:
+            if room_level < 8 and mem_container.for_upgrade:
                 continue
             cont_obj: StructureContainer = Game.getObjectById(mem_container.id)
             if cont_obj and cont_obj.store.getUsedCapacity() == cont_obj.store.getCapacity():
@@ -226,7 +227,7 @@ def run_spawn(spawn: StructureSpawn, all_structures: List[Structure], room_creep
         mega_upgrader = False
         # 업글러 할당량 계산
         # 렙8인 경우는 세이프모드가 발동되는 상태를 유지하게끔만 한다.
-        if spawn.room.controller.level == 8:
+        if room_level == 8:
             if spawn.room.controller.ticksToDowngrade < CONTROLLER_DOWNGRADE[8] - 100000 \
                     or (spawn.room.controller.ticksToDowngrade < CONTROLLER_DOWNGRADE[8] - 4900
                         and len(hostile_creeps) > 0):
@@ -235,7 +236,7 @@ def run_spawn(spawn: StructureSpawn, all_structures: List[Structure], room_creep
         elif spawn.room.storage:
             # 스토리지가 생기면 원칙적으로 스토리지 안 에너지 양 / expected_reserve 값으로 할당량 배정
             # 만약 1만 넘기면 5천단위로 세자. - 위에 초대형 애 감안한거. 단 렙7 아래에만. 그 아래는 뽑을수가 없음.
-            if spawn.room.storage.store[RESOURCE_ENERGY] > 9000 and spawn.room.controller.level == 7:
+            if spawn.room.storage.store[RESOURCE_ENERGY] > 9000 and room_level == 7:
                 expected_reserve = 5000
                 mega_upgrader = True
             else:
@@ -256,17 +257,17 @@ def run_spawn(spawn: StructureSpawn, all_structures: List[Structure], room_creep
         # 방렙 4인데 여기로 왔다는건 스토리지 건설이 안됬다는소리임.
         # 이경우 스토리지 건설이 최우선이기에 업글쪽은 잠시 지양
         # 단, 적이 있는 경우는 예외. 이것도 세이프모드면 통과.
-        elif chambro.controller.level == 4 or len(hostile_creeps) and not chambro.controller.safeMode:
+        elif room_level == 4 or len(hostile_creeps) and not chambro.controller.safeMode:
             upgrader_quota = 1
         # 렙4부터는 스토리지 건설이 최우선이기에 업글러 스폰에 총력가하면 망함...
-        elif chambro.controller.level < 4:
+        elif room_level < 4:
             # 저렙인 상태에선 레벨 + 1 값이 적당할거같음. 아직 확실하겐 모르겠음.
-            upgrader_quota += chambro.controller.level + 1
+            upgrader_quota += room_level + 1
 
         # 만약 모든 컨테이너중 꽉찬게 하나라도 있으면 업글러 수를 추가해준다.
-        if spawn.room.controller.level < 8 and container_full:
+        if room_level < 8 and container_full:
             # 렙4에서 최우선은 스토리지다.
-            if spawn.room.controller.level == 4 and not spawn.room.storage:
+            if room_level == 4 and not spawn.room.storage:
                 upgrader_quota += 1
             else:
                 upgrader_quota += container_full * 4
@@ -295,8 +296,7 @@ def run_spawn(spawn: StructureSpawn, all_structures: List[Structure], room_creep
         multiplier = 2
         make_hauler = accumulated_size < hauler_quota * multiplier
         # 렙8이 아니면 허울러는 사이즈 누적 둘까지, 그 후 생산은 필요한 경우에도 업글러가 우선.
-        if make_hauler and chambro.controller.level < 8 \
-                and accumulated_size >= 2 and chambro.energyCapacityAvailable >= 400:
+        if make_hauler and room_level < 8 and accumulated_size >= 2 and chambro.energyCapacityAvailable >= 400:
             # 업글러의 수가 실제 배정량보다 적으면 업글러부터 만들어야 하므로.
             if upgrader_quota > len(creep_upgraders):
                 make_hauler = False
@@ -417,7 +417,7 @@ def run_spawn(spawn: StructureSpawn, all_structures: List[Structure], room_creep
 
             while spawn_res == ERR_NOT_ENOUGH_ENERGY and upg_body_counter < 6:
                 # 렙8인 경우는 세이프모드가 발동되는 상태를 유지하게끔만 한다.
-                if spawn.room.controller.level == 8:
+                if room_level == 8:
                     upg_body_counter = len(upgrader_body) - 1
                 upg_body = []
                 upg_content_counter = 0
@@ -425,8 +425,7 @@ def run_spawn(spawn: StructureSpawn, all_structures: List[Structure], room_creep
                 # 주석은 1이라고 가정하면 i 는 [10, 10, 6, 7] 하나씩
                 for i in upgrader_body[upg_body_counter]:
                     # 워크 2짜리는 3 뽑을 수 있으면 손절.
-                    if spawn.room.controller.level < 8 and upg_body_counter > 4 \
-                            and chambro.energyCapacityAvailable >= 550:
+                    if room_level < 8 and upg_body_counter > 4 and chambro.energyCapacityAvailable >= 550:
                         break
 
                     if upg_content_counter < 3:
@@ -450,12 +449,12 @@ def run_spawn(spawn: StructureSpawn, all_structures: List[Structure], room_creep
         # 수리할게 있거나 렙 7 이상일때부터 수리병을 부름. 7때는 단지 하나. 8때는 5천에 하나.
         # 그리고 할당량 다 찼는데도 뽑는 경우도 있을 수 있으니 타이머 쟨다.
         # 수리할게 더 없으면 500틱동안 추가 생산을 안한다.
-        if elapsed_fixer_time > 500 and len(wall_repairs) and chambro.storage \
-                and chambro.controller.level >= 4 and chambro.storage.store[RESOURCE_ENERGY] >= 5000:
+        if elapsed_fixer_time > 500 and len(wall_repairs) and chambro.storage and room_level >= 4 \
+                and chambro.storage.store[RESOURCE_ENERGY] >= 5000:
 
             make_mini = False
             # 원칙적으로는 렙 7부터 본격적으로 생산한다. 그 이하면 소형만 생산.
-            if chambro.controller.level < 7:
+            if room_level < 7:
                 make_mini = True
 
             max_num_fixers = 0
@@ -466,12 +465,11 @@ def run_spawn(spawn: StructureSpawn, all_structures: List[Structure], room_creep
 
             # 렙8부터 본격적인 작업에 드간다. 그전까진 무의미.
             # 또한 수리할게 더 없는 상황에서 첫 생성을 한거면 하나만 뽑고 천틱 대기한다.
-            elif chambro.controller.level < 8 \
-                    and (10000 <= chambro.storage.store[RESOURCE_ENERGY] or elapsed_fixer_time <= 2000):
+            elif room_level < 8 and (10000 <= chambro.storage.store[RESOURCE_ENERGY] or elapsed_fixer_time <= 2000):
                 max_num_fixers = 1
 
             # 벽수리가 중심인데 수리할 벽이 없으면 의미가 없음.
-            elif chambro.controller.level == 8 and min_hits < chambro.memory[options][repair]:
+            elif room_level == 8 and min_hits < chambro.memory[options][repair]:
                 # max_num_fixers = int(chambro.storage.store[RESOURCE_ENERGY] / 30000)
                 # 스토리지에 에너지가 3만 이하면 1로 제한.
                 if chambro.storage.store[RESOURCE_ENERGY] < 30000:
@@ -859,8 +857,7 @@ def run_spawn(spawn: StructureSpawn, all_structures: List[Structure], room_creep
             if flag_name.find('-del') > -1:
                 print("'-del')")
                 # 자기 방으로 찍었을 경우 찍은 위치에 뭐가 있는지 확인하고 그걸 없앤다.
-                if flag_obj.room and flag_obj.room.controller \
-                        and flag_obj.room.controller.my:
+                if flag_obj.room and flag_obj.room.controller and flag_obj.room.controller.my:
                     print('my room at {}'.format(flag_obj.room.name))
                     # 해당 위치에 건설장 또는 건물이 있으면 없앤다.
                     if len(flag_obj.pos.lookFor(LOOK_CONSTRUCTION_SITES)):
@@ -934,11 +931,11 @@ def run_spawn(spawn: StructureSpawn, all_structures: List[Structure], room_creep
         # 이하 진짜 리모트-------------------------------------------------
 
         # 렙3 아래면 그냥 무시
-        if chambro.controller.level < 3:
+        if room_level < 3:
             return
 
         # todo 메모리 떼내야함...
-        # print('chambro.controller.level', chambro.controller.level)
+        # print('level', level)
         if len(Memory.rooms[spawn.room.name].options.remotes) > 0:
             # 깃발로 돌렸던걸 메모리로 돌린다.
             for r in Object.keys(Memory.rooms[spawn.room.name].options.remotes):
@@ -991,69 +988,69 @@ def run_spawn(spawn: StructureSpawn, all_structures: List[Structure], room_creep
 
                     #  렙 7부터 항시 상주한다. 단, 설정에 따라 투입자체를 안할수도 있게끔 해야함.
                     # to filter out the allies.
-                    if len(hostiles) > 0:
-                        stationed_defenders = Memory.rooms[spawn.room.name].options.remotes[r].defenders
-                        # 플러스가 있는 경우 병사가 상주중이므로 NPC 셀 필요가 없다.
-                        if stationed_defenders:
-                            hostiles = miscellaneous.filter_friend_foe(hostiles)[2]
-                        else:
-                            hostiles = miscellaneous.filter_friend_foe(hostiles)[0]
-                        # 적이 있거나 방이 만렙이고 상주인원이 없을 시.
-                        if len(hostiles) + stationed_defenders > len(remote_troops) \
-                                or (len(remote_troops) < stationed_defenders and chambro.controller.level == 8):
-                            spawn_res = ERR_NOT_ENOUGH_RESOURCES
-                            # second one is the BIG GUY. made in case invader's too strong.
-                            # 임시로 0으로 놨음. 구조 자체를 뜯어고쳐야함.
-                            # 원래 두 크립이 연동하는거지만 한번 없이 해보자.
-                            if len(remote_troops) < len(hostiles) + stationed_defenders and not keeper_lair:
-                                # 저렙이면 소형으로 뗀다.
-                                if spawn.room.controller.level < 5:
-                                    spawn_res = spawn.spawnCreep(
-                                        [MOVE, MOVE, MOVE, MOVE, MOVE, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK,
-                                         HEAL],
-                                        'df_{}_{}'.format(room_name_low, rand_int),
-                                        {memory: {'role': 'soldier', 'soldier': 'remote_defender',
-                                                  'assigned_room': room_name, 'home_room': spawn.pos.roomName}})
-                                else:
-                                    spawn_res = spawn.spawnCreep(
-                                        [TOUGH, TOUGH, TOUGH, TOUGH, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE,
-                                         MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE,
-                                         MOVE, MOVE, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK,
-                                         RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK,
-                                         RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK,
-                                         RANGED_ATTACK, HEAL, HEAL, HEAL],
-                                        'df_{}_{}'.format(room_name_low, rand_int),
-                                        {memory: {'role': 'soldier', 'soldier': 'remote_defender',
-                                                  'assigned_room': room_name, 'home_room': spawn.pos.roomName}})
-                                    if spawn_res != OK:
-                                        spawn_res = spawn.spawnCreep(
-                                            [TOUGH, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, RANGED_ATTACK,
-                                             RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, HEAL, HEAL],
-                                            'df_{}_{}'.format(room_name_low, rand_int),
-                                            {memory: {'role': 'soldier', 'soldier': 'remote_defender',
-                                                      'assigned_room': room_name, 'home_room': spawn.pos.roomName}})
-                            elif keeper_lair and (
-                                    len(remote_troops) == 0 or len(remote_troops) < len(
-                                hostiles) + stationed_defenders):
+                    # if len(hostiles) > 0:
+                    stationed_defenders = Memory.rooms[spawn.room.name].options.remotes[r].defenders
+                    # 플러스가 있는 경우 병사가 상주중이므로 NPC 셀 필요가 없다.
+                    if stationed_defenders:
+                        hostiles = miscellaneous.filter_friend_foe(hostiles)[2]
+                    else:
+                        hostiles = miscellaneous.filter_friend_foe(hostiles)[0]
+                    # 적이 있거나 방이 만렙이고 상주인원이 없을 시.
+                    if len(hostiles) + stationed_defenders > len(remote_troops) \
+                            or (len(remote_troops) < stationed_defenders and room_level == 8):
+                        spawn_res = ERR_NOT_ENOUGH_RESOURCES
+                        # second one is the BIG GUY. made in case invader's too strong.
+                        # 임시로 0으로 놨음. 구조 자체를 뜯어고쳐야함.
+                        # 원래 두 크립이 연동하는거지만 한번 없이 해보자.
+                        if len(remote_troops) < len(hostiles) + stationed_defenders and not keeper_lair:
+                            # 저렙이면 소형으로 뗀다.
+                            if room_level < 5:
                                 spawn_res = spawn.spawnCreep(
-                                    # think this is too much for mere invaders
-                                    [TOUGH, TOUGH, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE
-                                        , MOVE,
-                                     MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE
-                                        , MOVE,
-                                     MOVE, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK,
-                                     RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK,
+                                    [MOVE, MOVE, MOVE, MOVE, MOVE, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK,
+                                     HEAL],
+                                    'df_{}_{}'.format(room_name_low, rand_int),
+                                    {memory: {'role': 'soldier', 'soldier': 'remote_defender',
+                                              'assigned_room': room_name, 'home_room': spawn.pos.roomName}})
+                            else:
+                                spawn_res = spawn.spawnCreep(
+                                    [TOUGH, TOUGH, TOUGH, TOUGH, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE,
+                                     MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE,
+                                     MOVE, MOVE, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK,
                                      RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK,
                                      RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK,
                                      RANGED_ATTACK, HEAL, HEAL, HEAL],
                                     'df_{}_{}'.format(room_name_low, rand_int),
                                     {memory: {'role': 'soldier', 'soldier': 'remote_defender',
                                               'assigned_room': room_name, 'home_room': spawn.pos.roomName}})
+                                if spawn_res != OK:
+                                    spawn_res = spawn.spawnCreep(
+                                        [TOUGH, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, RANGED_ATTACK,
+                                         RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, HEAL, HEAL],
+                                        'df_{}_{}'.format(room_name_low, rand_int),
+                                        {memory: {'role': 'soldier', 'soldier': 'remote_defender',
+                                                  'assigned_room': room_name, 'home_room': spawn.pos.roomName}})
+                        elif keeper_lair and (
+                                len(remote_troops) == 0 or len(remote_troops) < len(
+                            hostiles) + stationed_defenders):
+                            spawn_res = spawn.spawnCreep(
+                                # think this is too much for mere invaders
+                                [TOUGH, TOUGH, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE
+                                    , MOVE,
+                                 MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE
+                                    , MOVE,
+                                 MOVE, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK,
+                                 RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK,
+                                 RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK,
+                                 RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK,
+                                 RANGED_ATTACK, HEAL, HEAL, HEAL],
+                                'df_{}_{}'.format(room_name_low, rand_int),
+                                {memory: {'role': 'soldier', 'soldier': 'remote_defender',
+                                          'assigned_room': room_name, 'home_room': spawn.pos.roomName}})
 
-                            if spawn_res == OK:
-                                return
-                            elif spawn_res == ERR_NOT_ENOUGH_RESOURCES:
-                                pass
+                        if spawn_res == OK:
+                            return
+                        elif spawn_res == ERR_NOT_ENOUGH_RESOURCES:
+                            pass
 
                     # 방 안에 적이 있으면 방위병이 생길때까지 생산을 하지 않는다.
                     if len(hostiles) > 0:
@@ -1108,7 +1105,7 @@ def run_spawn(spawn: StructureSpawn, all_structures: List[Structure], room_creep
                     if flag_room_controller and len(remote_reservers) == 0 and chambro.energyCapacityAvailable >= 1300:
                         # (flag_room_reserved_by_other and flag_room_controller.reservation.ticksToEnd < 100) and \
                         # 본진렙 7이면 최소한의 유지만.
-                        if chambro.controller.level < 7:
+                        if room_level < 7:
                             reserve_cap = 400
                         else:
                             reserve_cap = 2000
@@ -1376,8 +1373,8 @@ def run_spawn(spawn: StructureSpawn, all_structures: List[Structure], room_creep
 
                             work_chance = 0
                             # 캐리어는 방에 건설거리가 있거나 컨테이너 체력이 2/3 이하일때만 워크바디를 넣는다.
-                            if closest_cont_to_source.hits <= closest_cont_to_source.hitsMax / 3 * 2 or \
-                                    len(flag_constructions):
+                            if closest_cont_to_source.hits <= closest_cont_to_source.hitsMax / 3 * 2 \
+                                    or len(flag_constructions):
                                 work_chance = 1
 
                             # 거리의 절반만큼의 거리를 캐리어 사이즈로...
@@ -1385,13 +1382,14 @@ def run_spawn(spawn: StructureSpawn, all_structures: List[Structure], room_creep
                             carrier_size = distance / 2
                             # print('init. carrier_size', carrier_size)
                             # 저렙인 상황이면 1/3 처리. 어차피 자잘하게 나와서...
-                            if chambro.controller.level < 4 or not chambro.storage:
+                            if room_level < 4 or not chambro.storage:
                                 carrier_size /= 3
                                 # print('optimized carrier_size', carrier_size)
 
                             # 만약 캐리어가 전혀 없는데 꽉찼으면 몸 더준다.
                             if closest_cont_to_source.store.getCapacity() \
-                                    == closest_cont_to_source.store.getUsedCapacity() and not len(carrier_creep):
+                                    == closest_cont_to_source.store.getUsedCapacity() \
+                                    and not len(carrier_creep):
                                 # print('extra BODY for {}'.format(closest_cont_to_source.pos))
                                 carrier_size += 3
 
@@ -1438,6 +1436,7 @@ def run_spawn(spawn: StructureSpawn, all_structures: List[Structure], room_creep
                                                                       'work': work_chance,
                                                                       'source_num': s.id,
                                                                       'size': carrier_size,
+                                                                      'level': 8,
                                                                       haul_resource: haul_all,
                                                                       to_pickup: path_spawn_to_pickup,
                                                                       to_home: path_to_home}})
@@ -1496,7 +1495,7 @@ def run_spawn(spawn: StructureSpawn, all_structures: List[Structure], room_creep
                                     dem_num = 0
 
                                 if dem_bool and dem_num == 0:
-                                    if spawn.room.controller.level < 7:
+                                    if room_level < 7:
                                         body = [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE,
                                                 WORK, WORK,
                                                 WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK]
@@ -1547,22 +1546,20 @@ def run_spawn(spawn: StructureSpawn, all_structures: List[Structure], room_creep
         # 주변에 있는 크립 회복조치.
         # 이 곳에 필요한거: spawn 레벨보다 같거나 높은 애들 지나갈 때 TTL이 오백 이하면 회복시켜준다.
         # room controller lvl ± 2 에 부합한 경우에만 수리를 실시한다.
-        level = spawn.room.controller.level
-        # todo 임시, 렙 6 이하땐 회복 자체를 안한다. 좀 더 다양한(?) 회복법 강구요망
-        if level > 6:
+        # 렙 6 미만일 땐 회복 자체를 안한다. 좀 더 다양한(?) 회복법 강구요망
+        if room_level >= 6:
             # soldier > harvester > hauler > upgrader > etc.
             # ^ not applied yet idk
-
             for creep in room_creeps:
                 # 먼저 무조건 거르는 대상: 근접이 아니거나 TTL 100미만
                 if not spawn.pos.isNearTo(creep) or creep.ticksToLive < 100:
                     continue
                 # 일꾼은 무조건 항시 채워준다. 어차피 근접할 가능성 거의없기도 함.
-                if creep.memory.role == 'harvester' and creep.memory.level >= level and creep.ticksToLive < 1400:
+                if creep.memory.role == 'harvester' and creep.memory.level >= room_level and creep.ticksToLive < 1400:
                     spawn.renewCreep(creep)
                     break
                 # 방 안에 있는 크립 중에 회복대상자
-                elif creep.ticksToLive < 500 and creep.memory.level >= level:
+                elif creep.ticksToLive < 500 and creep.memory.level >= room_level:
                     # 회복대상이 아닌가?
                     no_renew = False
                     # 임시용도. 디버깅 끝나면 폐기
@@ -1584,7 +1581,7 @@ def run_spawn(spawn: StructureSpawn, all_structures: List[Structure], room_creep
                     # 업글러는 스토리지 자원 오천당 수리대상의 업글러의 수로 계산한다.
                     elif creep.memory.role == 'upgrader':
                         storage_amount = 5000 * len(_.filter(room_creeps, lambda c: c.memory.role == 'upgrader'
-                                                                                    and c.memory.level >= level))
+                                                                                    and c.memory.level >= room_level))
 
                     elif creep.memory.role == 'fixer':
                         # 수리대상 10개 이하면 거의 끝이란 소리니 회복대상에서 제외

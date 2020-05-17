@@ -243,7 +243,7 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
                             for c in creep.room.memory[STRUCTURE_CONTAINER]:
                                 target = Game.getObjectById(c.id)
                                 # 2/3 이상 채워져 있으면 끝.
-                                if c.for_store and target.store.getUsedCapacity() < target.store.getCapacity() * 2/3:
+                                if c.for_store and target.store.getUsedCapacity() < target.store.getCapacity() * 2 / 3:
                                     print('upgrader container not full')
                                     _full = False
                                     break
@@ -597,24 +597,28 @@ def run_hauler(creep, all_structures, constructions, creeps, dropped_all, repair
 
             if build_result == ERR_NOT_IN_RANGE:
                 movement.ranged_move(creep, creep.memory.build_target, creeps, 3)
-
             # if there's nothing to build or something
             elif build_result == ERR_INVALID_TARGET:
                 # creep.memory.priority = 0
                 del creep.memory.build_target
-                return
-
             elif build_result == ERR_NO_BODYPART:
-                creep.say('운송이 본분!', True)
+                creep.say('건설할줄 모름!', True)
                 creep.memory.priority = 1
                 del creep.memory.path
-                return
 
             # if having anything other than energy when not on priority 1 switch to 1
             if _.sum(creep.carry) != 0 and creep.carry[RESOURCE_ENERGY] == 0:
                 creep.memory.priority = 1
                 del creep.memory.path
                 del creep.memory.build_target
+
+            # 채워진 에너지가 1/3 아래인 경우 복귀
+            elif creep.room.energyAvailable < creep.room.energyCapacityAvailable * 1 / 3:
+                creep.say("🚚운송이 본분", True)
+                creep.memory.priority = 1
+                del creep.memory.path
+                del creep.memory.build_target
+
         # priority 3: repair
         elif creep.memory.priority == 3:
             if creep.memory.repair_target:
@@ -860,7 +864,7 @@ def grab_haul_list(creep: Creep, roomName, totalStructures, add_storage=False):
                 continue
             # 업글용 컨테이너고 수확저장용도가 아닌가? 그러면 허울러가 넣는다. 2/3 이하로 차있을때만.
             if rcont.for_upgrade and not rcont.for_harvest \
-                    and cont_obj.store.getUsedCapacity() < cont_obj.store.getCapacity() * 2/3:
+                    and cont_obj.store.getUsedCapacity() < cont_obj.store.getCapacity() * 2 / 3:
                 # 단, 스토리지를 만들 렙(4이상)이고 스토리지가 없으면 안넣는다.
                 # 방 내 에너지가 안 찼을때도 통과
                 if 4 <= creep.room.controller.level and not creep.room.storage \

@@ -30,7 +30,7 @@ def run_scout(creep, enemy_constructions):
             step_target = creep.pos.findClosestByRange(enemy_constructions)
             creep.memory.step_target = step_target.id
         if creep.memory.step_target:
-            movement.movi(creep, creep.memory.step_target)
+            movement.movi(creep, creep.memory.step_target, 0, 5)
         return
 
     movement.get_to_da_room(creep, creep.memory.assigned_room)

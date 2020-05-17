@@ -290,7 +290,7 @@ def run_maintenance():
         del costs_cache.rooms[room]
         del costs_cache.creeps[room]
 
-    if not Game.time % 250:
+    if not Game.time % 50:
         reset_cached_matrices()
 
 
