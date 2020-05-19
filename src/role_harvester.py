@@ -156,13 +156,13 @@ def run_harvester(creep: Creep, all_structures: List[Structure], constructions: 
                 creep.memory.source_num = sources[0]
 
     # If you have nothing but on laboro 1 => get back to harvesting.
-    if _.sum(creep.carry) == 0 and not creep.memory.laboro == 0:
+    if creep.store.getUsedCapacity() == 0 and not creep.memory.laboro == 0:
         if creep.ticksToLive < 5:
             return
         creep.say('☭☭', True)
         creep.memory.laboro = 0
     # if capacity is full(and on harvest phase), get to next work.
-    elif (_.sum(creep.carry) >= creep.carryCapacity and creep.memory.laboro == 0) or creep.ticksToLive < 5:
+    elif (creep.store.getUsedCapacity() >= creep.store.getCapacity() and creep.memory.laboro == 0) or creep.ticksToLive < 5:
         if creep.ticksToLive < 5:
             creep.say('이제 갈시간 👋', True)
         else:
@@ -196,7 +196,7 @@ def run_harvester(creep: Creep, all_structures: List[Structure], constructions: 
             del creep.memory.source_num
             return
 
-        if _.sum(creep.carry) > creep.carryCapacity - 10:
+        if creep.store.getUsedCapacity() > creep.store.getCapacity() - 10:
             creep.say('🚜 대충 찼다', True)
             creep.memory.laboro = 1
         else:
@@ -386,14 +386,14 @@ def run_miner(creep: Creep, all_structures):
             return
 
     # If you have nothing but on laboro 1 => get back to harvesting.
-    if _.sum(creep.carry) == 0 and creep.memory.laboro == 1:
+    if creep.store.getUsedCapacity() == 0 and creep.memory.laboro == 1:
         # if about to die, just die lol
         if creep.ticksToLive < 5:
             return
         creep.say('☭☭', True)
         creep.memory.laboro = 0
     # if capacity is full(and on harvest phase), get to next work.
-    elif (_.sum(creep.carry) >= creep.carryCapacity and creep.memory.laboro == 0) or creep.ticksToLive < 5:
+    elif (creep.store.getUsedCapacity() >= creep.store.getCapacity() and creep.memory.laboro == 0) or creep.ticksToLive < 5:
 
         creep.memory.laboro = 1
 
@@ -469,8 +469,7 @@ def run_miner(creep: Creep, all_structures):
 
         if creep.memory.container:
             # runs for each type of resources. you know the rest.
-            for resource in Object.keys(creep.carry):
-                # if creep.carry()
+            for resource in Object.keys(creep.store):
                 mineral_transfer = creep.transfer(Game.getObjectById(creep.memory.container), resource)
                 # print('res: {}, trans: {}'.format(resource, mineral_transfer))
                 if mineral_transfer == ERR_NOT_IN_RANGE:

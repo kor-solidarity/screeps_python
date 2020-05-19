@@ -36,6 +36,8 @@ def refresh_base_stats(chambro, all_structures, fix_rating, min_wall, spawns):
     :return:
     """
 
+    distance_to_controller = 5
+
     # 방 안 건물/소스현황 갱신.
     structure_cpu = Game.cpu.getUsed()
 
@@ -206,7 +208,7 @@ def refresh_base_stats(chambro, all_structures, fix_rating, min_wall, spawns):
                 # 확인 끝났으면 이제 방 업글용인지 확인한다. 방렙 8 미만인가?
                 if chambro.controller.level < 8:
                     # 컨테이너와의 거리가 컨트롤러에 비해 다른 스폰 또는 스토리지보다 더 먼가?
-                    # 컨트롤러부터의 실제 거리가 10 이하인가?
+                    # 컨트롤러부터의 실제 거리가 distance_to_controller 값 이하인가?
 
                     # 컨테이너와 컨트롤러간의 거리
                     controller_dist = \
@@ -219,11 +221,11 @@ def refresh_base_stats(chambro, all_structures, fix_rating, min_wall, spawns):
                     closest_storage_dist = 1000
                     if room_storage:
                         closest_storage_dist = len(stc.pos.findPathTo(room_storage, {'ignoreCreeps': True}))
-                    # 조건충족하면 업글용으로 분류 - 컨트롤러에서 10칸이내 + 스폰과 스토리지보다 가깝
+                    # 조건충족하면 업글용으로 분류 - 컨트롤러에서 distance_to_controller 이내 + 스폰과 스토리지보다 가깝
                     # 그리고 이 조건은 스토리지 지어질때까지 무시.
                     # print('container at x{}y{}, controller_dist {}, closest_spawn_dist {}, closest_storage_dist {}'
                     #       .format(stc.pos.x, stc.pos.y, controller_dist, closest_spawn_dist, closest_storage_dist))
-                    if room_storage and controller_dist <= 10 and \
+                    if room_storage and controller_dist <= distance_to_controller and \
                             controller_dist < closest_storage_dist and controller_dist < closest_spawn_dist:
                         _upgrade = 1
                         print('x{}y{}에 {}, 업글컨테이너로 분류'.format(stc.pos.x, stc.pos.y, stc.id))

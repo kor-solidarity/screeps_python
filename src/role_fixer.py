@@ -38,13 +38,13 @@ def run_fixer(creep, all_structures, constructions, creeps, repairs, min_wall, t
 
     end_is_near = 20
     # in case it's gonna die soon. this noble act is only allowed if there's a storage in the room.
-    if (creep.memory.die or creep.ticksToLive < end_is_near) and _.sum(creep.carry) != 0 and creep.room.storage:
+    if (creep.memory.die or creep.ticksToLive < end_is_near) and creep.store.getUsedCapacity() != 0 and creep.room.storage:
         creep.say('endIsNear')
         if creep.memory.haul_target:
             del creep.memory.haul_target
         elif creep.memory.pickup:
             del creep.memory.pickup
-        for minerals in Object.keys(creep.carry):
+        for minerals in Object.keys(creep.store):
             # print('minerals:', minerals)
             transfer_minerals_result = creep.transfer(creep.room.storage, minerals)
             # print(transfer_minerals_result)
@@ -62,13 +62,13 @@ def run_fixer(creep, all_structures, constructions, creeps, repairs, min_wall, t
         return
 
     # 자원이 없으면 초기화
-    if _.sum(creep.carry) == 0 and creep.memory.laboro != 0:
+    if creep.store.getUsedCapacity() == 0 and creep.memory.laboro != 0:
         creep.memory.laboro = 0
         creep.say('🚛보급!', True)
         del creep.memory.repair_target
         del creep.memory.path
 
-    if _.sum(creep.carry) > creep.carryCapacity / 2 and creep.memory.laboro == 0:
+    if creep.store.getUsedCapacity() > creep.store.getCapacity() / 2 and creep.memory.laboro == 0:
         creep.memory.laboro = 1
 
     # laboro: 0 == pickup something.
@@ -104,13 +104,13 @@ def run_fixer(creep, all_structures, constructions, creeps, repairs, min_wall, t
             storages = all_structures.filter(lambda s:
                                              ((s.structureType == STRUCTURE_CONTAINER
                                                or s.structureType == STRUCTURE_STORAGE)
-                                              and s.store[RESOURCE_ENERGY] >= creep.carryCapacity * .5)
+                                              and s.store[RESOURCE_ENERGY] >= creep.store.getCapacity() * .5)
                                              or (s.structureType == STRUCTURE_LINK
-                                                 and s.energy >= creep.carryCapacity * .5))
+                                                 and s.energy >= creep.store.getCapacity() * .5))
             # 만일 연구소를 안채우기로 했으면 거기서도 뽑는다.
             if Memory.rooms[creep.room.name].options.fill_labs == 0:
                 labs = all_structures \
-                    .filter(lambda s: s.structureType == STRUCTURE_LAB and s.energy >= creep.carryCapacity * .5)
+                    .filter(lambda s: s.structureType == STRUCTURE_LAB and s.energy >= creep.store.getCapacity() * .5)
                 storages.extend(labs)
             pickup_id = miscellaneous.pick_pickup(creep, creeps, storages, terminal_capacity)
             # 아무것도 없는 상태에서 이 크립이 절대!! 스폰되선 안됨.... 그건 있을 수 없는 일임....

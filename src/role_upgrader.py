@@ -33,10 +33,10 @@ def run_upgrader(creep, creeps, all_structures, repairs, constructions, dropped_
     terminal_capacity = 10000
 
     # in case it's gonna die soon. this noble act is only allowed if there's a storage in the room.
-    if creep.ticksToLive < 30 and _.sum(creep.carry) != 0 and creep.room.storage:
+    if creep.ticksToLive < 30 and creep.store.getUsedCapacity() != 0 and creep.room.storage:
         miscellaneous.repair_on_the_way(creep, repairs, constructions)
         creep.say('endIsNear')
-        for minerals in Object.keys(creep.carry):
+        for minerals in Object.keys(creep.store):
             # print('minerals:', minerals)
             transfer_minerals_result = creep.transfer(creep.room.storage, minerals)
             # print(transfer_minerals_result)
@@ -58,11 +58,11 @@ def run_upgrader(creep, creeps, all_structures, repairs, constructions, dropped_
         creep.memory.laboro = 0
 
     # setting laboro
-    if _.sum(creep.carry) == 0 and creep.memory.laboro == 1:
+    if creep.store.getUsedCapacity() == 0 and creep.memory.laboro == 1:
         creep.memory.laboro = 0
         creep.say('🔄 수확하러갑세!', True)
     # if carry is full and upgrading is false: go and upgrade
-    elif _.sum(creep.carry) >= creep.carryCapacity * .5 and creep.memory.laboro == 0:
+    elif creep.store.getUsedCapacity() >= creep.store.getCapacity() * .5 and creep.memory.laboro == 0:
         creep.say('⚡ Upgrade', True)
         creep.memory.laboro = 1
         del creep.memory.source_num
@@ -78,6 +78,8 @@ def run_upgrader(creep, creeps, all_structures, repairs, constructions, dropped_
         # 그것도 없으면? 캔다...
         # 이렇게 합시다.
 
+        if creep.memory.dropped:
+            harvest_stuff.pick_drops_act(creep, True)
         # 중간에 떨군거 있으면 집는다.
         if not creep.memory.dropped and len(dropped_all) > 0:
             harvest_stuff.filter_drops(creep, dropped_all, 5, True)
@@ -134,9 +136,9 @@ def run_upgrader(creep, creeps, all_structures, repairs, constructions, dropped_
                 # todo 다른방법 강구요망
                 if creep.room.terminal and \
                         creep.room.terminal.store[RESOURCE_ENERGY] >= \
-                        terminal_capacity + creep.carryCapacity:
+                        terminal_capacity + creep.store.getCapacity():
                     creep.memory.pickup = creep.room.terminal.id
-                elif creep.room.storage and creep.room.storage.store[RESOURCE_ENERGY] >= creep.carryCapacity * .5:
+                elif creep.room.storage and creep.room.storage.store[RESOURCE_ENERGY] >= creep.store.getCapacity() * .5:
                     creep.memory.pickup = creep.room.storage.id
                 else:
                     # print('pass')

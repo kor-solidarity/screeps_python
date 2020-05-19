@@ -235,8 +235,9 @@ def run_spawn(spawn: StructureSpawn, all_structures: List[Structure], room_creep
         # 스토리지가 있으면 안에 에너지량이 절대적인 생성기준이 된다.
         elif spawn.room.storage:
             # 스토리지가 생기면 원칙적으로 스토리지 안 에너지 양 / expected_reserve 값으로 할당량 배정
-            # 만약 1만 넘기면 5천단위로 세자. - 위에 초대형 애 감안한거. 단 렙7 아래에만. 그 아래는 뽑을수가 없음.
-            if spawn.room.storage.store[RESOURCE_ENERGY] > 9000 and room_level == 7:
+            # 만약 1만 넘기면 5천단위로 세자.
+            # 렙7 아래면 메가를 못뽑긴 한데 잔뜩 만든 상태에서 자원 고갈되면 그거대로 골치아파서.
+            if spawn.room.storage.store[RESOURCE_ENERGY] > 10000:
                 expected_reserve = 5000
                 mega_upgrader = True
             else:
@@ -272,6 +273,10 @@ def run_spawn(spawn: StructureSpawn, all_structures: List[Structure], room_creep
             else:
                 upgrader_quota += container_full * 4
 
+        # 업글러 최대 수 제한.
+        if upgrader_quota > 15:
+            upgrader_quota = 15
+
         # 허울러 계산.
         # 렙4부터 허울러 추가여부 적용한다. 컨테이너가 하나라도 꽉찬게 있으면 허울러 추가.
         if container_full and container_full <= 2:
@@ -295,6 +300,7 @@ def run_spawn(spawn: StructureSpawn, all_structures: List[Structure], room_creep
         # 일반적인 허울러 생산 조건: 방 내 허울러 누적 사이즈가 허울러 할당량을 채우지 못했을 시.
         multiplier = 2
         make_hauler = accumulated_size < hauler_quota * multiplier
+
         # 렙8이 아니면 허울러는 사이즈 누적 둘까지, 그 후 생산은 필요한 경우에도 업글러가 우선.
         if make_hauler and room_level < 8 and accumulated_size >= 2 and chambro.energyCapacityAvailable >= 400:
             # 업글러의 수가 실제 배정량보다 적으면 업글러부터 만들어야 하므로.

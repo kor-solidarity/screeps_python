@@ -45,20 +45,20 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
     end_is_near = 40
 
     # in case it's gonna die soon. switch to some other
-    if _.sum(creep.carry) > 0 and creep.ticksToLive < end_is_near and \
+    if creep.store.getUsedCapacity() > 0 and creep.ticksToLive < end_is_near and \
             (creep.memory.laboro == 0 or (creep.memory.laboro == 1 and creep.memory.priority != 2)):
         creep.say('endIsNear')
         creep.memory.laboro = 1
         creep.memory.priority = 2
-    elif _.sum(creep.carry) == 0 and creep.ticksToLive < end_is_near:
+    elif creep.store.getUsedCapacity() == 0 and creep.ticksToLive < end_is_near:
         creep.suicide()
         return
     # 50% 이상 차있으면 바로 운송으로 가되 container_full 이 걸렸으면 자원을 최대한 뽑아가야하는 상황임.
-    elif _.sum(creep.carry) >= creep.carryCapacity * .5 and not creep.memory.container_full:
+    elif creep.store.getUsedCapacity() >= creep.store.getCapacity() * .5 and not creep.memory.container_full:
         creep.memory.laboro = 1
     # 모든게 다 꽉 찬 상태면 바로 다음으로 간다.
     # todo 잘되나 확인요망
-    elif _.sum(creep.carry) == creep.carryCapacity:
+    elif creep.store.getUsedCapacity() == creep.store.getCapacity():
         creep.memory.laboro = 1
     elif not creep.memory.upgrade_target:
         creep.memory.upgrade_target = creep.room.controller['id']
@@ -111,7 +111,7 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
         for r in creep.memory[to_pickup]:
             creep.memory[to_home].insert(0, r)
     # 초기화 작업
-    if _.sum(creep.carry) == 0 and creep.memory.laboro != 0:
+    if creep.store.getUsedCapacity() == 0 and creep.memory.laboro != 0:
         creep.memory.laboro = 0
         creep.memory.priority = 0
 
@@ -126,7 +126,7 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
         del creep.memory.build_target
         creep.say('가즈아 ✈', True)
     # 절반이상 찬 상태에서 laboro 가 1이 아니고 container_full 가 안걸린 상태면 1로 바꾼다..??
-    elif _.sum(creep.carry) >= creep.carryCapacity * .5 and creep.memory.laboro != 1 \
+    elif creep.store.getUsedCapacity() >= creep.store.getCapacity() * .5 and creep.memory.laboro != 1 \
             and not creep.memory.container_full:
         creep.say("초기화, 1전환")
         creep.memory.laboro = 1
@@ -208,7 +208,7 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
         if not creep.memory.home_room == creep.pos.roomName and not creep.memory.dropped and len(dropped_all) > 0:
             # 만약에 당장 컨테이너가 없거나 내용물이 적으면 넓은 반경을 찾아본다.
             if not creep.memory.container or \
-                    _.sum(Game.getObjectById(creep.memory.container).store) < creep.carryCapacity * .4:
+                    _.sum(Game.getObjectById(creep.memory.container).store) < creep.store.getCapacity() * .4:
                 drop_search_distance = 10
             else:
                 drop_search_distance = 5
@@ -256,7 +256,7 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                     if creep.memory.refill == 2:
                         creep.memory.refill = 1
             elif result == ERR_NOT_ENOUGH_ENERGY:
-                if _.sum(creep.carry) > creep.carryCapacity * .4:
+                if creep.store.getUsedCapacity() > creep.store.getCapacity() * .4:
                     creep.memory.laboro = 1
                     creep.memory.priority = 0
                 else:
@@ -386,7 +386,7 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                 # 건설할게 더 없으면
                 if len(constructions) == 0:
                     # 안에 자원이 반이상 남아있으면 바로 운송 들어간다.
-                    if _.sum(creep.carry) >= creep.carryCapacity * .5:
+                    if creep.store.getUsedCapacity() >= creep.store.getCapacity() * .5:
                         creep.memory.priority = 2
                         creep.say('보급!', True)
                     # 반 이하면 다시 채우러.
@@ -567,7 +567,7 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                 haul_obj = Game.getObjectById(creep.memory.haul_target)
                 # 이제 다가가는거.
                 if creep.pos.isNearTo(haul_obj):
-                    if creep.carry[RESOURCE_ENERGY] == 0:
+                    if creep.store[RESOURCE_ENERGY] == 0:
                         transfer_result = ERR_NOT_ENOUGH_ENERGY
                     else:
                         transfer_result = creep.transfer(haul_obj, RESOURCE_ENERGY)
@@ -677,7 +677,7 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                 elif transfer_result == ERR_NOT_ENOUGH_ENERGY:
                     # 떨구라고 명령
                     just_drop = True
-                    stores = creep.carry
+                    stores = creep.store
                     # 스토리지가 있는 경우에만 에너지를 별도로 저장한다. 해당사항 없으면 다 떨굶
                     if creep.room.storage:
                         if haul_obj.structureType == STRUCTURE_CONTAINER or haul_obj.structureType == STRUCTURE_STORAGE:
@@ -727,7 +727,7 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
             try:
                 # 컨테이너와 3칸이상 떨어지면 복귀한다.
                 if not creep.pos.inRangeTo(Game.getObjectById(creep.memory.pickup), 3) \
-                        or creep.carry.energy == 0:
+                        or creep.store[RESOURCE_ENERGY] == 0:
                     creep.memory.laboro = 0
                     creep.memory.priority = 0
                     creep.say('🐜는 뚠뚠', True)

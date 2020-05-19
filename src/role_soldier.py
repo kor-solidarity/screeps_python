@@ -1,3 +1,5 @@
+from typing import List
+
 from defs import *
 import random
 import miscellaneous
@@ -14,7 +16,7 @@ __pragma__('noalias', 'update')
 
 
 # only for defending the remote room from ai
-def run_remote_defender(all_structures, creep, creeps, hostile_creeps, lairs=None):
+def run_remote_defender(all_structures, creep:Creep, creeps:List[Creep], hostile_creeps:List[Creep], lairs=None):
     """
     blindly search and kills npc invaders
 
@@ -62,7 +64,7 @@ def run_remote_defender(all_structures, creep, creeps, hostile_creeps, lairs=Non
         # 거리안에 없으면 무조건 펑펑 터친다
         creep.rangedMassAttack()
 
-        enemy = creep.pos.findClosestByRange(enemies)
+        enemy: Creep = creep.pos.findClosestByRange(enemies)
 
         distance = creep.pos.getRangeTo(enemy)
         # 거리유지
@@ -85,7 +87,9 @@ def run_remote_defender(all_structures, creep, creeps, hostile_creeps, lairs=Non
             if creep.hits < creep.hitsMax:
                 creep.cancelOrder('rangedMassAttack')
                 creep.heal(Game.getObjectById(creep.id))
-            creep.moveTo(enemy, {'visualizePathStyle': {'stroke': '#FF0000'}, 'ignoreCreeps': False, 'range': 3})
+
+            movement.ranged_move(creep, enemy.id, creeps)
+            # creep.moveTo(enemy, {'visualizePathStyle': {'stroke': '#FF0000'}, 'ignoreCreeps': False, 'range': 3})
 
     # no enemies? heal the comrades and gtfo of the road
     else:
@@ -93,10 +97,14 @@ def run_remote_defender(all_structures, creep, creeps, hostile_creeps, lairs=Non
 
         if len(wounded) > 0:
             closest = creep.pos.findClosestByRange(wounded)
-            heal = creep.heal(closest)
+            if creep.pos.isNearTo(closest):
+                heal = creep.heal(closest)
+            else:
+                heal = creep.rangedHeal(closest)
 
-            if heal != 0:
-                creep.moveTo(closest, {'visualizePathStyle': {'stroke': '#FF0000', 'opacity': .25}})
+            if heal != OK:
+                movement.ranged_move(creep, closest.id, creeps)
+                # creep.moveTo(closest, {'visualizePathStyle': {'stroke': '#FF0000', 'opacity': .25}})
 
         # elif creep.memory.keeper_lair:
         # 방에 컨트롤러가 없다는건 키퍼레어가 있단 소리니..

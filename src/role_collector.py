@@ -22,9 +22,9 @@ def collector(creep, creeps, dropped_all, all_structures):
 
     # in case it's gonna die soon. this noble act is only allowed if there's a storage in the room.
     # todo 자원 뽑아오는게 스토리지가 아닐 경우 스토리지로 반납하러 가는길에 죽을 가능성이 있음.
-    if creep.ticksToLive < 50 and _.sum(creep.carry) != 0 and creep.room.storage:
+    if creep.ticksToLive < 50 and creep.store.getUsedCapacity() != 0 and creep.room.storage:
         creep.say('endIsNear')
-        for minerals in Object.keys(creep.carry):
+        for minerals in Object.keys(creep.store):
             # print('minerals:', minerals)
             transfer_minerals_result = creep.transfer(creep.room.storage, minerals)
             # print(transfer_minerals_result)
@@ -43,11 +43,11 @@ def collector(creep, creeps, dropped_all, all_structures):
         creep.heal()
     
     # setting laboro
-    if _.sum(creep.carry) == 0 and creep.memory.laboro == 1:
+    if creep.store.getUsedCapacity() == 0 and creep.memory.laboro == 1:
         creep.memory.laboro = 0
         creep.say('🧹쓸러~', True)
     # if carry is full and upgrading is false: go and upgrade
-    elif _.sum(creep.carry) == creep.carryCapacity and creep.memory.laboro == 0:
+    elif creep.store.getUsedCapacity() == creep.store.getCapacity() and creep.memory.laboro == 0:
         creep.say('티끌모아태산', True)
         creep.memory.laboro = 1
 
@@ -98,7 +98,7 @@ def collector(creep, creeps, dropped_all, all_structures):
                 movement.get_to_da_room(creep, creep.memory.home_room)
             else:
                 # 만일 가지고 있는게 에너지 뿐일 경우 - 링크로 가도 됨.
-                if _.sum(creep.carry) == creep.carry[RESOURCE_ENERGY]:
+                if creep.store.getUsedCapacity() == creep.store[RESOURCE_ENERGY]:
                     # 에너지만 있으면 1, 더 있으면 2
                     creep.memory.sources = 1
                     containers_and_links = all_structures.filter(lambda s: s.structureType == STRUCTURE_CONTAINER
@@ -126,7 +126,7 @@ def collector(creep, creeps, dropped_all, all_structures):
                     haul_target = creep.pos.findClosestByRange(containers)
                     creep.memory.haul_target = haul_target.id
 
-            for resource in Object.keys(creep.carry):
+            for resource in Object.keys(creep.store):
                 storage_transfer = creep.transfer(Game.getObjectById(creep.memory.haul_target), resource)
 
                 if storage_transfer == ERR_NOT_IN_RANGE:

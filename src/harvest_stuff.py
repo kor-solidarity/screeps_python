@@ -71,12 +71,12 @@ def grab_energy(creep, pickup, only_energy, min_capacity=.5):
                 storage = Game.getObjectById(pickup).store[RESOURCE_ENERGY]
             else:
                 storage = _.sum(Game.getObjectById(pickup).store)
-            if storage < (creep.carryCapacity - _.sum(creep.carry)) * min_capacity:
+            if storage < (creep.store.getCapacity() - creep.store.getUsedCapacity()) * min_capacity:
                 del pickup
                 # print('checkpoint?')
                 return ERR_NOT_ENOUGH_ENERGY
         else:
-            if Game.getObjectById(pickup).energy < (creep.carryCapacity - _.sum(creep.carry)) * min_capacity:
+            if Game.getObjectById(pickup).energy < (creep.store.getCapacity() - creep.store.getUsedCapacity()) * min_capacity:
                 del pickup
                 # print('checkpoint222')
                 return ERR_NOT_ENOUGH_ENERGY
@@ -181,7 +181,7 @@ def grab_energy_new(creep, resource_type, min_capacity=.5):
     # 그외는 전부 링크나 등등. 에너지만 보면 됨 이건.
     else:
         storage = pickup_obj.energy
-    if storage < (creep.carryCapacity - _.sum(creep.carry)) * min_capacity:
+    if storage < (creep.store.getCapacity() - creep.store.getUsedCapacity()) * min_capacity:
         return ERR_NOT_ENOUGH_ENERGY
 
     # 근처에 없으면 아래 확인하는 의미가 없다.
@@ -294,7 +294,7 @@ def filter_drops(creep, _drops, target_range, only_energy=False):
         for cr in Object.keys(Game.creeps):
             c = Game.creeps[cr]
             if not c.id == creep.id and c.memory.dropped and c.memory.dropped == drop.id:
-                resource_amount -= c.carryCapacity
+                resource_amount -= c.store.getCapacity()
         # 리소스 양이 다른 크립이 가져가고도 남아있으면 선택한다.
         if resource_amount > 0:
             target = drop.id
