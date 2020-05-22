@@ -133,7 +133,7 @@ def get_findPathTo(start, target, target_range=0, ignore_creeps=True):
     else:
         path = \
             PathFinder.search(start, target,
-                              {'plainCost': 2, 'swampCost': 6, 'maxOps': 5000,
+                              {'plainCost': 3, 'swampCost': 6, 'maxOps': 5000,
                                 'roomCallback':
                                     lambda room_name:
                                     Costs(room_name, {'trackCreeps': bool(not ignoreCreeps)}).load_matrix()},).path
@@ -310,7 +310,7 @@ def get_bld_upg_path(creep, creeps, target, target_range=3):
 
     # 돌아올 패스 어레이
     path_arr = creep.pos.findPathTo(target,
-                                 {'plainCost': 2, 'swampCost': 6, 'ignoreCreeps': True, 'range': 3,
+                                 {'plainCost': 3, 'swampCost': 6, 'ignoreCreeps': True, 'range': 3,
                                   'costCallback':
                                       lambda room_name: Costs(room_name, opts).load_matrix()})
     # 크립 본인의 위치도 길에 포함시킨다.

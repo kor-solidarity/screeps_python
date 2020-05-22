@@ -376,8 +376,7 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
             # creep.say(build_result)
             # print('build_result:', build_result)
             if build_result == ERR_NOT_IN_RANGE:
-                move_res = creep.moveTo(Game.getObjectById(creep.memory.build_target)
-                                        , {'visualizePathStyle': {'stroke': '#ffffff'}, 'reusePath': 10, 'range': 3})
+                move_res = movement.ranged_move(creep, creep.memory.build_target, creeps)
                 # print('move_res:', move_res)
             # if there's nothing to build or something
             elif build_result == ERR_INVALID_TARGET:
@@ -429,7 +428,6 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                                 build_road = creep.pos.createConstructionSite(STRUCTURE_ROAD)
                                 break
                     # creep.say('noRoad {}'.format(build_road))
-
             # 본진도착
             else:
                 # todo haul_destos 또는 그 안에 건물이 없어졌을시 대비 필요
@@ -722,8 +720,17 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                 creep.memory.priority = 2
                 creep.say('운송만 하겠수다', True)
 
-            repair = creep.pos.findClosestByRange(repairs)
-            repair_result = creep.repair(repair)
+            pickup_obj = Game.getObjectById(creep.memory.pickup)
+            # 픽업을 최우선으로 수리한다.
+            if pickup_obj and pickup_obj.hits < pickup_obj.maxHits and pickup_obj.pos.inRangeTo(creep, 3):
+                repairs = pickup_obj
+            # todo 임시조치임, 수정좀
+            repair_result = ERR_NO_BODYPART
+            if len(repairs) > 0 and creep.memory.work:
+                repair_result = repair_on_the_way(creep, repairs, constructions, False, True)
+
+            # repair = creep.pos.findClosestByRange(repairs)
+            # repair_result = creep.repair(repair)
             try:
                 # 컨테이너와 3칸이상 떨어지면 복귀한다.
                 if not creep.pos.inRangeTo(Game.getObjectById(creep.memory.pickup), 3) \
@@ -746,8 +753,8 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
             elif repair_result == ERR_NO_BODYPART:
                 creep.memory.priority = 2
             elif repair_result == 0:
-                if _.sum(Game.getObjectById(creep.memory.pickup).store) \
-                        == Game.getObjectById(creep.memory.pickup).storeCapacity:
+                if Game.getObjectById(creep.memory.pickup).store.getCapacity() \
+                        == Game.getObjectById(creep.memory.pickup).store.getUsedCapacity():
                     creep.say('수리보다 운송!', True)
                     creep.memory.laboro = 0
                     creep.memory.priority = 0

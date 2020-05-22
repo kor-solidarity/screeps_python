@@ -171,16 +171,15 @@ def run_hauler(creep: Creep, all_structures: List[Structure], constructions,
                 # 단, 저렙일 시 50% 까지.
                 # 물론 안에 에너지가 있어야겠지.
                 # todo 미네랄 옮기는것도 해야함.
-                if ((creep.room.controller.level < 6
-                     and creep.room.energyAvailable <= creep.room.energyCapacityAvailable * .5)
-                    or
-                    (creep.room.energyAvailable <= creep.room.energyCapacityAvailable * .3)) \
-                        and creep.room.storage and creep.room.storage.store.getCapacity(RESOURCE_ENERGY):
-                    to_storage_chance = 1
-                else:
-                    to_storage_chance = 0
+                to_storage_chance = 0
+                if creep.room.storage:
+                    multiplier = .3
+                    if creep.room.controller.level < 6:
+                        multiplier = .5
+                    if creep.room.energyAvailable <= creep.room.energyCapacityAvailable * multiplier:
+                        to_storage_chance = 1
 
-                storages = []
+                store_targets = []
                 # find any containers/links with any resources inside
                 for c in creep.room.memory[STRUCTURE_CONTAINER]:
                     # 업글용이 아닌거 걸러낸다. 만렙일때만.
@@ -193,7 +192,7 @@ def run_hauler(creep: Creep, all_structures: List[Structure], constructions,
                             continue
                     container = Game.getObjectById(c.id)
                     if container and _.sum(container.store) >= creep.store.getCapacity() * .5:
-                        storages.append(container)
+                        store_targets.append(container)
 
                 for l in creep.room.memory[STRUCTURE_LINK]:
                     # 업글용 링크는 무시
@@ -205,20 +204,23 @@ def run_hauler(creep: Creep, all_structures: List[Structure], constructions,
                         continue
                     link = Game.getObjectById(l.id)
                     if link and link.energy >= creep.store.getCapacity() * .5:
-                        storages.append(link)
+                        store_targets.append(link)
 
                 if to_storage_chance:
-                    storages.append(creep.room.storage)
+                    store_targets.append(creep.room.storage)
 
                 # 위 목록 중에서 가장 가까이 있는 컨테이너를 뽑아간다.
                 # 만약 뽑아갈 대상이 없을 시 터미널, 스토리지를 각각 찾는다.
                 # 만일 연구소를 안채우기로 했으면 거기서도 뽑는다.
                 if Memory.rooms[creep.room.name].options and Memory.rooms[creep.room.name].options.fill_labs == 0:
-                    labs = all_structures \
-                        .filter(lambda s: s.structureType == STRUCTURE_LAB and s.energy >= creep.store.getCapacity() * .5)
-                    storages.extend(labs)
-                    # todo 터미널의 경우 얼마나 뽑을 수 있는지 명확하게 해야할 것.
-                pickup_id = miscellaneous.pick_pickup(creep, creeps, storages, terminal_capacity)
+                    labs = \
+                        all_structures.filter(
+                            lambda s: s.structureType == STRUCTURE_LAB
+                                      and s.store.getUsedCapacity(RESOURCE_ENERGY) >= creep.store.getCapacity() * .5)
+                    store_targets.extend(labs)
+                # todo 터미널의 경우 얼마나 뽑을 수 있는지 명확하게 해야할 것.
+                #   거기다가 이거 특정 자원만 뽑으려 할때 엉킴.
+                pickup_id = miscellaneous.pick_pickup(creep, creeps, store_targets, haul_all)
 
                 # 뽑아갈 게 없는 경우
                 if pickup_id == ERR_INVALID_TARGET:
@@ -345,8 +347,10 @@ def run_hauler(creep: Creep, all_structures: List[Structure], constructions,
                 # if there's nothing in the storage they harvest on their own.
                 if not creep.memory.source_num:
                     creep.memory.source_num = creep.pos.findClosestByRange(creep.room.find(FIND_SOURCES)).id
-
-                harvest_energy(creep, creep.memory.source_num)
+                harvest_result = harvest_energy(creep, creep.memory.source_num)
+                if harvest_result == ERR_NOT_ENOUGH_RESOURCES_AND_CARRYING_SOMETHING:
+                    creep.memory.laboro = 1
+                    creep.memory.priority = 0
         # 꽉차면 초기화작업과 작업변환.
         if creep.store.getUsedCapacity() >= creep.store.getCapacity():
             init_memory(creep, 1)

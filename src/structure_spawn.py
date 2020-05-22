@@ -235,19 +235,18 @@ def run_spawn(spawn: StructureSpawn, all_structures: List[Structure], room_creep
         # 스토리지가 있으면 안에 에너지량이 절대적인 생성기준이 된다.
         elif spawn.room.storage:
             # 스토리지가 생기면 원칙적으로 스토리지 안 에너지 양 / expected_reserve 값으로 할당량 배정
-            # 만약 1만 넘기면 5천단위로 세자.
-            # 렙7 아래면 메가를 못뽑긴 한데 잔뜩 만든 상태에서 자원 고갈되면 그거대로 골치아파서.
-            if spawn.room.storage.store[RESOURCE_ENERGY] > 10000:
+            # 렙7 인데 1만 넘기면 5천단위로 세자. 그 대신 큰애들로 뽑는다.
+            if spawn.room.controller.level < 7 and spawn.room.storage.store[RESOURCE_ENERGY] > 10000:
                 expected_reserve = 5000
                 mega_upgrader = True
             else:
                 expected_reserve = 3000
 
             # if storage has less than expected_reserve
-            if spawn.room.storage.store[RESOURCE_ENERGY] < expected_reserve:
-                upgrader_quota = 1
-            # more than 30k
-            elif spawn.room.storage.store[RESOURCE_ENERGY] >= expected_reserve:
+            # if spawn.room.storage.store[RESOURCE_ENERGY] < expected_reserve:
+            #     upgrader_quota = 1
+            # more than 3k
+            if spawn.room.storage.store[RESOURCE_ENERGY] >= expected_reserve:
                 upgrader_quota = 1
                 # extra upgrader every expected_reserve
                 upgrader_quota += int(spawn.room.storage.store[RESOURCE_ENERGY] / expected_reserve)
@@ -1030,7 +1029,7 @@ def run_spawn(spawn: StructureSpawn, all_structures: List[Structure], room_creep
                                               'assigned_room': room_name, 'home_room': spawn.pos.roomName}})
                                 if spawn_res != OK:
                                     spawn_res = spawn.spawnCreep(
-                                        [TOUGH, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, RANGED_ATTACK,
+                                        [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, RANGED_ATTACK, RANGED_ATTACK,
                                          RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, HEAL, HEAL],
                                         'df_{}_{}'.format(room_name_low, rand_int),
                                         {memory: {'role': 'soldier', 'soldier': 'remote_defender',
@@ -1052,11 +1051,11 @@ def run_spawn(spawn: StructureSpawn, all_structures: List[Structure], room_creep
                                 'df_{}_{}'.format(room_name_low, rand_int),
                                 {memory: {'role': 'soldier', 'soldier': 'remote_defender',
                                           'assigned_room': room_name, 'home_room': spawn.pos.roomName}})
-
-                        if spawn_res == OK:
-                            return
-                        elif spawn_res == ERR_NOT_ENOUGH_RESOURCES:
-                            pass
+                        return
+                        # if spawn_res == OK:
+                        #     return
+                        # elif spawn_res == ERR_NOT_ENOUGH_RESOURCES:
+                        #     pass
 
                     # 방 안에 적이 있으면 방위병이 생길때까지 생산을 하지 않는다.
                     if len(hostiles) > 0:
@@ -1298,9 +1297,7 @@ def run_spawn(spawn: StructureSpawn, all_structures: List[Structure], room_creep
                     # 그리고 그걸 기존에 있는 캐리어들 사이즈값으로 빼고 남는게 있으면 생산절차 돌입.
 
                     # 스폰 내 총 에너지량이 1/3 이하면 아예 돌리지 않는다.
-                    # 안그러면 중간에 자원부족으로 조그만 애들이 스폰될 시 자원 충분해도 그거만 뽑아버림...
-                    # todo 그냥 한번에 최대치를 뽑게끔 수정해야할듯
-                    #   한마디로 이건 현재 임시방편
+                    # 안그러면 중간에 자원부족으로 조그만 애들이 스폰될 시 자원 충분해도 그거만 뽑아버림...1
                     if chambro.energyAvailable / chambro.energyCapacityAvailable < 1 / 3:
                         continue
 
@@ -1326,15 +1323,16 @@ def run_spawn(spawn: StructureSpawn, all_structures: List[Structure], room_creep
                         if source_assigned:
                             # 먼저 이 소스에 배정된 캐리어 수부터 구한다.
                             # ttl 150 이상 남은 배정된 캐리어
-                            carrier_creep = _.filter(Game.creeps, lambda c: c.memory.source_num == s.id
-                                                                            and c.memory.role == 'carrier'
-                                                                            and (c.spawning or c.ticksToLive > 150))
+                            carrier_creep = \
+                                _.filter(Game.creeps,
+                                         lambda c: c.memory.source_num == s.id and c.memory.role == 'carrier'
+                                                   and (c.spawning or c.ticksToLive > 150))
 
                             # ttl 이 좀 남아있는 배정된 캐리어.
-                            carrier_creep_healthy = _.filter(Game.creeps,
-                                                             lambda c: c.memory.source_num == s.id
-                                                                       and c.memory.role == 'carrier'
-                                                                       and (c.spawning or c.ticksToLive > 600))
+                            carrier_creep_healthy = \
+                                _.filter(Game.creeps, lambda c: c.memory.source_num == s.id
+                                                                and c.memory.role == 'carrier'
+                                                                and (c.spawning or c.ticksToLive > 600))
 
                             # 패스파인딩 할때 최대한 피해야 하는 구간.
                             objs = _.clone(flag_energy_sources)
@@ -1550,7 +1548,7 @@ def run_spawn(spawn: StructureSpawn, all_structures: List[Structure], room_creep
         )
     else:
         # 주변에 있는 크립 회복조치.
-        # 이 곳에 필요한거: spawn 레벨보다 같거나 높은 애들 지나갈 때 TTL이 오백 이하면 회복시켜준다.
+        # 이 곳에 필요한거: spawn 레벨보다 같거나 높은 애들 지나갈 때 TTL 오백 이하면 회복시켜준다.
         # room controller lvl ± 2 에 부합한 경우에만 수리를 실시한다.
         # 렙 6 미만일 땐 회복 자체를 안한다. 좀 더 다양한(?) 회복법 강구요망
         if room_level >= 6:
@@ -1585,9 +1583,11 @@ def run_spawn(spawn: StructureSpawn, all_structures: List[Structure], room_creep
                                  or len(_.filter(room_creeps, lambda c: c.memory.role == 'hauler')) > 1):
                         no_renew = True
                     # 업글러는 스토리지 자원 오천당 수리대상의 업글러의 수로 계산한다.
-                    elif creep.memory.role == 'upgrader':
-                        storage_amount = 5000 * len(_.filter(room_creeps, lambda c: c.memory.role == 'upgrader'
-                                                                                    and c.memory.level >= room_level))
+                    elif creep.memory.role == 'upgrader' and not room_level == 8:
+                        storage_amount = \
+                            3000 * \
+                            (len(_.filter(room_creeps,
+                                          lambda c: c.memory.role == 'upgrader' and c.memory.level >= room_level)) - 1)
 
                     elif creep.memory.role == 'fixer':
                         # 수리대상 10개 이하면 거의 끝이란 소리니 회복대상에서 제외
@@ -1617,7 +1617,7 @@ def determine_carrier_size(criteria: int, work_chance=0, small=False):
     :param criteria: 몇짜리 크기인지 확인
     :param work_chance: WORK 바디를 넣을지 말지 확인
     :param small: 크기 작게? - 만일 참이면 WORK 6개 배정을 4로 줄인다
-    :return: [size]
+    :return: [size], cost
     """
 
     # 만드는데 드는 비용

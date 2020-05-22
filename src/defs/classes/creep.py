@@ -26,8 +26,6 @@ class _CreepPart:
 class Creep(RoomObject):
     """
     :type body: list[_CreepPart]
-    :type carry: dict[str, int]
-    :type carryCapacity: int
     :type fatigue: int
     :type hits: int
     :type hitsMax: int
@@ -43,17 +41,14 @@ class Creep(RoomObject):
 
     prototype = None  # type: ClassVar[Any]
 
-    def __init__(self, pos: RoomPosition, room: Room, body: List[_CreepPart], carry: Dict[str, int],
-                 carryCapacity: int, fatigue: int, hits: int, hitsMax: int, _id: str, memory: _Memory,
-                 my: bool, name: str, owner: _Owner, saying: Optional[str], spawning: bool,
-                 store: Store, ticksToLive: int) -> None:
+    def __init__(self, pos: RoomPosition, room: Room, body: List[_CreepPart], fatigue: int,
+                 hits: int, hitsMax: int, _id: str, memory: _Memory, my: bool, name: str,
+                 owner: _Owner, saying: Optional[str], spawning: bool, store: Store, ticksToLive: int) -> None:
         """
         WARNING: This constructor is purely for type completion, and does not exist in the game.
         """
         super().__init__(pos, room)
         self.body = body
-        self.carry = carry
-        self.carryCapacity = carryCapacity
         self.fatigue = fatigue
         self.hits = hits
         self.hitsMax = hitsMax

@@ -112,7 +112,7 @@ def run_fixer(creep, all_structures, constructions, creeps, repairs, min_wall, t
                 labs = all_structures \
                     .filter(lambda s: s.structureType == STRUCTURE_LAB and s.energy >= creep.store.getCapacity() * .5)
                 storages.extend(labs)
-            pickup_id = miscellaneous.pick_pickup(creep, creeps, storages, terminal_capacity)
+            pickup_id = miscellaneous.pick_pickup(creep, creeps, storages)
             # 아무것도 없는 상태에서 이 크립이 절대!! 스폰되선 안됨.... 그건 있을 수 없는 일임....
             if pickup_id == ERR_INVALID_TARGET:
                 creep.say('뽑아갈게없다?', True)

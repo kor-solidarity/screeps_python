@@ -116,7 +116,7 @@ def run_remote_defender(all_structures, creep:Creep, creeps:List[Creep], hostile
                 creep.memory.keeper_lair_spawning = closest_lair.id
 
             closest_lair_obj = Game.getObjectById(creep.memory.keeper_lair_spawning)
-            if not creep.pos.inRangeTo(closest_lair_obj, 3):
+            if not creep.pos.inRangeTo(closest_lair_obj, 2):
                 creep.moveTo(closest_lair_obj, {'visualizePathStyle': {'stroke': '#FF0000', 'opacity': .25}
                              , 'range': 3, 'reusePath': 10})
         else:

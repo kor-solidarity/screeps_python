@@ -111,19 +111,20 @@ def filter_friend_foe(foreign_creeps):
     return [all_enemies, npc_enemies, player_enemies, friendly]
 
 
-def pick_pickup(creep, creeps, pickup_targets, terminal_capacity=10000, upgrade=False):
+def pick_pickup(creep, creeps, pickup_targets, resource_type=RESOURCE_ENERGY):
     """
     designate pickup memory by targeted haulers/upgraders/fixers
 
-    :param terminal_capacity:
     :param creep: 크립본인
     :param creeps: 방안에 모든 크립, 또는 비교대상인 모든 크립
     :param pickup_targets: 뽑아갈 대상 자원.
-    :param upgrade: 이걸 찾는 대상이 컨트롤러 업글하는애인가?
+    :param resource_type: 뽑을 자원이 무엇인가?
     :return storage: closest storage with energy left
     """
     # 업글 관련해서전용
     passed_upgr = False
+
+    # todo 최대한 빨리 이거 정리할것!!! 버그걸림
 
     # will filter for leftover energy,
     # tldr - if theres already a creep going for it, dont go unless there's some for you.
@@ -135,14 +136,20 @@ def pick_pickup(creep, creeps, pickup_targets, terminal_capacity=10000, upgrade=
             break
 
         # 가장 가까운 대상
-        # loop_storage = creep.pos.findClosestByRange(pickup_targets)
         loop_storage = creep.pos.findClosestByPath(pickup_targets, {ignoreCreeps: True})
 
         if not loop_storage:
             break
 
-        if loop_storage.structureType == STRUCTURE_LAB or loop_storage.structureType == STRUCTURE_LINK:
-            stored_energy = loop_storage.energy
+        if loop_storage.structureType == STRUCTURE_LAB \
+                or loop_storage.structureType == STRUCTURE_LINK:
+            stored_energy = loop_storage.store.getUsedCapacity(resource_type)
+            # todo 랩 자원뽑을때 대비해서 추후 바꿔야됨.
+            if resource_type == haul_all:
+                stored_energy = loop_storage.store.getUsedCapacity(RESOURCE_ENERGY)
+            # 널값 떴을 경우.
+            if not stored_energy:
+                stored_energy = 0
 
         # todo 이 컨테이너 확인을 메모리가 존재할때만 하고 거리도 실질적으로 맞게 변환해야한다.
         # 예전엔 대상을 찾아서 이게 업글용인건지(즉 소스근처가 아닌거) 확인용도였음. 이제 그건 컨테이너 메모리에 적혀있음.
@@ -152,11 +159,15 @@ def pick_pickup(creep, creeps, pickup_targets, terminal_capacity=10000, upgrade=
             stored_energy = _.sum(loop_storage.store)
 
         elif loop_storage.structureType == STRUCTURE_STORAGE:
-            if upgrade:
-                stored_energy = loop_storage.store[RESOURCE_ENERGY]
+            stored_energy = loop_storage.store.getUsedCapacity(resource_type)
+            if resource_type == haul_all:
+                # todo 임시임!! 꼭 추후 수정해야함.
+                stored_energy = loop_storage.store.getUsedCapacity(RESOURCE_ENERGY)
+            if not stored_energy:
+                stored_energy = 0
                 # print('the storage energy', stored_energy)
-            else:
-                stored_energy = _.sum(loop_storage.store)
+            # else:
+            #     stored_energy = _.sum(loop_storage.store)
         # 위에 해당사항 없으면 뽑는 대상 자체가 아닌거임.
         else:
             stored_energy = 0
@@ -164,14 +175,17 @@ def pick_pickup(creep, creeps, pickup_targets, terminal_capacity=10000, upgrade=
         if stored_energy:
             for c in creeps:
                 # if hauler dont have pickup, pass
-                if not c.memory.pickup:
-                    continue
-                else:
-                    # if same id, drop the amount the c can carry.
-                    if loop_storage.id == c.memory.pickup:
-                        stored_energy -= c.store.getCapacity()
-                    else:
-                        continue
+                if loop_storage.id == c.memory.pickup:
+                    stored_energy -= c.store.getFreeCapacity()
+                # NULLIFIED - 통과해도 될거같은데?
+                # if not c.memory.pickup:
+                #     continue
+                # else:
+                #     # if same id, drop the amount the c can carry.
+                #     if loop_storage.id == c.memory.pickup:
+                #         stored_energy -= c.store.getCapacity()
+                #     else:
+                #         continue
         # if leftover stored_energy has enough energy for carry, set pickup.
         if stored_energy >= int((creep.store.getCapacity() - creep.store.getUsedCapacity()) * .5):
             return loop_storage.id
@@ -358,16 +372,17 @@ def repair_on_the_way(creep, repairs, constructions, upgrader=False, irregular=F
         if creep.pos.inRangeTo(creep.room.controller, 3) and run_upg:
             creep.upgradeController(creep.room.controller)
     # 건설과 수리 둘중 하나만.
-    bld = ERR_UNDONE_CONSTANT
+    repair_or_build_result = ERR_UNDONE_CONSTANT
     if len(constructions) > 0:
         building = creep.pos.findClosestByRange(constructions)
         if creep.pos.inRangeTo(building, 3):
-            bld = creep.build(building)
-    if len(repairs) > 0 and not bld == 0:
+            repair_or_build_result = creep.build(building)
+    if len(repairs) > 0 and not repair_or_build_result == 0:
         repair = creep.pos.findClosestByRange(repairs)
         if repair and creep.pos.inRangeTo(repair, 3):
-            creep.repair(repair)
+            repair_or_build_result = creep.repair(repair)
 
+    return repair_or_build_result
 
 # def map_changer(map_name, desto):
 
