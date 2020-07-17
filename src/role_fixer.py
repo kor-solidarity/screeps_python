@@ -53,7 +53,7 @@ def run_fixer(creep, all_structures, constructions, creeps, repairs, min_wall, t
                 break
             elif transfer_minerals_result == 0:
                 break
-        if creep.memory.die and min_wall:
+        if creep.memory.die and len(min_wall):
             creep.say('예토전생!', True)
             del creep.memory.die
         return

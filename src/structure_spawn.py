@@ -235,8 +235,8 @@ def run_spawn(spawn: StructureSpawn, all_structures: List[Structure], room_creep
         # 스토리지가 있으면 안에 에너지량이 절대적인 생성기준이 된다.
         elif spawn.room.storage:
             # 스토리지가 생기면 원칙적으로 스토리지 안 에너지 양 / expected_reserve 값으로 할당량 배정
-            # 렙7 인데 1만 넘기면 5천단위로 세자. 그 대신 큰애들로 뽑는다.
-            if spawn.room.controller.level < 7 and spawn.room.storage.store[RESOURCE_ENERGY] > 10000:
+            # 렙7 이면 9천부터 5천단위로 세자. 그 대신 큰애들로 뽑는다.
+            if spawn.room.controller.level == 7 and spawn.room.storage.store[RESOURCE_ENERGY] >= 9000:
                 expected_reserve = 5000
                 mega_upgrader = True
             else:
@@ -298,6 +298,9 @@ def run_spawn(spawn: StructureSpawn, all_structures: List[Structure], room_creep
 
         # 일반적인 허울러 생산 조건: 방 내 허울러 누적 사이즈가 허울러 할당량을 채우지 못했을 시.
         multiplier = 2
+        # todo 이 경우도 생각하긴 해야할거 같은데, 에너지 주변 공간이 부족해서 하나밖에 못캔다던가 등의 조건이 필요함
+        # if spawn.room.controller.level < 4:
+        #     multiplier = 1
         make_hauler = accumulated_size < hauler_quota * multiplier
 
         # 렙8이 아니면 허울러는 사이즈 누적 둘까지, 그 후 생산은 필요한 경우에도 업글러가 우선.
@@ -310,8 +313,11 @@ def run_spawn(spawn: StructureSpawn, all_structures: List[Structure], room_creep
         #       'hauler_quota', hauler_quota,
         #       'accumulated_size', accumulated_size,
         #       'upgrader_quota', upgrader_quota,
+        #       'mega_upgrader', mega_upgrader,
         #       'len(creep_upgraders)', len(creep_upgraders),
         #       'energyCapacityAvailable', chambro.energyCapacityAvailable)
+        # if spawn.room.storage:
+        #     print('storage.store[RESOURCE_ENERGY]', spawn.room.storage.store[RESOURCE_ENERGY])
 
         if make_hauler:
             # 순서는 무조건 아래와 같다. 무조건 덩치큰게 장땡.
@@ -345,12 +351,17 @@ def run_spawn(spawn: StructureSpawn, all_structures: List[Structure], room_creep
                 # print("hl_body[{}]: {}, hl_cost: {}".format(hl_body_counter, hauler_body[hl_body_counter], hl_cost))
                 # print("chambro.energyCapacityAvailable: {}".format(chambro.energyCapacityAvailable))
                 # print('hauler_body[hl_body_counter({})][1] {}'
-                # .format(hl_body_counter, hauler_body[hl_body_counter][1]))
+                #       .format(hl_body_counter, hauler_body[hl_body_counter][1]))
                 # WORK 1 짜리는 에너지가 그다음 바디를 뽑을 수 있는 상황이 되면
                 # 허울러가 전혀 없는게 아닌 한 뽑지 않는다.
-                if hauler_body[hl_body_counter][1] == 1 and chambro.energyCapacityAvailable > hl_cost \
-                        and len(creep_haulers):
-                    break
+                # 단, 1짜리만 뽑을 수 있는 상황이면(렙 3 이하 또는 창고가 없는 경우) 제외.
+                # todo ^ this is a temporary solution.
+                #
+                # if hauler_body[hl_body_counter][1] == 1 \
+                #         and chambro.energyCapacityAvailable > hl_cost \
+                #         and len(creep_haulers) \
+                #         and (chambro.controller.level > 4 or not chambro.storage):
+                #     break
                 spawn_res = spawn.spawnCreep(hl_body, 'hl_{}_{}'.format(spawn_room_low, rand_int),
                                              {memory: {'role': 'hauler', 'assigned_room': spawn.pos.roomName,
                                                        'size': hauler_body[hl_body_counter][3],
@@ -408,7 +419,7 @@ def run_spawn(spawn: StructureSpawn, all_structures: List[Structure], room_creep
             # 업글러에 할당할 몸체. 이동 노동 운반 레벨.
             # 뒤로 갈수록 작아지는걸로. 총 7개. 마지막이 렙8때꺼.
             upgrader_body = [13, 20, 6, 7], \
-                            [10, 10, 6, 7], \
+                            [10, 10, 6, 6], \
                             [6, 6, 5, 5], \
                             [3, 4, 2, 0], \
                             [3, 3, 2, 0], \
@@ -1106,6 +1117,8 @@ def run_spawn(spawn: StructureSpawn, all_structures: List[Structure], room_creep
                     # 리서버를 하나 파견한다.
                     # if flag_room_controller and len(remote_reservers) == 0 or \
                     #         flag_room_reserved_by_other and flag_room_controller.reservation.ticksToEnd < 100:
+                    # print("flag_room_controller", flag_room_controller, 'len(remote_reservers)', len(remote_reservers),
+                    #       chambro.name, 'energyCapacityAvailable', chambro.energyCapacityAvailable)
                     # 리서버 확인요령:
                     if flag_room_controller and len(remote_reservers) == 0 and chambro.energyCapacityAvailable >= 1300:
                         # (flag_room_reserved_by_other and flag_room_controller.reservation.ticksToEnd < 100) and \
@@ -1131,6 +1144,7 @@ def run_spawn(spawn: StructureSpawn, all_structures: List[Structure], room_creep
                                                              'res_{}_{}'.format(room_name_low, rand_int),
                                                              {memory: {'role': 'reserver', 'home_room': spawn.room.name,
                                                                        'assigned_room': room_name}})
+                                # print(room_name, 'counter', counter, 'spawn_res', spawn_res)
                                 counter -= 1
                             continue
 
@@ -1566,9 +1580,6 @@ def run_spawn(spawn: StructureSpawn, all_structures: List[Structure], room_creep
                 elif creep.ticksToLive < 500 and creep.memory.level >= room_level:
                     # 회복대상이 아닌가?
                     no_renew = False
-                    # 임시용도. 디버깅 끝나면 폐기
-                    # if creep.ticksToLive > 500:
-                    #     no_renew = True
                     # 일부 크립은 스토리지에 자원이 있는 경우에만 채운다.
                     storage_amount = 0
                     # 스폰을 자주 지나다니는 허울러 특성상
@@ -1582,12 +1593,16 @@ def run_spawn(spawn: StructureSpawn, all_structures: List[Structure], room_creep
                                  or creep.ticksToLive > 250
                                  or len(_.filter(room_creeps, lambda c: c.memory.role == 'hauler')) > 1):
                         no_renew = True
-                    # 업글러는 스토리지 자원 오천당 수리대상의 업글러의 수로 계산한다.
+                    # 업글러는 스토리지 자원 삼천당 수리대상의 업글러의 수로 계산한다.
+                    # 업글러가 둘이면 스토리지에 자원이 최소 3천은 있어야 하는거.
                     elif creep.memory.role == 'upgrader' and not room_level == 8:
-                        storage_amount = \
-                            3000 * \
-                            (len(_.filter(room_creeps,
-                                          lambda c: c.memory.role == 'upgrader' and c.memory.level >= room_level)) - 1)
+                        creep_upgraders = _.filter(room_creeps,
+                                                   lambda c: (c.memory.role == 'upgrader'
+                                                              and c.memory.assigned_room == spawn.pos.roomName
+                                                              and (c.spawning or c.ticksToLive > 100)))
+                        storage_amount = (len(creep_upgraders) - 1) * 3000
+                        if storage_amount < 3000:
+                            storage_amount = 3000
 
                     elif creep.memory.role == 'fixer':
                         # 수리대상 10개 이하면 거의 끝이란 소리니 회복대상에서 제외

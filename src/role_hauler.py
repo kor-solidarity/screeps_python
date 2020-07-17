@@ -18,7 +18,7 @@ __pragma__('noalias', 'type')
 __pragma__('noalias', 'update')
 
 
-def run_hauler(creep: Creep, all_structures: List[Structure], constructions,
+def run_hauler(creep: Creep, all_structures: List[Structure], constructions: List[ConstructionSite],
                creeps, dropped_all, repairs, terminal_capacity):
     """
     this guy's job: carrying energy from containers. repairing stuff on the way.
@@ -60,17 +60,6 @@ def run_hauler(creep: Creep, all_structures: List[Structure], constructions,
     if not creep.memory.size:
         creep.memory.size = 1
 
-    # NULLIFIED - max_energy_in_storage 는 더이상 쓰이지 않는다.
-    # 스토리지 내 허용되는 최대 수용 에너지값. == 스토리지 전체량에서 에너지 아닌걸 제외한 값에서 max_energy를 뺀 값
-    # 사실 저 엘스문 걸릴경우는 허울러가 실수로 다른방 넘어갔을 뿐....
-    # if creep.room.memory.options and creep.room.memory.options[max_energy] and creep.room.storage:
-    #     max_energy_in_storage = \
-    #         creep.room.storage.storeCapacity \
-    #         - (_.sum(creep.room.storage.store) - creep.room.storage.store[RESOURCE_ENERGY]) \
-    #         - creep.room.memory.options[max_energy]
-    # else:
-    #     max_energy_in_storage = 600000
-
     # priority 0 통과했는가? 통과했으면 priority 1 쓸때 스트럭쳐 필터 안해도됨.
     passed_priority_0 = False
 
@@ -78,21 +67,24 @@ def run_hauler(creep: Creep, all_structures: List[Structure], constructions,
     if not creep.memory.upgrade_target:
         creep.memory.upgrade_target = Game.rooms[creep.memory.assigned_room].controller['id']
 
+    # 본진 스토리지. 아래에 쓰는일이 많아서..
+    homeroom_storage = Game.getObjectById(creep.memory.upgrade_target).room.storage
+
     end_is_near = 10
     # in case it's gonna die soon. this noble act is only allowed if there's a storage in the room.
-    if creep.ticksToLive < end_is_near and creep.store.getUsedCapacity() != 0 and creep.room.storage:
+    if creep.ticksToLive < end_is_near and creep.store.getUsedCapacity() != 0 and homeroom_storage:
         creep.say('endIsNear')
         if creep.memory.haul_target:
             del creep.memory.haul_target
         elif creep.memory.pickup:
             del creep.memory.pickup
         for minerals in Object.keys(creep.store):
-            if not creep.pos.isNearTo(creep.room.storage):
+            if not creep.pos.isNearTo(homeroom_storage):
                 transfer_minerals_result = ERR_NOT_IN_RANGE
             else:
-                transfer_minerals_result = creep.transfer(creep.room.storage, minerals)
+                transfer_minerals_result = creep.transfer(homeroom_storage, minerals)
             if transfer_minerals_result == ERR_NOT_IN_RANGE:
-                creep.moveTo(creep.room.storage, {'visualizePathStyle': {'stroke': '#ffffff'}})
+                creep.moveTo(homeroom_storage, {'visualizePathStyle': {'stroke': '#ffffff'}})
                 break
             elif transfer_minerals_result == 0:
                 break
@@ -100,7 +92,7 @@ def run_hauler(creep: Creep, all_structures: List[Structure], constructions,
                 print('endNearSomething', creep.name, transfer_minerals_result)
                 creep.say('END?? {}'.format(transfer_minerals_result))
         return
-    elif creep.ticksToLive < end_is_near and creep.room.storage:
+    elif creep.ticksToLive < end_is_near and homeroom_storage:
         creep.suicide()
         return
 
@@ -172,7 +164,7 @@ def run_hauler(creep: Creep, all_structures: List[Structure], constructions,
                 # 물론 안에 에너지가 있어야겠지.
                 # todo 미네랄 옮기는것도 해야함.
                 to_storage_chance = 0
-                if creep.room.storage:
+                if homeroom_storage:
                     multiplier = .3
                     if creep.room.controller.level < 6:
                         multiplier = .5
@@ -184,9 +176,13 @@ def run_hauler(creep: Creep, all_structures: List[Structure], constructions,
                 for c in creep.room.memory[STRUCTURE_CONTAINER]:
                     # 업글용이 아닌거 걸러낸다. 만렙일때만.
                     # 만약 스토리지가 없는 상황이고 건설가능한 렙이면 업글용도 뽑아간다. 스토리지 확보가 최우선
+                    # 스토리지가 있는데 텅 비었으면 업글용도 뽑는다.
                     if not Game.getObjectById(creep.memory.upgrade_target).level == 8:
                         if Game.getObjectById(creep.memory.upgrade_target).level > 3 \
-                                and not Game.getObjectById(creep.memory.upgrade_target).room.storage:
+                                and \
+                                (not homeroom_storage or
+                                 not homeroom_storage.store.getUsedCapacity(RESOURCE_ENERGY)
+                                     < creep.store.getFreeCapacity()):
                             pass
                         elif c[for_upgrade]:
                             continue
@@ -207,7 +203,7 @@ def run_hauler(creep: Creep, all_structures: List[Structure], constructions,
                         store_targets.append(link)
 
                 if to_storage_chance:
-                    store_targets.append(creep.room.storage)
+                    store_targets.append(homeroom_storage)
 
                 # 위 목록 중에서 가장 가까이 있는 컨테이너를 뽑아간다.
                 # 만약 뽑아갈 대상이 없을 시 터미널, 스토리지를 각각 찾는다.
@@ -280,9 +276,9 @@ def run_hauler(creep: Creep, all_structures: List[Structure], constructions,
                     if creep.room.terminal and creep.room.terminal.store[RESOURCE_ENERGY] >= \
                             terminal_capacity + creep.store.getCapacity():
                         creep.memory.pickup = creep.room.terminal.id
-                    elif creep.room.storage and \
-                            creep.room.storage.store[RESOURCE_ENERGY] >= creep.store.getCapacity() * .5:
-                        creep.memory.pickup = creep.room.storage.id
+                    elif homeroom_storage and \
+                            homeroom_storage.store.getUsedCapacity(RESOURCE_ENERGY) >= creep.store.getCapacity() * .5:
+                        creep.memory.pickup = homeroom_storage.id
                     else:
                         pass
                 else:
@@ -302,7 +298,7 @@ def run_hauler(creep: Creep, all_structures: List[Structure], constructions,
                                 if s.id == pickup_obj.id and s[for_upgrade]:
                                     # 단, 스토리지가 없는 경우 예외.
                                     if Game.getObjectById(creep.memory.upgrade_target).level > 3 \
-                                            and not Game.getObjectById(creep.memory.upgrade_target).room.storage:
+                                            and not homeroom_storage:
                                         creep.memory[haul_resource] = RESOURCE_ENERGY
                                     else:
                                         creep.memory[haul_resource] = haul_all_but_energy
@@ -344,13 +340,16 @@ def run_hauler(creep: Creep, all_structures: List[Structure], constructions,
                 # 픽업대상이 없어서 뽑아야할때도 주변에 모든 떨궈진 자원을 찾아본다.
                 if not creep.memory.all_full:
                     creep.memory.all_full = 1
-                # if there's nothing in the storage they harvest on their own.
-                if not creep.memory.source_num:
-                    creep.memory.source_num = creep.pos.findClosestByRange(creep.room.find(FIND_SOURCES)).id
-                harvest_result = harvest_energy(creep, creep.memory.source_num)
-                if harvest_result == ERR_NOT_ENOUGH_RESOURCES_AND_CARRYING_SOMETHING:
-                    creep.memory.laboro = 1
-                    creep.memory.priority = 0
+                # 가져갈곳이 없으면 직접 캔다. 단, 하베스터가 완전히 없는 경우에만.
+                if not len(_.filter(creeps, lambda c: c.memory.role == 'harvester'
+                                                      and c.memory.assigned_room == creep.memory.assigned_room)):
+                    if not creep.memory.source_num:
+                        creep.memory.source_num = creep.pos.findClosestByRange(creep.room.find(FIND_SOURCES)).id
+                    harvest_result = harvest_energy(creep, creep.memory.source_num)
+                    if harvest_result == ERR_NOT_ENOUGH_RESOURCES_AND_CARRYING_SOMETHING:
+                        creep.memory.laboro = 1
+                        creep.memory.priority = 0
+                    creep.say('없다')
         # 꽉차면 초기화작업과 작업변환.
         if creep.store.getUsedCapacity() >= creep.store.getCapacity():
             init_memory(creep, 1)
@@ -394,8 +393,8 @@ def run_hauler(creep: Creep, all_structures: List[Structure], constructions,
                 creep.memory.priority = 1
 
                 # 스토리지는 항상 마지막에 채운다. 우선 있는지 확인부터 한거
-                if creep.room.storage and creep.room.storage.storeCapacity - _.sum(creep.room.storage.store):
-                    index = structures.indexOf(creep.room.storage)
+                if homeroom_storage and homeroom_storage.store.getCapacity() - homeroom_storage.store.getUsedCapacity():
+                    index = structures.indexOf(homeroom_storage)
                     structures.splice(index, 1)
 
             elif len(constructions) > 0:
@@ -475,9 +474,9 @@ def run_hauler(creep: Creep, all_structures: List[Structure], constructions,
                         if len(constructions) > 0 and creep.store[RESOURCE_ENERGY] > 0:
                             creep.say('🚧 공사전환!', True)
                             creep.memory.priority = 2
-                        elif creep.room.storage and _.sum(creep.room.storage.store) < creep.room.storage.storeCapacity:
+                        elif homeroom_storage and homeroom_storage.store.getUsedCapacity() < homeroom_storage.store.getCapacity():
                             creep.say('📦 저장합시다', True)
-                            creep.memory.haul_target = creep.room.storage.id
+                            creep.memory.haul_target = homeroom_storage.id
                         # 스토리지가 없으면?
             # 이 시점까지 타겟이 없다면 스토리지고 뭐고 넣을 수 있는 공간이 전혀 없다는거.
             if not creep.memory.haul_target:
@@ -565,10 +564,10 @@ def run_hauler(creep: Creep, all_structures: List[Structure], constructions,
                                 creep.say('🚧 공사전환!', True)
                                 creep.memory.priority = 2
                                 del creep.memory.path
-                            elif creep.room.storage:
+                            elif homeroom_storage:
                                 creep.say('📦 저장합시다', True)
                                 del creep.memory.path
-                                creep.memory.haul_target = creep.room.storage.id
+                                creep.memory.haul_target = homeroom_storage.id
                     else:
                         pass
 
@@ -590,15 +589,15 @@ def run_hauler(creep: Creep, all_structures: List[Structure], constructions,
                 creep.upgradeController(Game.getObjectById(creep.memory.upgrade_target))
 
             if not creep.memory.build_target:
-                closest_construction = creep.pos.findClosestByRange(constructions)
+                construction_target = creep.pos.findClosestByRange(constructions)
                 # 이 시점에서 안뜨면 건설할게 없는거임.
-                if not closest_construction:
+                if not construction_target:
                     creep.say("지을게 없군 👏", True)
                     creep.memory.priority = 0
                     del creep.memory.path
                     return
                 else:
-                    creep.memory.build_target = closest_construction.id
+                    creep.memory.build_target = construction_target.id
 
             build_result = creep.build(Game.getObjectById(creep.memory.build_target))
 
@@ -875,7 +874,7 @@ def grab_haul_list(creep: Creep, roomName, totalStructures, add_storage=False):
                     and cont_obj.store.getUsedCapacity() < cont_obj.store.getCapacity() * 2 / 3:
                 # 단, 스토리지를 만들 렙(4이상)이고 스토리지가 없으면 안넣는다.
                 # 방 내 에너지가 안 찼을때도 통과
-                if 4 <= creep.room.controller.level and not creep.room.storage \
+                if 4 <= creep.room.controller.level and not homeroom_storage \
                         or creep.room.energyAvailable < creep.room.energyCapacityAvailable * .95:
                     continue
                 container.append(Game.getObjectById(rcont.id))

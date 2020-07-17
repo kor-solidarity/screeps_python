@@ -116,18 +116,9 @@ def run_upgrader(creep, creeps, all_structures, repairs, constructions, dropped_
                             if s.for_upgrade:
                                 la_containers.append(obj)
 
-                # 가장 먼져 전용 컨테이너를 찾는다.
-                pickup_id = miscellaneous.pick_pickup(creep, creeps, la_containers)
-                # print('ch1 pickup_id', pickup_id)
-
-            # 전용 컨테이너에서 뽑아올게 없는 경우: 그럼 모든곳에서 뽑아버린다.
-            if pickup_id == ERR_INVALID_TARGET:
-
-                # 가장 가까운곳에서 빼오는거임. 원래 스토리지가 최우선이었는데 바뀜.
-
-                if creep.room.storage:
-                    total_containers.append(creep.room.storage)
-                pickup_id = miscellaneous.pick_pickup(creep, creeps, total_containers)
+            if creep.room.storage:
+                total_containers.append(creep.room.storage)
+            pickup_id = miscellaneous.pick_pickup(creep, creeps, total_containers)
 
             # 픽업 가져올게 없는 경우.
             # 위에 찾는게 없는 경우:

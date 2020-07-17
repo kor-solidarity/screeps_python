@@ -474,7 +474,7 @@ def main():
             nuke_extra = 150000
         else:
             nuke_extra = 0
-            # 모든 수리대상 찾는다. 분류는 위에 크립·타워 등에 따라 거른다.
+        # 모든 수리대상 찾는다. 분류는 위에 크립·타워 등에 따라 거른다.
         repairs = all_structures.filter(lambda s: (s.structureType == STRUCTURE_ROAD
                                                    or s.structureType == STRUCTURE_TOWER
                                                    or s.structureType == STRUCTURE_EXTENSION

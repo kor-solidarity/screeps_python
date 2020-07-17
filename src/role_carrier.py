@@ -467,6 +467,8 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                         # 먼저 max_drop_distance 범위내 링크가 있는지 확인하고 있으면추가.
                         # + 그 링크 주변 max_drop_distance / 2 거리 내 컨테이너가 있는지 확인하고 있으면 추가
                         # 위 해당사항 없으면 max_drop_distance 내 컨테이너 전부 확인 후 추가
+                        # 마지막으로 추가 시 for_harvest 라고 구분이 안돼있으면 구분한다.
+                        #   그래야 혹여나 업글용인데 멀리 떨어진거 허울러가 와리가리 안함.
 
                         # 전송용 링크
                         for l in creep.room.memory[STRUCTURE_LINK]:
@@ -491,7 +493,6 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                                 distance_array = c_obj.pos.findPathTo(closest_link, {'ignoreCreeps': True})
                                 if len(distance_array) <= int(max_drop_distance / 2):
                                     # print('closest_link', closest_link.id, JSON.stringify(closest_link.pos))
-                                    # print('c_obj', c_obj.id, JSON.stringify(c_obj.pos))
                                     # print(JSON.stringify(distance_array))
                                     # print('distance of {}: {}'.format(c_obj.id, len(distance_array)))
                                     haul_containers.append(c_obj)
@@ -699,20 +700,20 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                             break
                 else:
                     creep.say('ERR {}'.format(transfer_result))
-                # 가는길에 근처에 에너지 넣을거 있으면 넣읍시다.
+                # 마지막으로 가는길에 근처에 에너지 넣을거 있으면 넣읍시다.
                 if not transfer_result == OK:
                     # 스폰과 익스텐션중에 빈거 + 바로옆
                     spn_ext = _.filter(all_structures,
                                        lambda s: (s.structureType == STRUCTURE_EXTENSION
                                                   or s.structureType == STRUCTURE_SPAWN
                                                   or s.structureType == STRUCTURE_TOWER)
-                                                 and not s.energy == s.energyCapacity and creep.pos.isNearTo(s))
+                                                 and s.store.getFreeCapacity(RESOURCE_ENERGY) and creep.pos.isNearTo(s))
 
                     # print(creep.name, spn_ext)
                     if len(spn_ext):
-                        min_spn_ext = _.max(spn_ext, lambda s: s.energyCapacity - s.energy)
+                        min_spn_ext = _.max(spn_ext, lambda s: s.store.getFreeCapacity(RESOURCE_ENERGY))
+                        # print('spn_ext', spn_ext)
                         # print(creep.name, creep.pos, spn_ext[0].structureType, spn_ext[0].pos)
-                        # res = creep.transfer(spn_ext[(random.randint(0, len(spn_ext)-1))], RESOURCE_ENERGY)
                         res = creep.transfer(min_spn_ext, RESOURCE_ENERGY)
         # 수리
         elif creep.memory.priority == 3:

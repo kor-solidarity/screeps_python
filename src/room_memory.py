@@ -4,6 +4,7 @@ from _custom_constants import *
 #  nothing. This is useful mainly when using an editor like PyCharm, so that it 'knows' that things like Object, Creep,
 #  Game, etc. do exist.
 from defs import *
+import miscellaneous
 
 # These are currently required for Transcrypt in order to use the following names in JavaScript.
 # Without the 'noalias' pragma, each of the following would be translated into something like 'py_Infinity' or
@@ -22,8 +23,64 @@ __pragma__('noalias', 'update')
 """
 
 
+# 모든 방에 있는 메모리를 한꺼번에 뽑기.
+# 사전에 자원·건물현황·적 구분 등을 싹 다 돌린다.
+def init_memory():
+    """
+    뽑혀야 하는 메모리 목록:
+    1. 방 안 모든 정보:
+        - 건물
+
+    :return:
+    """
+    for room_name in Object.keys(Game.rooms):
+        chambro = Game.rooms[room_name]
+        all_structures = chambro.find(FIND_STRUCTURES)
+        room_creeps = chambro.find(FIND_MY_CREEPS)
+        malsana_amikoj = _.filter(room_creeps, lambda c: c.hits < c.hitsMax)
+
+        enemy_constructions = chambro.find(FIND_HOSTILE_CONSTRUCTION_SITES)
+        my_constructions = chambro.find(FIND_MY_CONSTRUCTION_SITES)
+        dropped_all = chambro.find(FIND_DROPPED_RESOURCES)
+        tombs = chambro.find(FIND_TOMBSTONES)
+        ruins = chambro.find(FIND_RUINS)
+        if ruins:
+            for r in ruins:
+                if _.sum(r.store) > 0:
+                    dropped_all.append(r)
+        if tombs:
+            for t in tombs:
+                if _.sum(t.store) > 0:
+                    dropped_all.append(t)
+
+        # 필터하면서 목록을 삭제하는거 같음.... 그래서 이리 초기화
+        foreign_creeps = chambro.find(FIND_HOSTILE_CREEPS)
+        nukes = chambro.find(FIND_NUKES)
+        # [[적 전부], [적 NPC], [적 플레이어], [동맹]]
+        friends_and_foes = miscellaneous.filter_friend_foe(foreign_creeps)
+        # init. list
+        hostile_creeps = friends_and_foes[0]
+        hostile_human = friends_and_foes[2]
+        allied_creeps = friends_and_foes[3]
+
+        # 초기화.
+        terminal_capacity = 0
+        # 방 안의 터미널 내 에너지 최소값.
+        # todo 임시니 변경요망
+        if chambro.controller:
+            if chambro.terminal and chambro.controller.level < 8:
+                terminal_capacity = 1000
+            else:
+                terminal_capacity = 10000
+
+    # 여기에 모든게 들어가 있어야 한다.
+    room_info = {}
+
+    return room_info
+
+
 # 본진 관련
-def refresh_base_stats(chambro, all_structures, fix_rating, min_wall, spawns):
+def refresh_base_stats(chambro: Room, all_structures, fix_rating, min_wall, spawns):
     """
     방 내 메모리 현황 갱신을 위한 함수.
     잘 바뀌지 않는 사안들()
@@ -35,6 +92,9 @@ def refresh_base_stats(chambro, all_structures, fix_rating, min_wall, spawns):
     :param spawns: 방 안에 모든 스폰
     :return:
     """
+    creeps_memory = []
+    for c in Object.keys(Memory.creeps):
+        creeps_memory.append(Memory.creeps[c])
 
     distance_to_controller = 5
 
@@ -205,6 +265,16 @@ def refresh_base_stats(chambro, all_structures, fix_rating, min_wall, spawns):
                         # 있으면 이 컨테이너는 하베스터 저장용.
                         _harvest = 1
                         break
+                # _harvest 값에 영향을 주는건 캐리어도 있다.
+                carrier_mem = _.filter(creeps_memory, lambda c: c.role == 'carrier' and len(c.haul_destos))
+                for c in carrier_mem:
+                    for td in c.haul_destos:
+                        if stc.id == td.id:
+                            _harvest = 1
+                            break
+                    if _harvest == 1:
+                        break
+
                 # 확인 끝났으면 이제 방 업글용인지 확인한다. 방렙 8 미만인가?
                 if chambro.controller.level < 8:
                     # 컨테이너와의 거리가 컨트롤러에 비해 다른 스폰 또는 스토리지보다 더 먼가?

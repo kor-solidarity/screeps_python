@@ -69,7 +69,7 @@ def get_to_da_room(creep, roomName, ignoreRoads=False):
     #     return 'yolo'
 
     result = creep.moveTo(__new__(RoomPosition(25, 25, roomName)),
-    # result = creep.moveTo(Game.rooms[roomName].controller,
+                          # result = creep.moveTo(Game.rooms[roomName].controller,
                           {'visualizePathStyle': {'stroke': '#ffffff'}, 'reusePath': 15,
                            'range': 21, 'maxOps': 1500, 'ignoreRoads': ignoreRoads})
     return result
@@ -99,7 +99,7 @@ def draw_path(creep, path_arr, color='white'):
             points.append(p)
 
     if len(points) > 1:
-        return Game.rooms[creep.pos.roomName]\
+        return Game.rooms[creep.pos.roomName] \
             .visual.poly(points, {'fill': 'transparent',
                                   'stroke': color, 'lineStyle': 'dashed',
                                   'strokeWidth': .15, 'opacity': .2})
@@ -134,9 +134,9 @@ def get_findPathTo(start, target, target_range=0, ignore_creeps=True):
         path = \
             PathFinder.search(start, target,
                               {'plainCost': 3, 'swampCost': 6, 'maxOps': 5000,
-                                'roomCallback':
-                                    lambda room_name:
-                                    Costs(room_name, {'trackCreeps': bool(not ignoreCreeps)}).load_matrix()},).path
+                               'roomCallback':
+                                   lambda room_name:
+                                   Costs(room_name, {'trackCreeps': bool(not ignoreCreeps)}).load_matrix()}, ).path
 
     return path
 
@@ -240,6 +240,8 @@ def move_with_mem(creep, target, target_range=0, path_mem='path', repath=True):
             creep.memory.move_ticks = 1
             creep.memory.cur_loc = creep.pos
 
+        # creep.say('mt:' + creep.memory.move_ticks)
+
         # 세번 못움직이면 바로 길 앞 크립과 위치교체 간다.
         if creep.memory.move_ticks > 3:
             creep_located = False
@@ -302,17 +304,17 @@ def get_bld_upg_path(creep, creeps, target, target_range=3):
     # 표적 범위 내에 있는 크립들 중 역할특성상 한곳에 머무는 애 전부
     upgraders = _.filter(creeps,
                          lambda c: c.memory.assigned_room == creep.room.name
-                         and (c.memory.role == 'upgrader' or c.memory.role == 'hauler'
-                              or c.memory.role == 'fixer' or c.memory.role == 'harvester')
-                         and c.pos.inRangeTo(target, target_range+1))
+                                   and (c.memory.role == 'upgrader' or c.memory.role == 'hauler'
+                                        or c.memory.role == 'fixer' or c.memory.role == 'harvester')
+                                   and c.pos.inRangeTo(target, target_range + 1))
     opts = {'trackCreeps': False, 'refreshMatrix': True, 'pass_walls': False,
             'costByArea': {'objects': upgraders, 'size': 0, 'cost': 100}}
 
     # 돌아올 패스 어레이
     path_arr = creep.pos.findPathTo(target,
-                                 {'plainCost': 3, 'swampCost': 6, 'ignoreCreeps': True, 'range': 3,
-                                  'costCallback':
-                                      lambda room_name: Costs(room_name, opts).load_matrix()})
+                                    {'plainCost': 3, 'swampCost': 6, 'ignoreCreeps': True, 'range': 3,
+                                     'costCallback':
+                                         lambda room_name: Costs(room_name, opts).load_matrix()})
     # 크립 본인의 위치도 길에 포함시킨다.
     path_arr.insert(0, creep.pos)
     return _.map(path_arr, lambda p: __new__(RoomPosition(p.x, p.y, creep.pos.roomName)))
