@@ -173,7 +173,7 @@ def run_hauler(creep: Creep, all_structures: List[Structure], constructions: Lis
 
                 store_targets = []
                 # find any containers/links with any resources inside
-                for c in creep.room.memory[STRUCTURE_CONTAINER]:
+                for c in Game.getObjectById(creep.memory.upgrade_target).room.memory[STRUCTURE_CONTAINER]:
                     # 업글용이 아닌거 걸러낸다. 만렙일때만.
                     # 만약 스토리지가 없는 상황이고 건설가능한 렙이면 업글용도 뽑아간다. 스토리지 확보가 최우선
                     # 스토리지가 있는데 텅 비었으면 업글용도 뽑는다.
@@ -618,8 +618,8 @@ def run_hauler(creep: Creep, all_structures: List[Structure], constructions: Lis
                 del creep.memory.path
                 del creep.memory.build_target
 
-            # 채워진 에너지가 1/3 아래인 경우 복귀
-            elif creep.room.energyAvailable < creep.room.energyCapacityAvailable * 1 / 3:
+            # 채워진 에너지가 70% 아래인 경우 복귀
+            elif creep.room.energyAvailable < creep.room.energyCapacityAvailable * .7:
                 creep.say("🚚운송이 본분", True)
                 creep.memory.priority = 1
                 del creep.memory.path

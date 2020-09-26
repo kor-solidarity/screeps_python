@@ -347,10 +347,12 @@ def ranged_move(creep, target, creeps, target_range=3):
         # 통상적인 다른 move_with_mem 과는 다르게 어차피 두번째 어레이 반환값은 무조건 거짓임
         if move_by_path[0] == OK:
             pass
-            # creep.say('ROK')
+
         # 이게 뜰리가 없긴 하겠다만.. 길 안보인다 뜨면 재시도
         elif move_by_path[0] == ERR_NOT_FOUND:
-            creep.memory.path = get_bld_upg_path(creep, creeps, target)
+            # NULLIFIED - 방이 다르면 오류가 나는듯 함..
+            # creep.memory.path = get_bld_upg_path(creep, creeps, target)
+            creep.memory.path = get_findPathTo(creep, target, 3)
             creep.memory.old_target = target
             move_by_path = move_with_mem(creep, target, target_range, 'path', False)
             creep.say('레인지뭅걸림??')

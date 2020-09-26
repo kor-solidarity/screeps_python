@@ -104,6 +104,7 @@ _ignore/
 *.pot
 docs/_build/
 *\ Notes.txt
+reference/
 
 # Unit test / coverage reports #
 ################################

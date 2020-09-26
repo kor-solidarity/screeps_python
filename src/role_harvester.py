@@ -44,9 +44,9 @@ def run_harvester(creep: Creep, all_structures: List[Structure], constructions: 
     # NULLIFIED
     # 할당된 방을 볼 수 없으면 방으로 우선 가고 본다.
     # if not creep.memory.source_num and creep.room.name != creep.memory.assigned_room:
-    if creep.room.name != creep.memory.assigned_room and not Game.rooms[creep.memory.assigned_room]:
-        movement.get_to_da_room(creep, creep.memory.assigned_room, False)
-        return
+    # if creep.room.name != creep.memory.assigned_room and not Game.rooms[creep.memory.assigned_room]:
+    #     movement.get_to_da_room(creep, creep.memory.assigned_room, False)
+    #     return
 
     # no memory.laboro? make one.
     if not creep.memory.laboro and creep.memory.laboro != 0:
@@ -74,7 +74,6 @@ def run_harvester(creep: Creep, all_structures: List[Structure], constructions: 
                                               and not c.name == creep.name
                                               and creep.memory.assigned_room == c.memory.assigned_room)
 
-        # print(rikoltist_kripoj)
         # tie estas 3 kazojn en ĉi tie:
         # 1 - no room_creeps at all.
         # 2 - there is a creep working already(1 or 2)
@@ -154,6 +153,10 @@ def run_harvester(creep: Creep, all_structures: List[Structure], constructions: 
                 creep.memory.source_num = harvester_that_is_gonna_die_soon[0].memory.source_num
             else:
                 creep.memory.source_num = sources[0]
+    # 크립메모리에 소스가 없고 방을 조회할 수 없는 상황이면 우선 가고본다.
+    elif not creep.memory.source_num and not Game.rooms[creep.memory.assigned_room]:
+        movement.get_to_da_room(creep, creep.memory.assigned_room, False)
+        return
 
     # If you have nothing but on laboro 1 => get back to harvesting.
     if creep.store.getUsedCapacity() == 0 and not creep.memory.laboro == 0:
@@ -162,7 +165,8 @@ def run_harvester(creep: Creep, all_structures: List[Structure], constructions: 
         creep.say('☭☭', True)
         creep.memory.laboro = 0
     # if capacity is full(and on harvest phase), get to next work.
-    elif (creep.store.getUsedCapacity() >= creep.store.getCapacity() and creep.memory.laboro == 0) or creep.ticksToLive < 5:
+    elif (
+            creep.store.getUsedCapacity() >= creep.store.getCapacity() and creep.memory.laboro == 0) or creep.ticksToLive < 5:
         if creep.ticksToLive < 5:
             creep.say('이제 갈시간 👋', True)
         else:
@@ -216,9 +220,9 @@ def run_harvester(creep: Creep, all_structures: List[Structure], constructions: 
     # if carryCapacity is full - then go to nearest container or storage to store the energy.
     if creep.memory.laboro == 1:
         # print(creep.name, creep.room.name, creep.memory.assigned_room)
-        if creep.room.name != creep.memory.assigned_room:
-            movement.get_to_da_room(creep, creep.memory.assigned_room)
-            return
+        # if creep.room.name != creep.memory.assigned_room:
+        #     movement.get_to_da_room(creep, creep.memory.assigned_room)
+        #     return
 
         # 새 작동원리:
         #   조건에 맞는 목록뽑기.
@@ -226,13 +230,21 @@ def run_harvester(creep: Creep, all_structures: List[Structure], constructions: 
         # 자원을 옮길 잠정적 목록부터 생성.
         if not creep.memory.haul_destos or len(creep.memory.haul_destos) == 0:
             creep.memory.haul_destos = []
-
-            # find ALL containers(whether its full doesn't matter)
-            containers = _.filter(all_structures,
-                                  lambda s: s.structureType == STRUCTURE_CONTAINER)
-            # store 0으로 분류된 링크 - 전송용인거
-            proper_links = _.filter(creep.room.memory[STRUCTURE_LINK],
-                                    lambda s: s.for_store == 0 and Game.getObjectById(s.id))
+            if creep.room.name == creep.memory.assigned_room :
+                # find ALL containers(whether its full doesn't matter)
+                containers = _.filter(all_structures,
+                                      lambda s: s.structureType == STRUCTURE_CONTAINER)
+                # store 0으로 분류된 링크 - 전송용인거
+                proper_links = _.filter(creep.room.memory[STRUCTURE_LINK],
+                                        lambda s: s.for_store == 0 and Game.getObjectById(s.id))
+            # 무슨 이유로 하베스터 위치가 자기 방 안에 있는 상황이 아니면 그 방 쪽을 찾아야 한다.
+            elif Game.rooms[creep.memory.assigned_room]:
+                containers = _.filter(Game.rooms[creep.memory.assigned_room].find(FIND_STRUCTURES),
+                                      lambda s: s.structureType == STRUCTURE_CONTAINER)
+                proper_links = _.filter(Game.rooms[creep.memory.assigned_room].memory[STRUCTURE_LINK],
+                                        lambda s: s.for_store == 0 and Game.getObjectById(s.id))
+            else:
+                creep.say('방이 안보여!?')
             # 오브젝트화해서 넣는거.
             proper_link_objs = []
             for i in proper_links:
@@ -393,7 +405,8 @@ def run_miner(creep: Creep, all_structures):
         creep.say('☭☭', True)
         creep.memory.laboro = 0
     # if capacity is full(and on harvest phase), get to next work.
-    elif (creep.store.getUsedCapacity() >= creep.store.getCapacity() and creep.memory.laboro == 0) or creep.ticksToLive < 5:
+    elif (
+            creep.store.getUsedCapacity() >= creep.store.getCapacity() and creep.memory.laboro == 0) or creep.ticksToLive < 5:
 
         creep.memory.laboro = 1
 

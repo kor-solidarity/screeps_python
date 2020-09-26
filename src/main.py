@@ -163,6 +163,9 @@ def main():
                             and Game.time - creep.memory.birthday > 10:
                         age = (Game.time - creep.memory.birthday) // 1500
                         creep.say("{}차생일!🎂🎉".format(age), True)
+                    # TTL 확인 용도
+                    elif creep.ticksToLive % 40 == 0:
+                        creep.say(creep.ticksToLive)
                     # 100만틱마다 경축빰빠레!
                     elif Game.time % 1000000 < 2000:
                         # 첫시작인 경우
@@ -647,16 +650,14 @@ def main():
 
         # STRUCTURE_TOWER
         if chambro.memory[STRUCTURE_TOWER] and len(chambro.memory[STRUCTURE_TOWER]) > 0:
-            # 수리는 크게 두종류만 한다. 도로와 컨테이너 빼면 전부 즉각수리. 나머지는 시급할때만.
+            # 수리는 크게 두종류만 한다. 도로와 컨테이너는 체력 20% 이하면 수리. 나머지는 무조건.
             tow_repairs = repairs.filter(lambda s: (s.structureType != STRUCTURE_ROAD
                                                     and s.structureType != STRUCTURE_CONTAINER)
                                                    or (s.structureType == STRUCTURE_CONTAINER
-                                                       and s.hits < 6000)
+                                                       and s.hits < s.hitsMax * .2)
                                                    or (s.structureType == STRUCTURE_ROAD
-                                                       and (s.hits < 2000 and s.hitsMax == 5000)
-                                                       or (s.hits < 6000 and s.hitsMax == 25000)
-                                                       or (s.hits < 15500 and s.hitsMax > 50000)))
-            # 벽수리는 5천까지만. 다만 핵이 있으면 통과.
+                                                       and s.hits < s.hitsMax * .2))
+            # 벽수리는 5천까지만. 다만 핵이 있으면 예외.
             if min_wall.hits < 5000 or bool(nukes):
                 # print('min_wall', min_wall)
                 tow_repairs.append(min_wall)

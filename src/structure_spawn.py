@@ -1310,9 +1310,9 @@ def run_spawn(spawn: StructureSpawn, all_structures: List[Structure], room_creep
                     # 그리고 거기서 스폰까지의 거리를 구하고 이에 따라 할당된 사이즈값도 구함.
                     # 그리고 그걸 기존에 있는 캐리어들 사이즈값으로 빼고 남는게 있으면 생산절차 돌입.
 
-                    # 스폰 내 총 에너지량이 1/3 이하면 아예 돌리지 않는다.
-                    # 안그러면 중간에 자원부족으로 조그만 애들이 스폰될 시 자원 충분해도 그거만 뽑아버림...1
-                    if chambro.energyAvailable / chambro.energyCapacityAvailable < 1 / 3:
+                    # 스폰 내 총 에너지량이 25% 이하면 아예 돌리지 않는다.
+                    # 안그러면 중간에 자원부족으로 조그만 애들이 스폰될 시 자원 충분해도 그거만 뽑아버림...
+                    if chambro.energyAvailable / chambro.energyCapacityAvailable < .25:
                         continue
 
                     # todo 미네랄 생각해봐야함
@@ -1402,7 +1402,9 @@ def run_spawn(spawn: StructureSpawn, all_structures: List[Structure], room_creep
                             # 저렙인 상황이면 1/3 처리. 어차피 자잘하게 나와서...
                             if room_level < 4 or not chambro.storage:
                                 carrier_size /= 3
-                                # print('optimized carrier_size', carrier_size)
+                            # 캐리어 크기가 너무 작으면 자원 뽑을때 지장받는걸 포착.
+                            elif carrier_size < 3:
+                                carrier_size = 3
 
                             # 만약 캐리어가 전혀 없는데 꽉찼으면 몸 더준다.
                             if closest_cont_to_source.store.getCapacity() \
@@ -1583,15 +1585,16 @@ def run_spawn(spawn: StructureSpawn, all_structures: List[Structure], room_creep
                     # 일부 크립은 스토리지에 자원이 있는 경우에만 채운다.
                     storage_amount = 0
                     # 스폰을 자주 지나다니는 허울러 특성상
-                    # 너무 자주 충전되면 스폰 사이 무의미하게 왔다갔다하는 현상 발생. 타임계산은 이를 방지
-                    # 허울러는 중간중간 추가 허울러가 무의미하게 스폰될 가능성이 있는 특성상 틱 250이상은 채우지 않는다.
+                    # 1. 너무 자주 충전되면 스폰 사이 무의미하게 왔다갔다하는 현상 발생. 타임계산은 이를 방지
+                    # 2. 허울러는 방 중간중간 추가 허울러가 무의미하게 스폰될 가능성이 있는 특성상 틱 250이상은 채우지 않는다.
                     # 250인 이유는 허울러 둘이 생겼을 경우 약간 보조하기 위한 용도. 둘이 동시생성되는건 지양합시다.
-                    # 허울러는 기본값으로 한명으로 유지해야 하기에 하나 이상이면 안건든다.
-                    # 셋중 하나라도 성립하면 통과
+                    # 3. 허울러는 기본값으로 한명으로 유지해야 하기에 둘 이상이면 안건든다.
+                    # 셋중 하나라도 걸리는게 있으면 통과
                     if creep.memory.role == 'hauler' \
-                            and (not Game.time % 3 == 0
-                                 or creep.ticksToLive > 250
-                                 or len(_.filter(room_creeps, lambda c: c.memory.role == 'hauler')) > 1):
+                            and (not Game.time % 3 == 0 or creep.ticksToLive > 250
+                                 or len(_.filter(Game.creeps,
+                                                 lambda c: c.memory.role == 'hauler'
+                                                           and c.memory.assigned_room == spawn.pos.roomName)) > 1):
                         no_renew = True
                     # 업글러는 스토리지 자원 삼천당 수리대상의 업글러의 수로 계산한다.
                     # 업글러가 둘이면 스토리지에 자원이 최소 3천은 있어야 하는거.
