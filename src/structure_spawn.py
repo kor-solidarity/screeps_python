@@ -17,7 +17,8 @@ __pragma__('noalias', 'update')
 
 
 # 스폰을 메인에서 쪼개기 위한 용도. 현재 어떻게 빼내야 하는지 감이 안잡혀서 공백임.
-def run_spawn(spawn: StructureSpawn, all_structures: List[Structure], room_creeps: List[Creep],
+def run_spawn(spawn: StructureSpawn, all_structures: List[Structure], constructions: List[ConstructionSite],
+              room_creeps: List[Creep],
               hostile_creeps: List[Creep], divider, counter,
               cpu_bucket_emergency, cpu_bucket_emergency_spawn_start, extractor,
               terminal_capacity, chambro: Room, interval, wall_repairs, objs_for_display, min_hits):
@@ -26,6 +27,7 @@ def run_spawn(spawn: StructureSpawn, all_structures: List[Structure], room_creep
 
     :param spawn:
     :param all_structures:
+    :param constructions:
     :param room_creeps:
     :param hostile_creeps:
     :param divider:
@@ -242,9 +244,6 @@ def run_spawn(spawn: StructureSpawn, all_structures: List[Structure], room_creep
             else:
                 expected_reserve = 3000
 
-            # if storage has less than expected_reserve
-            # if spawn.room.storage.store[RESOURCE_ENERGY] < expected_reserve:
-            #     upgrader_quota = 1
             # more than 3k
             if spawn.room.storage.store[RESOURCE_ENERGY] >= expected_reserve:
                 upgrader_quota = 1
@@ -270,19 +269,21 @@ def run_spawn(spawn: StructureSpawn, all_structures: List[Structure], room_creep
             if room_level == 4 and not spawn.room.storage:
                 upgrader_quota += 1
             else:
-                upgrader_quota += container_full * 4
+                upgrader_quota += container_full * 5
 
         # 업글러 최대 수 제한.
         if upgrader_quota > 15:
             upgrader_quota = 15
 
         # 허울러 계산.
-        # 렙4부터 허울러 추가여부 적용한다. 컨테이너가 하나라도 꽉찬게 있으면 허울러 추가.
-        if container_full and container_full <= 2:
-            hauler_quota += 1
-        # 그게 셋 이상이면 둘 추가.
-        elif container_full >= 3:
-            hauler_quota += 2
+        # 컨테이너가 하나라도 꽉찬게 있으면 허울러 추가.
+        # 단, 업글러를 뽑아야 하는 상황이면 통과. 건설장이 있으면 예외
+        if container_full and upgrader_quota >= len(creep_upgraders):
+            if container_full and container_full <= 2:
+                hauler_quota += 1
+            # 그게 셋 이상이면 둘 추가.
+            elif container_full >= 3:
+                hauler_quota += 2
 
         # 허울러 수 계산법: 방별로 지정된 허울러(기본값 1) + 위에 변수값
         # hauler_quota = extra_hauler_pts
@@ -291,6 +292,12 @@ def run_spawn(spawn: StructureSpawn, all_structures: List[Structure], room_creep
             hauler_quota = 1
         elif hauler_quota > 4:
             hauler_quota = 4
+        # 단, 초반 허울러가 전혀 필요없는 상황이면(컨테이너 등 적재소가 없으면) 뽑지 않는다
+        if spawn.room.controller.level == 1 \
+                and (not len(spawn.room.memory[STRUCTURE_CONTAINER])
+                     or not len(spawn.room.memory[STRUCTURE_LINK])
+                     or spawn.room.storage):
+            hauler_quota = 0
 
         if spawn.room.terminal:
             if spawn.room.terminal.store.energy > terminal_capacity + 10000:
@@ -1012,6 +1019,7 @@ def run_spawn(spawn: StructureSpawn, all_structures: List[Structure], room_creep
                     else:
                         hostiles = miscellaneous.filter_friend_foe(hostiles)[0]
                     # 적이 있거나 방이 만렙이고 상주인원이 없을 시.
+                    # todo 렙 4 아래면 ?
                     if len(hostiles) + stationed_defenders > len(remote_troops) \
                             or (len(remote_troops) < stationed_defenders and room_level == 8):
                         spawn_res = ERR_NOT_ENOUGH_RESOURCES
@@ -1076,7 +1084,7 @@ def run_spawn(spawn: StructureSpawn, all_structures: List[Structure], room_creep
                         else:
                             continue
 
-                    # 1. 리서버를 먼져 생산한다. 2. 컨트롤러 예약이 다른 플레이어에 의해 먹혔을 시 대응방안
+                    # 1. 리서버를 먼저 생산한다. 2. 컨트롤러 예약이 다른 플레이어에 의해 먹혔을 시 대응방안
                     # find creeps with assigned flag.
                     # 필요없는듯??
                     # remote_carriers = _.filter(creeps, lambda c: c.memory.role == 'carrier'
@@ -1367,23 +1375,42 @@ def run_spawn(spawn: StructureSpawn, all_structures: List[Structure], room_creep
                                 opts = {'trackCreeps': False, 'refreshMatrix': True, 'pass_walls': False,
                                         'costByArea': {'objects': objs, 'size': 1, 'cost': 6}}
 
+                            # 방 안에 링크·컨테이너 목록
+                            containers, links = [], []
+                            for i in chambro.memory[STRUCTURE_CONTAINER]:
+                                containers.append(i.id)
+                            for i in chambro.memory[STRUCTURE_LINK]:
+                                if i.for_store:
+                                    links.append(i.id)
+                            for i in constructions:
+                                if i.structureType == STRUCTURE_LINK:
+                                    links.append(i.id)
+                                if i.structureType == STRUCTURE_CONTAINER:
+                                    containers.append(i.id)
+
+                            # 픽업지점에서 적재소까지 길. 적절한 적재소가 없으면 스폰에서 시작
+                            # 가장 가까운 적재소를 사전에 찾아서 배정한다.
+                            # 이렇게 안하면 길 이상하게 멋대로 파버릴 수 있음...
+                            path_spawn_to_pickup =\
+                                find_closest(spawn, closest_cont_to_source.pos, containers, links, opts)
+
                             # 픽업 지점부터 스폰까지의 길
-                            path_to_home = PathFinder.search(closest_cont_to_source.pos, spawn.pos,
-                                                             {'plainCost': 2, 'swampCost': 3,
-                                                              'roomCallback':
-                                                                  lambda room_name:
-                                                                  pathfinding.Costs(room_name, opts).load_matrix()
-                                                              }, ).path
+                            # path_to_home = PathFinder.search(closest_cont_to_source.pos, spawn.pos,
+                            #                                  {'plainCost': 2, 'swampCost': 3,
+                            #                                   'roomCallback':
+                            #                                       lambda room_name:
+                            #                                       pathfinding.Costs(room_name, opts).load_matrix()
+                            #                                   }, ).path
                             # 하나하나 세서 집까지 도착하면 거기서 우선 한번 끊고
                             # 캐리어를 위한 컨테이너가 구석지역에 지어졌는지 확인해본다
 
                             # 위에 길 역순.
-                            path_spawn_to_pickup = []
+                            path_to_home = []
 
-                            for p in path_to_home:
+                            for p in path_spawn_to_pickup:
                                 if not p.roomName == spawn.room.name:
                                     distance += 1
-                                path_spawn_to_pickup.insert(0, p)
+                                path_to_home.insert(0, p)
 
                             # 만일 키퍼가 있으면 다 4000짜리니 그만큼 한번에 수확가능한 자원이 많아짐. 그거 반영.
                             if keeper_lair:
@@ -1458,8 +1485,8 @@ def run_spawn(spawn: StructureSpawn, all_structures: List[Structure], room_creep
                                                                       'size': carrier_size,
                                                                       'level': 8,
                                                                       haul_resource: haul_all,
-                                                                      to_pickup: path_spawn_to_pickup,
-                                                                      to_home: path_to_home}})
+                                                                      to_home: path_to_home,
+                                                                      to_pickup: path_spawn_to_pickup}})
                                 # print(spawn.name, 'spawning carrier', spawning)
                                 return
                     continue
@@ -1566,8 +1593,8 @@ def run_spawn(spawn: StructureSpawn, all_structures: List[Structure], room_creep
         # 주변에 있는 크립 회복조치.
         # 이 곳에 필요한거: spawn 레벨보다 같거나 높은 애들 지나갈 때 TTL 오백 이하면 회복시켜준다.
         # room controller lvl ± 2 에 부합한 경우에만 수리를 실시한다.
-        # 렙 6 미만일 땐 회복 자체를 안한다. 좀 더 다양한(?) 회복법 강구요망
-        if room_level >= 6:
+        # 렙 5부터 통상적으로 뽑는 엥간한 것들이 다 뽑히기 시작함.
+        if room_level >= 5:
             # soldier > harvester > hauler > upgrader > etc.
             # ^ not applied yet idk
             for creep in room_creeps:
@@ -1684,3 +1711,80 @@ def add_costs(body: List[str], cost):
     for i in body:
         cost += BODYPART_COST[i]
     return cost
+
+
+def find_closest(spawn: StructureSpawn, goal: RoomPosition, containers, links, opts):
+    """
+    캐리어 스폰할 때 가장 가까이 있는 링크·컨테이너의 위치로 경로를 사전에 넣기 위한 용도.
+
+    :param spawn: 시작점. 스폰.
+    :param goal: 목적지.
+    :param containers: 방 안에 컨테이너 ID.
+    :param links: 방 안에 링크 ID.
+    :param opts: 외부에서 가져온 패스파인딩 추가옵션
+    :return:
+    """
+    print('goal', goal, JSON.stringify(goal))
+    # 가장 먼저 스토리지가 있는지 확인한다.
+    storage: StructureStorage = spawn.room.storage
+    result = None
+    counter = 0
+    if storage:
+        constr_roads_pos = \
+            PathFinder.search(storage.pos, goal,
+                              {'plainCost': 2, 'swampCost': 3,
+                               'roomCallback':
+                                   lambda room_name:
+                                   pathfinding.Costs(room_name, opts).load_matrix()}, ).path
+        for i in constr_roads_pos:
+            if i.roomName == spawn.room.name:
+                counter += 1
+        if counter <= 10:
+            print(';storage!')
+            result = constr_roads_pos
+
+    if len(links) and not result:
+        for i in links:
+            if Game.getObjectById(i):
+                constr_roads_pos = \
+                    PathFinder.search(Game.getObjectById(i).pos, goal,
+                                      {'plainCost': 2, 'swampCost': 3,
+                                       'roomCallback':
+                                           lambda room_name:
+                                           pathfinding.Costs(room_name, opts).load_matrix()}, ).path
+                counter = 0
+                for i in constr_roads_pos:
+                    if i.roomName == spawn.room.name:
+                        counter += 1
+                if counter <= 10:
+                    result = constr_roads_pos
+                    print('link!')
+                    break
+
+    if len(containers) and not result:
+        for i in containers:
+            if Game.getObjectById(i):
+                constr_roads_pos = \
+                    PathFinder.search(Game.getObjectById(i).pos, goal,
+                                      {'plainCost': 2, 'swampCost': 3,
+                                       'roomCallback':
+                                           lambda room_name:
+                                           pathfinding.Costs(room_name, opts).load_matrix()}, ).path
+                counter = 0
+                for i in constr_roads_pos:
+                    if i.roomName == spawn.room.name:
+                        counter += 1
+                if counter <= 10:
+                    result = constr_roads_pos
+                    print('cont!')
+                    break
+
+    print('counter', counter, 'result', JSON.stringify(result))
+    if result:
+        return result
+    # print('spawn')
+    return PathFinder.search(spawn.pos, goal,
+                             {'plainCost': 2, 'swampCost': 3,
+                              'roomCallback':
+                                  lambda room_name:
+                                  pathfinding.Costs(room_name, opts).load_matrix()}, ).path

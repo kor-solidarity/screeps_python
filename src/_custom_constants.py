@@ -4,6 +4,9 @@
 cpu_count = 20
 max_distance = 6
 
+# 캐리어가 본진 진입시 자원 넣을 곳 최대거리.
+MAX_DROP_DISTANCE = 10
+
 # 잡다한거
 # ERR_NOT_ENOUGH_RESOURCES + 크립이 뭔갈 들고있다.
 ERR_NOT_ENOUGH_RESOURCES_AND_CARRYING_SOMETHING = -101

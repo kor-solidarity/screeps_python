@@ -164,7 +164,7 @@ def main():
                         age = (Game.time - creep.memory.birthday) // 1500
                         creep.say("{}차생일!🎂🎉".format(age), True)
                     # TTL 확인 용도
-                    elif creep.ticksToLive % 40 == 0:
+                    elif creep.ticksToLive % 25 == 0:
                         creep.say(creep.ticksToLive)
                     # 100만틱마다 경축빰빠레!
                     elif Game.time % 1000000 < 2000:
@@ -498,7 +498,7 @@ def main():
 
         # 벽을 본다.
         all_repairs = []
-        if not len(wall_repairs) == 0:
+        if len(wall_repairs) > 1:
             # 지도에서 가장 낮은 체력의 방벽
             min_wall = _.min(wall_repairs, lambda s: s.hits)
             # 가장 낮은 체력의 방벽이 몇? 여기서 필요한건 아님.
@@ -779,8 +779,8 @@ def main():
                 print('방 {} 루프에서 스폰 {} 준비시간 : {} cpu'.format(nesto.room.name, nesto.name
                                                              , round(Game.cpu.getUsed() - spawn_cpu, 2)))
 
-            structure_spawn.run_spawn(nesto, all_structures, room_creeps, hostile_creeps, divider, counter,
-                                      cpu_bucket_emergency, cpu_bucket_emergency_spawn_start, extractor,
+            structure_spawn.run_spawn(nesto, all_structures, my_constructions, room_creeps, hostile_creeps, divider,
+                                      counter, cpu_bucket_emergency, cpu_bucket_emergency_spawn_start, extractor,
                                       terminal_capacity, chambro, interval, wall_repairs, objs_for_disp,
                                       min_hits)
 

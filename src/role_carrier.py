@@ -31,19 +31,15 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
     :return:
     """
 
-    # todo 현 문제점:
-    #  - 건설 필요 시 배정.(?)
-    #  - 운송 시 목표지점 배정관련: 자꾸 스폰당시 위치에서 가장 가까운거에 해버림.
-    #  - 원래 픽업위치 파괴됐을 시 배정 관련. 방에 자원이 둘일때 엉켜버림. 수리가 시급함.
-    #  - 운송중 떨어진거 주웠는데 일정량보다 많으면 걍 돌아가게끔. 방금 뭔 10남았는데 계속가...
-
     # 임시 초기화 방편 - todo 추후 필요 없어야함.
     if not creep.memory.size:
         creep.memory.size = 2
 
     # 인생정리모드 돌입용(?) 값.
     end_is_near = 40
-
+    # if len(creep.memory[to_pickup]) == 0:
+    #     creep.suicide()
+    # todo 객체화 필요.
     # in case it's gonna die soon. switch to some other
     if creep.store.getUsedCapacity() > 0 and creep.ticksToLive < end_is_near and \
             (creep.memory.laboro == 0 or (creep.memory.laboro == 1 and creep.memory.priority != 2)):
@@ -204,11 +200,13 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
         if creep.memory.dropped and not Game.getObjectById(creep.memory.dropped):
             del creep.memory.dropped
 
-        # 본진이 아닌 상태에서 떨궈진게 5칸내로 있으면 줍는다
-        if not creep.memory.home_room == creep.pos.roomName and not creep.memory.dropped and len(dropped_all) > 0:
-            # 만약에 당장 컨테이너가 없거나 내용물이 적으면 넓은 반경을 찾아본다.
-            if not creep.memory.container or \
-                    _.sum(Game.getObjectById(creep.memory.container).store) < creep.store.getCapacity() * .4:
+        # 떨궈진거 줍기
+        if not creep.memory.dropped and len(dropped_all) > 0:
+            # 만약에 자기 방에 있고 당장 컨테이너가 없거나  컨테이너의 내용물이 적으면 넓은 반경을 찾아본다.
+            if creep.room.name == creep.memory.assigned_room \
+                    and not Game.getObjectById(creep.memory.container) \
+                    or (Game.getObjectById(creep.memory.container)
+                        and _.sum(Game.getObjectById(creep.memory.container).store) < creep.store.getCapacity() * .4):
                 drop_search_distance = 10
             else:
                 drop_search_distance = 5
@@ -448,14 +446,13 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                         gijun = creep.pos
                     # print(creep.name, '기준 {}'.format(JSON.stringify(gijun)))
                     # {아이디, 타입}
-                    # 캐리어가 방 진입시 자원떨굴 최대거리.
-                    max_drop_distance = 10
+
                     # 초기화. 데스토에 들어가야하는 목록: 아이디와 타입.
                     creep.memory.haul_destos = []
 
                     # 스토리지가 범위에 있으면 딴거 다 버리고 여따 모읍시다.
                     if creep.room.storage \
-                            and len(gijun.findPathTo(creep.room.storage, {'ignoreCreeps': True})) <= max_drop_distance:
+                            and len(gijun.findPathTo(creep.room.storage, {'ignoreCreeps': True})) <= MAX_DROP_DISTANCE:
                         creep.memory.haul_destos.append({'id': creep.room.storage.id, 'type': STRUCTURE_STORAGE})
                         if creep.memory.no_desto:
                             del creep.memory.no_desto
@@ -478,7 +475,7 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                         # 거리조건 맞는애들로 추린다.
                         haul_target_objs = \
                             haul_link_objs.filter(
-                                lambda h: len(h.pos.findPathTo(gijun, {'ignoreCreeps': True})) <= max_drop_distance)
+                                lambda h: len(h.pos.findPathTo(gijun, {'ignoreCreeps': True})) <= MAX_DROP_DISTANCE)
                         # print('haul_target_objs', (haul_target_objs))
                         # 링크가 그래서 있음?
                         if len(haul_target_objs):
@@ -491,7 +488,7 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                                     continue
                                 closest_link = c_obj.pos.findClosestByPath(haul_target_objs, {'ignoreCreeps': True})
                                 distance_array = c_obj.pos.findPathTo(closest_link, {'ignoreCreeps': True})
-                                if len(distance_array) <= int(max_drop_distance / 2):
+                                if len(distance_array) <= int(MAX_DROP_DISTANCE / 2):
                                     # print('closest_link', closest_link.id, JSON.stringify(closest_link.pos))
                                     # print(JSON.stringify(distance_array))
                                     # print('distance of {}: {}'.format(c_obj.id, len(distance_array)))
@@ -505,7 +502,7 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                             for c in creep.room.memory[STRUCTURE_CONTAINER]:
                                 c_obj = Game.getObjectById(c.id)
                                 if c_obj and len(
-                                        c_obj.pos.findPathTo(gijun, {'ignoreCreeps': True})) <= max_drop_distance:
+                                        c_obj.pos.findPathTo(gijun, {'ignoreCreeps': True})) <= MAX_DROP_DISTANCE:
                                     haul_target_objs.append(c_obj)
 
                         for i in haul_target_objs:
@@ -618,6 +615,10 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                     # 카운터 설정
                     if not creep.memory.err_full and not creep.memory.err_full == 0:
                         creep.memory.err_full = 0
+                    # 꽉찼는데 컨테이너면 무조건 다른거 바로바로 찾는다. 링크가 비었는데 컨테이너에서 서성이는거 방지.
+                    if Game.getObjectById(creep.memory.haul_target) \
+                            and Game.getObjectById(creep.memory.haul_target).structureType == STRUCTURE_CONTAINER:
+                        creep.memory.err_full = 1
                     creep.memory.err_full += 1
                     # 카운터가 찼으면 즉각 교체. 교체는 링크를 우선적으로 택한다.
                     if creep.memory.err_full > 1:

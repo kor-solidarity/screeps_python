@@ -16,7 +16,7 @@ __pragma__('noalias', 'update')
 
 
 # only for defending the remote room from ai
-def run_remote_defender(all_structures, creep:Creep, creeps:List[Creep], hostile_creeps:List[Creep], lairs=None):
+def run_remote_defender(all_structures, creep: Creep, creeps: List[Creep], hostile_creeps: List[Creep], lairs=None):
     """
     blindly search and kills npc invaders
 
@@ -52,20 +52,25 @@ def run_remote_defender(all_structures, creep:Creep, creeps:List[Creep], hostile
     # find the goddamn enemies
     if creep.room.name == creep.memory.assigned_room:
         enemies = hostile_creeps
+        # 혹시 npc 건물이 있는지도 확인한다.
+        enemy_buildings = _.filter(all_structures, lambda s: (s.owner and s.owner.username == 'Invader'))
     else:
         enemies = Game.rooms[creep.memory.assigned_room].find(FIND_HOSTILE_CREEPS)
         enemies = miscellaneous.filter_enemies(enemies)
+        enemy_buildings = None
+    # print('enemy_buildings', enemy_buildings)
 
-    if len(enemies) > 0:
-
+    if len(enemies) > 0 or len(enemy_buildings):
         if creep.memory.keeper_lair_spawning:
             del creep.memory.keeper_lair_spawning
 
         # 거리안에 없으면 무조건 펑펑 터친다
         creep.rangedMassAttack()
 
-        enemy: Creep = creep.pos.findClosestByRange(enemies)
-
+        if len(enemies):
+            enemy: Creep = creep.pos.findClosestByRange(enemies)
+        else:
+            enemy: Structure = creep.pos.findClosestByRange(enemy_buildings)
         distance = creep.pos.getRangeTo(enemy)
         # 거리유지
         if distance < 3:
@@ -89,7 +94,6 @@ def run_remote_defender(all_structures, creep:Creep, creeps:List[Creep], hostile
                 creep.heal(Game.getObjectById(creep.id))
 
             movement.ranged_move(creep, enemy.id, creeps)
-            # creep.moveTo(enemy, {'visualizePathStyle': {'stroke': '#FF0000'}, 'ignoreCreeps': False, 'range': 3})
 
     # no enemies? heal the comrades and gtfo of the road
     else:
@@ -118,7 +122,7 @@ def run_remote_defender(all_structures, creep:Creep, creeps:List[Creep], hostile
             closest_lair_obj = Game.getObjectById(creep.memory.keeper_lair_spawning)
             if not creep.pos.inRangeTo(closest_lair_obj, 2):
                 creep.moveTo(closest_lair_obj, {'visualizePathStyle': {'stroke': '#FF0000', 'opacity': .25}
-                             , 'range': 3, 'reusePath': 10})
+                    , 'range': 3, 'reusePath': 10})
         else:
             # 아무것도 없으면 대기탄다
             if not creep.pos.inRangeTo(__new__(RoomPosition(25, 25, creep.memory.assigned_room)), 22):
@@ -136,7 +140,6 @@ def keeper_defender(all_structures, creep, creeps, hostile_creeps):
     :param hostile_creeps:
     :return:
     """
-
 
 
 def remote_healer(creep, creeps, hostile_creeps):
@@ -171,7 +174,7 @@ def demolition(creep, structures):
     try:
         if creep.memory.assigned_room != creep.room.name:
             creep.moveTo(Game.flags[creep.memory.flag_name], {'visualizePathStyle': {'stroke': '#ffffff'},
-                                                                  'reusePath': 50})
+                                                              'reusePath': 50})
             return
     except:
         # 방안에 있으면 상관없음. 깃발을 임의로 지울경우에 해당.
@@ -189,13 +192,13 @@ def demolition(creep, structures):
         # 컨테이너 포함할 경우.
         if creep.memory.demo_container:
             dem_structures = structures.filter(lambda s: (s.structureType == STRUCTURE_TOWER
-                                                         or s.structureType == STRUCTURE_EXTENSION
-                                                         or s.structureType == STRUCTURE_LINK
-                                                         or s.structureType == STRUCTURE_LAB
-                                                         or s.structureType == STRUCTURE_CONTAINER
-                                                         or s.structureType == STRUCTURE_STORAGE
-                                                         or s.structureType == STRUCTURE_WALL
-                                                         or s.structureType == STRUCTURE_RAMPART))
+                                                          or s.structureType == STRUCTURE_EXTENSION
+                                                          or s.structureType == STRUCTURE_LINK
+                                                          or s.structureType == STRUCTURE_LAB
+                                                          or s.structureType == STRUCTURE_CONTAINER
+                                                          or s.structureType == STRUCTURE_STORAGE
+                                                          or s.structureType == STRUCTURE_WALL
+                                                          or s.structureType == STRUCTURE_RAMPART))
         else:
             dem_structures = structures.filter(lambda s: (s.structureType == STRUCTURE_TOWER
                                                           or s.structureType == STRUCTURE_EXTENSION
@@ -222,7 +225,7 @@ def demolition(creep, structures):
     if dismantle == ERR_NOT_IN_RANGE:
         creep.moveTo(target, {'visualizePathStyle': {'stroke': '#c0c0c0'}, 'reusePath': 50})
     elif dismantle == 0:
-    # if dismantle == 0:
+        # if dismantle == 0:
         if Game.time % 3 == 0:
             creep.say('철거중 💣💣', True)
     elif dismantle == ERR_INVALID_TARGET:

@@ -130,9 +130,9 @@ def run_hauler(creep: Creep, all_structures: List[Structure], constructions: Lis
             del creep.memory.dropped
 
         # 소속된 방에 스토어가 없으면 에너지만 줍는다
-        energy_only = False
-        if not Game.rooms[creep.memory.assigned_room].storage:
-            energy_only = True
+        energy_only = True
+        if Game.rooms[creep.memory.assigned_room].storage:
+            energy_only = False
 
         # if there's no dropped_all but there's dropped_all
         if not creep.memory.dropped and len(dropped_all) > 0:

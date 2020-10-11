@@ -93,8 +93,9 @@ def refresh_base_stats(chambro: Room, all_structures, fix_rating, min_wall, spaw
     :return:
     """
     creeps_memory = []
-    for c in Object.keys(Memory.creeps):
-        creeps_memory.append(Memory.creeps[c])
+    if Memory.creeps:
+        for c in Object.keys(Memory.creeps):
+            creeps_memory.append(Memory.creeps[c])
 
     distance_to_controller = 5
 
@@ -218,9 +219,9 @@ def refresh_base_stats(chambro: Room, all_structures, fix_rating, min_wall, spaw
                 if len(path_to_closest_storage) <= range_required or len(path_to_controller) <= range_required:
                     _store = 1
 
-                # 만일 저장용이긴 한데  컨트롤러 근처에만 있는 경우 너무 먼거라 더이상 쓸모없음.
+                # 만일 저장용이긴 한데 렙8인 상황에서 컨트롤러 근처에만 있는 경우 너무 먼거라 더이상 쓸모없음.
                 # 이 경우 안에 남아있는 자원이 없으면 더 이상 운송용으로 쓰지 않는다.
-                if _store and not len(path_to_closest_storage) <= range_required \
+                if chambro.controller.level == 8 and _store and not len(path_to_closest_storage) <= range_required \
                         and stl.store.getUsedCapacity(RESOURCE_ENERGY) == 0:
                     _store = 0
 
