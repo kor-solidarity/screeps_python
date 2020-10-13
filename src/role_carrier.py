@@ -3,6 +3,7 @@ from harvest_stuff import *
 import pathfinding
 from miscellaneous import *
 from _custom_constants import *
+from action.logistics import *
 import movement
 import random
 from debug import *
@@ -703,19 +704,7 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                     creep.say('ERR {}'.format(transfer_result))
                 # 마지막으로 가는길에 근처에 에너지 넣을거 있으면 넣읍시다.
                 if not transfer_result == OK:
-                    # 스폰과 익스텐션중에 빈거 + 바로옆
-                    spn_ext = _.filter(all_structures,
-                                       lambda s: (s.structureType == STRUCTURE_EXTENSION
-                                                  or s.structureType == STRUCTURE_SPAWN
-                                                  or s.structureType == STRUCTURE_TOWER)
-                                                 and s.store.getFreeCapacity(RESOURCE_ENERGY) and creep.pos.isNearTo(s))
-
-                    # print(creep.name, spn_ext)
-                    if len(spn_ext):
-                        min_spn_ext = _.max(spn_ext, lambda s: s.store.getFreeCapacity(RESOURCE_ENERGY))
-                        # print('spn_ext', spn_ext)
-                        # print(creep.name, creep.pos, spn_ext[0].structureType, spn_ext[0].pos)
-                        res = creep.transfer(min_spn_ext, RESOURCE_ENERGY)
+                    transfer_nearest(creep, all_structures)
         # 수리
         elif creep.memory.priority == 3:
             if not creep.memory.work:

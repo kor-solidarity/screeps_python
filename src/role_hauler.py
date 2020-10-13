@@ -400,7 +400,7 @@ def run_hauler(creep: Creep, all_structures: List[Structure], constructions: Lis
             elif len(constructions) > 0:
                 creep.say('🚧건설,염려말라!', True)
                 creep.memory.priority = 2
-            elif len(repairs) > 0 and creep.room.controller.level >= 3:
+            elif len(repairs) > 0 and creep.room.controller.level > 3:
                 creep.say('🔧 세상을 고치자!', True)
                 creep.memory.priority = 3
             else:

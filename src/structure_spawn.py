@@ -294,9 +294,9 @@ def run_spawn(spawn: StructureSpawn, all_structures: List[Structure], constructi
             hauler_quota = 4
         # 단, 초반 허울러가 전혀 필요없는 상황이면(컨테이너 등 적재소가 없으면) 뽑지 않는다
         if spawn.room.controller.level == 1 \
-                and (not len(spawn.room.memory[STRUCTURE_CONTAINER])
-                     or not len(spawn.room.memory[STRUCTURE_LINK])
-                     or spawn.room.storage):
+                and not (len(spawn.room.memory[STRUCTURE_CONTAINER])
+                         or len(spawn.room.memory[STRUCTURE_LINK])
+                         or spawn.room.storage):
             hauler_quota = 0
 
         if spawn.room.terminal:
@@ -1230,6 +1230,8 @@ def run_spawn(spawn: StructureSpawn, all_structures: List[Structure], constructi
                         else:
                             opts = {'trackCreeps': False, 'refreshMatrix': True, 'pass_walls': False,
                                     'costByArea': {'objects': objs, 'size': 1, 'cost': 6}}
+
+
                         # RoomPosition 목록. 컨테이너 건설한 김에 길도 깐다.
                         constr_roads_pos = \
                             PathFinder.search(constr_pos, spawn.pos,
@@ -1385,14 +1387,14 @@ def run_spawn(spawn: StructureSpawn, all_structures: List[Structure], constructi
                             for i in constructions:
                                 if i.structureType == STRUCTURE_LINK:
                                     links.append(i.id)
-                                if i.structureType == STRUCTURE_CONTAINER:
+                                elif i.structureType == STRUCTURE_CONTAINER:
                                     containers.append(i.id)
 
                             # 픽업지점에서 적재소까지 길. 적절한 적재소가 없으면 스폰에서 시작
                             # 가장 가까운 적재소를 사전에 찾아서 배정한다.
                             # 이렇게 안하면 길 이상하게 멋대로 파버릴 수 있음...
-                            path_spawn_to_pickup =\
-                                find_closest(spawn, closest_cont_to_source.pos, containers, links, opts)
+                            path_spawn_to_pickup = \
+                                find_closest_path(spawn, closest_cont_to_source.pos, containers, links, opts)
 
                             # 픽업 지점부터 스폰까지의 길
                             # path_to_home = PathFinder.search(closest_cont_to_source.pos, spawn.pos,
@@ -1593,8 +1595,8 @@ def run_spawn(spawn: StructureSpawn, all_structures: List[Structure], constructi
         # 주변에 있는 크립 회복조치.
         # 이 곳에 필요한거: spawn 레벨보다 같거나 높은 애들 지나갈 때 TTL 오백 이하면 회복시켜준다.
         # room controller lvl ± 2 에 부합한 경우에만 수리를 실시한다.
-        # 렙 5부터 통상적으로 뽑는 엥간한 것들이 다 뽑히기 시작함.
-        if room_level >= 5:
+        # 스토리지를 가지는 시점부터 충전시작.
+        if spawn.room.storage:
             # soldier > harvester > hauler > upgrader > etc.
             # ^ not applied yet idk
             for creep in room_creeps:
@@ -1602,6 +1604,7 @@ def run_spawn(spawn: StructureSpawn, all_structures: List[Structure], constructi
                 if not spawn.pos.isNearTo(creep) or creep.ticksToLive < 100:
                     continue
                 # 일꾼은 무조건 항시 채워준다. 어차피 근접할 가능성 거의없기도 함.
+                # 렙4 에서 조건 충족하는 애가 얘뿐이기도 함.
                 if creep.memory.role == 'harvester' and creep.memory.level >= room_level and creep.ticksToLive < 1400:
                     spawn.renewCreep(creep)
                     break
@@ -1713,7 +1716,7 @@ def add_costs(body: List[str], cost):
     return cost
 
 
-def find_closest(spawn: StructureSpawn, goal: RoomPosition, containers, links, opts):
+def find_closest_path(spawn: StructureSpawn, goal: RoomPosition, containers, links, opts):
     """
     캐리어 스폰할 때 가장 가까이 있는 링크·컨테이너의 위치로 경로를 사전에 넣기 위한 용도.
 
@@ -1724,7 +1727,7 @@ def find_closest(spawn: StructureSpawn, goal: RoomPosition, containers, links, o
     :param opts: 외부에서 가져온 패스파인딩 추가옵션
     :return:
     """
-    print('goal', goal, JSON.stringify(goal))
+    # print('goal', goal, JSON.stringify(goal))
     # 가장 먼저 스토리지가 있는지 확인한다.
     storage: StructureStorage = spawn.room.storage
     result = None
@@ -1740,7 +1743,7 @@ def find_closest(spawn: StructureSpawn, goal: RoomPosition, containers, links, o
             if i.roomName == spawn.room.name:
                 counter += 1
         if counter <= 10:
-            print(';storage!')
+            # print(';storage!')
             result = constr_roads_pos
 
     if len(links) and not result:
@@ -1776,10 +1779,10 @@ def find_closest(spawn: StructureSpawn, goal: RoomPosition, containers, links, o
                         counter += 1
                 if counter <= 10:
                     result = constr_roads_pos
-                    print('cont!')
+                    # print('cont!')
                     break
 
-    print('counter', counter, 'result', JSON.stringify(result))
+    # print('counter', counter, 'result', JSON.stringify(result))
     if result:
         return result
     # print('spawn')

@@ -2,7 +2,7 @@ from defs import *
 import harvest_stuff
 import random
 import miscellaneous
-# from movement import *
+from action.logistics import *
 import movement
 import pathfinding
 
@@ -164,6 +164,8 @@ def run_upgrader(creep, creeps, all_structures, repairs, constructions, dropped_
     if creep.memory.laboro == 1:
         movement.ranged_move(creep, creep.memory.upgrade_target, creeps)
         miscellaneous.repair_on_the_way(creep, repairs, constructions, True)
+        transfer_nearest(creep, all_structures)
+
     return
 
 
