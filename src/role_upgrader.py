@@ -187,7 +187,8 @@ def run_reserver(creep):
         creep.suicide()
 
     # reserve the room
-    creep_action = creep.reserveController(creep.room.controller)
+    creep_action = creep.reserveController(Game.getObjectById(creep.memory.upgrade_target))
+    # print('creep_action', creep_action)
     # creep.say(creep_action)
     if creep_action == ERR_NOT_IN_RANGE:
         # 5칸이내 들어가기 전까진 패스파인딩 갑시다.

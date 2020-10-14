@@ -1231,7 +1231,6 @@ def run_spawn(spawn: StructureSpawn, all_structures: List[Structure], constructi
                             opts = {'trackCreeps': False, 'refreshMatrix': True, 'pass_walls': False,
                                     'costByArea': {'objects': objs, 'size': 1, 'cost': 6}}
 
-
                         # RoomPosition 목록. 컨테이너 건설한 김에 길도 깐다.
                         constr_roads_pos = \
                             PathFinder.search(constr_pos, spawn.pos,
@@ -1464,6 +1463,8 @@ def run_spawn(spawn: StructureSpawn, all_structures: List[Structure], constructi
                             carrier_size = int(carrier_size)
                             # print(s.pos, 'total_carrier_size', total_carrier_size, 'final carrier_size', carrier_size)
 
+                            # 캐리어 크기에 따른 충전계산. 크기대비 절반 이상일때만 채운다.
+
                             # 여기서 실질적인 캐리어 용량 계산
                             spawn_quota = None
                             while carrier_size > 0:
@@ -1485,6 +1486,7 @@ def run_spawn(spawn: StructureSpawn, all_structures: List[Structure], constructi
                                                                       'work': work_chance,
                                                                       'source_num': s.id,
                                                                       'size': carrier_size,
+                                                                      'total': total_carrier_size,
                                                                       'level': 8,
                                                                       haul_resource: haul_all,
                                                                       to_home: path_to_home,
@@ -1642,6 +1644,33 @@ def run_spawn(spawn: StructureSpawn, all_structures: List[Structure], constructi
                         if len(wall_repairs) <= 10:
                             no_renew = True
                         storage_amount = 50000 * len(_.filter(room_creeps, lambda c: c.memory.role == 'fixer'))
+                    # 캐리어인 경우
+                    elif creep.memory.role == 'carrier':
+                        # 캐리어가 여럿으로 쪼개질 경우를 대비.
+                        if creep.ticksToLive > 400:
+                            no_renew = True
+                        # 안채우기로 했으면 의미없으니.
+                        if not no_renew:
+                            creeps = Game.creeps
+                            current_size = 0
+                            for name in Object.keys(creeps):
+                                c = creeps[name]
+                                if c.memory.role == 'carrier' and c.memory.source_num == creep.memory.source_num:
+                                    current_size += c.memory.size
+                            pickup: StructureContainer = Game.getObjectById(creep.memory.pickup)
+
+                            print('creep.size', creep.memory.size, 'current_size', current_size, 'total',
+                                  creep.memory.total)
+                            # 1. 캐리어의 크기가 전체크기의 2/3 이상이고
+                            # 2. 누적 캐리어의 크기가 총 크기를 넘기지 않으면 채운다.
+                            # 3. 컨테이너 체력이 일정량 이상 떨어졌으면 WORK 가 없을 가능성이 높으니 이 또한 감안.
+                            if creep.memory.total * (2 / 3) >= creep.memory.size \
+                                    and current_size > creep.memory.total \
+                                    and pickup and pickup.hits < pickup.hitsMax * (2 / 3):
+                                pass
+                            else:
+                                no_renew = True
+
                     # 자원조건이 할당된 경우 스토리지를 확인.
                     # 스토리지가 없거나 거기 안에 에너지가 storage_amount 보다 적으면 회복은 없다
                     # print('not spawn.room.storage {} or spawn.room.storage[RESOURCE_ENERGY] {} < {} {}'
