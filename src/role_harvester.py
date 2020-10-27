@@ -219,11 +219,7 @@ def run_harvester(creep: Creep, all_structures: List[Structure], constructions: 
 
     # if carryCapacity is full - then go to nearest container or storage to store the energy.
     if creep.memory.laboro == 1:
-        # print(creep.name, creep.room.name, creep.memory.assigned_room)
-        # if creep.room.name != creep.memory.assigned_room:
-        #     movement.get_to_da_room(creep, creep.memory.assigned_room)
-        #     return
-
+        # todo 긴급: 현재 기존 목적지가 없어졌을 경우에 대한 대비가 없다.
         # 새 작동원리:
         #   조건에 맞는 목록뽑기.
         #   뽑았으면 우선 링크로. 전부 꽉찼으면 근처 다른 컨테이너로.

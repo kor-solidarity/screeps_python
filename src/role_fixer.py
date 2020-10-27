@@ -2,6 +2,7 @@ from defs import *
 import movement
 import harvest_stuff
 import random
+from action.logistics import *
 import miscellaneous
 from _custom_constants import *
 
@@ -162,6 +163,8 @@ def run_fixer(creep, all_structures, constructions, creeps, repairs, min_wall, t
             # 없다면 수리할 벽은 목표치만큼 다 채웠단거니 아무거나 찾는다.
             else:
                 closest = creep.pos.findClosestByRange(repairs)
+                # 그리고 주변에 채울거 있으면 거들고.
+                transfer_nearest(creep, all_structures)
                 if closest:
                     creep.memory.repair_target = closest.id
                 # 그마저도 없으면 더이상 수리크립이 있을 이유가 없음.

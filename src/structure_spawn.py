@@ -1618,12 +1618,13 @@ def run_spawn(spawn: StructureSpawn, all_structures: List[Structure], constructi
                     storage_amount = 0
                     # 스폰을 자주 지나다니는 허울러 특성상
                     # 1. 너무 자주 충전되면 스폰 사이 무의미하게 왔다갔다하는 현상 발생. 타임계산은 이를 방지
-                    # 2. 허울러는 방 중간중간 추가 허울러가 무의미하게 스폰될 가능성이 있는 특성상 틱 250이상은 채우지 않는다.
-                    # 250인 이유는 허울러 둘이 생겼을 경우 약간 보조하기 위한 용도. 둘이 동시생성되는건 지양합시다.
+                    # 2. 허울러는 방 중간중간 추가 허울러가 무의미하게 스폰될 가능성이 있는 특성상
+                    #  틱 300 이상은 채우지 않는다. 300 인 이유는 허울러 둘이 생겼을 경우 약간 보조하기 위한 용도.
+                    #  둘이 동시생성되는건 지양합시다.
                     # 3. 허울러는 기본값으로 한명으로 유지해야 하기에 둘 이상이면 안건든다.
                     # 셋중 하나라도 걸리는게 있으면 통과
                     if creep.memory.role == 'hauler' \
-                            and (not Game.time % 3 == 0 or creep.ticksToLive > 250
+                            and (not Game.time % 3 == 0 or creep.ticksToLive > 300
                                  or len(_.filter(Game.creeps,
                                                  lambda c: c.memory.role == 'hauler'
                                                            and c.memory.assigned_room == spawn.pos.roomName)) > 1):
