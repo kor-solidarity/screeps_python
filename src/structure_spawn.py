@@ -493,9 +493,10 @@ def run_spawn(spawn: StructureSpawn, all_structures: List[Structure], constructi
 
             # 벽수리가 중심인데 수리할 벽이 없으면 의미가 없음.
             elif room_level == 8 and min_hits < chambro.memory[options][repair]:
-                # max_num_fixers = int(chambro.storage.store[RESOURCE_ENERGY] / 30000)
                 # 스토리지에 에너지가 3만 이하면 1로 제한.
-                if chambro.storage.store[RESOURCE_ENERGY] < 30000:
+                # CPU bucket 부족인 상황에도 적용
+                if chambro.storage.store[RESOURCE_ENERGY] < 30000 \
+                        or cpu_bucket_emergency > Game.cpu.bucket:
                     max_num_fixers = 1
                 # 그 이상인 경우 수리대상 벽 20개당 하나로 제한한다
                 # 수리대상 10개당 하나 vs elapsed_fixer_time // 2k vs 스토리지 에너지양 / 3만의 정수
@@ -1647,43 +1648,29 @@ def run_spawn(spawn: StructureSpawn, all_structures: List[Structure], constructi
                         storage_amount = 50000 * len(_.filter(room_creeps, lambda c: c.memory.role == 'fixer'))
                     # 캐리어인 경우
                     elif creep.memory.role == 'carrier':
-                        # 캐리어가 여럿으로 쪼개질 경우를 대비.
-                        if creep.ticksToLive > 400:
-                            no_renew = True
-                        # 안채우기로 했으면 의미없으니.
-                        if not no_renew:
-                            creeps = Game.creeps
-                            current_size = 0
-                            for name in Object.keys(creeps):
-                                c = creeps[name]
-                                if c.memory.role == 'carrier' and c.memory.source_num == creep.memory.source_num:
-                                    current_size += c.memory.size
-                            pickup: StructureContainer = Game.getObjectById(creep.memory.pickup)
+                        creeps = Game.creeps
+                        current_size = 0
+                        for name in Object.keys(creeps):
+                            c = creeps[name]
+                            if c.memory.role == 'carrier' and c.memory.source_num == creep.memory.source_num:
+                                current_size += c.memory.size
+                        pickup: StructureContainer = Game.getObjectById(creep.memory.pickup)
 
-                            print('creep.size', creep.memory.size, 'current_size', current_size, 'total',
-                                  creep.memory.total)
-                            # 1. 캐리어의 크기가 전체크기의 2/3 이상이고
-                            # 2. 누적 캐리어의 크기가 총 크기를 넘기지 않으면 채운다.
-                            # 3. 컨테이너 체력이 일정량 이상 떨어졌으면 WORK 가 없을 가능성이 높으니 이 또한 감안.
-                            if creep.memory.total * (2 / 3) >= creep.memory.size \
-                                    and current_size > creep.memory.total \
-                                    and pickup and pickup.hits < pickup.hitsMax * (2 / 3):
-                                pass
-                            else:
-                                no_renew = True
+                        # 1. 캐리어의 크기가 전체크기의 2/3 이상이고
+                        # 2. 누적 캐리어의 크기가 총 크기를 넘기지 않으면 채운다.
+                        # 3. 컨테이너 체력이 절반 이상 떨어졌으면 WORK 가 없을 가능성이 높으니 이 또한 감안.
+                        if not (creep.memory.size >= creep.memory.total * (2 / 3)
+                                and not current_size > creep.memory.total
+                                and pickup and pickup.hits > pickup.hitsMax * .5):
+                            no_renew = True
 
                     # 자원조건이 할당된 경우 스토리지를 확인.
                     # 스토리지가 없거나 거기 안에 에너지가 storage_amount 보다 적으면 회복은 없다
-                    # print('not spawn.room.storage {} or spawn.room.storage[RESOURCE_ENERGY] {} < {} {}'
-                    #       .format(bool(not spawn.room.storage), spawn.room.storage.store[RESOURCE_ENERGY],
-                    #               storage_amount, bool(spawn.room.storage.store[RESOURCE_ENERGY] < storage_amount)))
                     if storage_amount \
                             and (not spawn.room.storage or spawn.room.storage.store[RESOURCE_ENERGY] < storage_amount):
                         no_renew = True
                     if no_renew:
-                        # print('stopped')
                         continue
-                    # print('healing', creep.name, creep.ticksToLive)
                     result = spawn.renewCreep(creep)
                     break
 
