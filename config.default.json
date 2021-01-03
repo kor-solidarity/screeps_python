@@ -1,4 +1,5 @@
 {
+    "token": "token-created-from-account-management",
     "email": "youremail@here.com",
     "password": "plain-text-password",
     "branch": "default",

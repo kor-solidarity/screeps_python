@@ -36,6 +36,7 @@ class Creep(RoomObject):
     :type owner: _Owner
     :type saying: Optional[str]
     :type spawning: bool
+    :type store: Store
     :type ticksToLive: int
     """
 
