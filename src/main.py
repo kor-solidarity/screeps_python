@@ -31,7 +31,7 @@ __pragma__('noalias', 'keys')
 __pragma__('noalias', 'get')
 __pragma__('noalias', 'set')
 __pragma__('noalias', 'type')
-__pragma__('noalias', 'update')
+# __pragma__('noalias', 'update')
 
 """
 UNIVERSAL CODE:
@@ -164,7 +164,7 @@ def main():
                         age = (Game.time - creep.memory.birthday) // 1500
                         creep.say("{}차생일!🎂🎉".format(age), True)
                     # TTL 확인 용도
-                    elif creep.ticksToLive % 25 == 0:
+                    elif creep.ticksToLive % 20 == 0:
                         creep.say(creep.ticksToLive)
                     # 100만틱마다 경축빰빠레!
                     elif Game.time % 1000000 < 2000:
@@ -218,55 +218,85 @@ def main():
     # 모든 방 안에 있는 모든 주요 오브젝트는 여기에 다 통합보관된다.
     all_objs = {}
     # 사전에 자원·건물현황·적 구분 등을 싹 다 돌린다.
-    # for chambra_nomo in Object.keys(Game.rooms):
-    #     # 찾아야 하는 대상: 각 방에 대한 모든것.
-    #     chambro = Game.rooms[chambra_nomo]
-    #
-    #     # ALL .find() functions are done in here. THERE SHOULD BE NONE INSIDE CREEP FUNCTIONS!
-    #     # filters are added in between to lower cpu costs.
-    #     all_structures = {'all_structures': chambro.find(FIND_STRUCTURES)}
-    #
-    #     room_creeps = {'room_creeps': chambro.find(FIND_MY_CREEPS)}
-    #
-    #     malsanaj_amikoj = {'malsanaj_amikoj': _.filter(room_creeps, lambda c: c.hits < c.hitsMax)}
-    #
-    #     enemy_constructions = {'enemy_constructions': chambro.find(FIND_HOSTILE_CONSTRUCTION_SITES)}
-    #     my_constructions = {'my_constructions': chambro.find(FIND_MY_CONSTRUCTION_SITES)}
-    #     # 바로아래 이유로 딕셔너리화하진 않음.
-    #     dropped_all = chambro.find(FIND_DROPPED_RESOURCES)
-    #     tombs = chambro.find(FIND_TOMBSTONES)
-    #     ruins = chambro.find(FIND_RUINS)
-    #     if tombs:
-    #         for t in tombs:
-    #             if _.sum(t.store) > 0:
-    #                 dropped_all.append(t)
-    #     if ruins:
-    #         for r in ruins:
-    #             if _.sum(r.store) > 0:
-    #                 dropped_all.append(r)
-    #     dropped_all = {'dropped_all': dropped_all}
-    #
-    #     # 필터하면서 목록을 삭제하는거 같음.... 그래서 이리 초기화
-    #     foreign_creeps = chambro.find(FIND_HOSTILE_CREEPS)
-    #     nukes = {'nukes': chambro.find(FIND_NUKES)}
-    #     # [[적 전부], [적 NPC], [적 플레이어], [동맹]]
-    #     friends_and_foes = miscellaneous.filter_friend_foe(foreign_creeps)
-    #     # init. list
-    #     hostile_creeps = {'hostile_creeps': friends_and_foes[0]}
-    #     allied_creeps = {'allied_creeps': friends_and_foes[3]}
-    #
-    #     room_objs = {chambra_nomo: {all_structures, room_creeps, malsanaj_amikoj, enemy_constructions, my_constructions,
-    #                                 dropped_all, nukes, hostile_creeps, allied_creeps}}
+    for chambra_nomo in Object.keys(Game.rooms):
+        # 찾아야 하는 대상: 각 방에 대한 모든것.
+        chambro = Game.rooms[chambra_nomo]
 
+        # ALL .find() functions are done in here. THERE SHOULD BE NONE INSIDE CREEP FUNCTIONS!
+        # filters are added in between to lower cpu costs.
+        all_structures = {'all_structures': chambro.find(FIND_STRUCTURES)}
+        hostile_structures = {'hostile_structures': chambro.find(FIND_HOSTILE_STRUCTURES)}
+        my_structures = {'my_structures': chambro.find(FIND_MY_STRUCTURES)}
+
+        my_creeps = {'my_creeps': chambro.find(FIND_MY_CREEPS)}
+
+        wounded = {'wounded': _.filter(my_creeps['my_creeps'], lambda c: c.hits < c.hitsMax)}
+
+        hostile_constructions = {'hostile_constructions': chambro.find(FIND_HOSTILE_CONSTRUCTION_SITES)}
+        all_constructions = {'all_constructions': chambro.find(FIND_CONSTRUCTION_SITES)}
+        my_constructions = {'my_constructions': chambro.find(FIND_MY_CONSTRUCTION_SITES)}
+        # 바로아래 이유로 딕셔너리화하진 않음.
+        dropped = chambro.find(FIND_DROPPED_RESOURCES)
+        tombs = chambro.find(FIND_TOMBSTONES)
+        ruins = chambro.find(FIND_RUINS)
+        if tombs:
+            for t in tombs:
+                if _.sum(t.store) > 0:
+                    dropped.append(t)
+        if ruins:
+            for r in ruins:
+                if _.sum(r.store) > 0:
+                    dropped.append(r)
+        dropped = {'dropped': dropped}
+        # 필터하면서 목록을 삭제하는거 같음.... 그래서 이리 초기화
+        foreign_creeps = chambro.find(FIND_HOSTILE_CREEPS)
+        nukes = {'nukes': chambro.find(FIND_NUKES)}
+        # [[적 전부], [적 NPC], [적 플레이어], [동맹]]
+        friends_and_foes = \
+            miscellaneous.filter_friend_foe(foreign_creeps, bool(len(all_constructions['all_constructions'])))
+        # init. list
+        hostile_creeps = {'hostile_creeps': friends_and_foes[0]}
+        hostile_humans = {'hostile_humans': friends_and_foes[2]}
+        allied_creeps = {'allied_creeps': friends_and_foes[3]}
+        # room_objs = {chambra_nomo: {**all_structures,
+        #                             **my_creeps,
+        #                             **wounded,
+        #                             **hostile_constructions,
+        #                             **my_constructions,
+        #                             **dropped,
+        #                             **nukes,
+        #                             **hostile_creeps,
+        #                             **allied_creeps}}
+        room_objs = {chambra_nomo: {}}
+        room_objs[chambra_nomo]['all_structures'] = all_structures['all_structures']
+        room_objs[chambra_nomo]['hostile_structures'] = hostile_structures['hostile_structures']
+        room_objs[chambra_nomo]['my_structures'] = my_structures['my_structures']
+        room_objs[chambra_nomo]['my_creeps'] = my_creeps['my_creeps']
+        room_objs[chambra_nomo]['wounded'] = wounded['wounded']
+        room_objs[chambra_nomo]['hostile_constructions'] = hostile_constructions['hostile_constructions']
+        room_objs[chambra_nomo]['all_constructions'] = all_constructions['all_constructions']
+        room_objs[chambra_nomo]['my_constructions'] = my_constructions['my_constructions']
+        room_objs[chambra_nomo]['dropped'] = dropped['dropped']
+        room_objs[chambra_nomo]['nukes'] = nukes['nukes']
+        room_objs[chambra_nomo]['hostile_creeps'] = hostile_creeps['hostile_creeps']
+        room_objs[chambra_nomo]['hostile_humans'] = hostile_humans['hostile_humans']
+        room_objs[chambra_nomo]['allied_creeps'] = allied_creeps['allied_creeps']
+
+        # all_objs.update(room_objs)
+        all_objs[chambra_nomo] = room_objs[chambra_nomo]
+        del room_objs
+    # print(JSON.stringify(all_objs))
     # run everything according to each rooms.
     for chambra_nomo in Object.keys(Game.rooms):
+        room_objs = all_objs[chambra_nomo]
         chambro_cpu = Game.cpu.getUsed()
         chambro = Game.rooms[chambra_nomo]
 
         # fix_rating = stop_fixer 급수별 램파트 수리 양.
-        # 레벨8 진입전까진 렙 하나당 100k씩 추가, 리페어렙 1 유지.
-        if chambro.controller and chambro.controller.level < 8:
+        if chambro.controller and chambro.controller.level < 6:
             fix_rating = 100000 * chambro.controller.level
+        elif chambro.controller and chambro.controller.level < 8:
+            fix_rating = 1000000
         else:
             fix_rating = 2000000
 
@@ -428,37 +458,16 @@ def main():
                         chambro.memory.bld_plan.splice(num, 1)
                     num += 1
 
-        # ALL .find() functions are done in here. THERE SHOULD BE NONE INSIDE CREEP FUNCTIONS!
-        # filters are added in between to lower cpu costs.
-        all_structures = chambro.find(FIND_STRUCTURES)
-
-        room_creeps = chambro.find(FIND_MY_CREEPS)
-
-        malsana_amikoj = _.filter(room_creeps, lambda c: c.hits < c.hitsMax)
-
-        enemy_constructions = chambro.find(FIND_HOSTILE_CONSTRUCTION_SITES)
-        my_constructions = chambro.find(FIND_MY_CONSTRUCTION_SITES)
-        dropped_all = chambro.find(FIND_DROPPED_RESOURCES)
-        tombs = chambro.find(FIND_TOMBSTONES)
-        ruins = chambro.find(FIND_RUINS)
-        if ruins:
-            for r in ruins:
-                if _.sum(r.store) > 0:
-                    dropped_all.append(r)
-        if tombs:
-            for t in tombs:
-                if _.sum(t.store) > 0:
-                    dropped_all.append(t)
-
-        # 필터하면서 목록을 삭제하는거 같음.... 그래서 이리 초기화
-        foreign_creeps = chambro.find(FIND_HOSTILE_CREEPS)
-        nukes = chambro.find(FIND_NUKES)
-        # [[적 전부], [적 NPC], [적 플레이어], [동맹]]
-        friends_and_foes = miscellaneous.filter_friend_foe(foreign_creeps)
-        # init. list
-        hostile_creeps = friends_and_foes[0]
-        hostile_human = friends_and_foes[2]
-        allied_creeps = friends_and_foes[3]
+        all_structures = room_objs['all_structures']
+        my_creeps = room_objs['my_creeps']
+        wounded = room_objs['wounded']
+        hostile_constructions = room_objs['hostile_constructions']
+        my_constructions = room_objs['my_constructions']
+        dropped = room_objs['dropped']
+        nukes = room_objs['nukes']
+        hostile_creeps = room_objs['hostile_creeps']
+        hostile_humans = room_objs['hostile_humans']
+        allied_creeps = room_objs['allied_creeps']
 
         # 초기화.
         terminal_capacity = 0
@@ -478,24 +487,24 @@ def main():
         else:
             nuke_extra = 0
         # 모든 수리대상 찾는다. 분류는 위에 크립·타워 등에 따라 거른다.
-        repairs = all_structures.filter(lambda s: (s.structureType == STRUCTURE_ROAD
-                                                   or s.structureType == STRUCTURE_TOWER
-                                                   or s.structureType == STRUCTURE_EXTENSION
-                                                   or s.structureType == STRUCTURE_LINK
-                                                   or s.structureType == STRUCTURE_LAB
-                                                   or s.structureType == STRUCTURE_CONTAINER
-                                                   or s.structureType == STRUCTURE_STORAGE
-                                                   or s.structureType == STRUCTURE_SPAWN
-                                                   or s.structureType == STRUCTURE_POWER_SPAWN)
-                                                  and s.hits < s.hitsMax)
-        # print('WTFR', JSON.stringify(repairs))
+        repairs = room_objs['all_structures'].filter(lambda s: (s.structureType == STRUCTURE_ROAD
+                                                                or s.structureType == STRUCTURE_TOWER
+                                                                or s.structureType == STRUCTURE_EXTENSION
+                                                                or s.structureType == STRUCTURE_LINK
+                                                                or s.structureType == STRUCTURE_LAB
+                                                                or s.structureType == STRUCTURE_CONTAINER
+                                                                or s.structureType == STRUCTURE_STORAGE
+                                                                or s.structureType == STRUCTURE_SPAWN
+                                                                or s.structureType == STRUCTURE_POWER_SPAWN)
+                                                               and s.hits < s.hitsMax)
+
+        wall_repairs = []
         if chambro.controller and chambro.controller.my:
             # 방에 있는 모든 수리대상 장벽·방어막
-            wall_repairs = all_structures.filter(lambda s: (s.structureType == STRUCTURE_RAMPART
-                                                            or s.structureType == STRUCTURE_WALL)
-                                                           and s.hits < chambro.memory[options][
-                                                               repair] * fix_rating + nuke_extra)
-
+            wall_repairs = room_objs['all_structures'].filter(lambda s: (s.structureType == STRUCTURE_RAMPART
+                                                                         or s.structureType == STRUCTURE_WALL)
+                                                                        and s.hits < chambro.memory[options][
+                                                                            repair] * fix_rating + nuke_extra)
         # 벽을 본다.
         all_repairs = []
         if len(wall_repairs) > 1:
@@ -511,7 +520,8 @@ def main():
             min_hits = 0
             all_repairs.extend(repairs)
 
-        my_structures = chambro.find(FIND_MY_STRUCTURES)
+        # my_structures = chambro.find(FIND_MY_STRUCTURES)
+        my_structures = room_objs['my_structures']
 
         extractor = _.filter(my_structures, lambda s: s.structureType == STRUCTURE_EXTRACTOR)
 
@@ -520,11 +530,11 @@ def main():
                                lambda s: (s.structureType == STRUCTURE_EXTENSION or
                                           s.structureType == STRUCTURE_SPAWN) and s.hits < s.hitsMax)
         # 건물이 공격당하고 있고 그게 잉간이면 세이프모드 발동
-        if len(damaged_bld) and len(hostile_human) and \
+        if len(damaged_bld) and len(room_objs['hostile_humans']) and \
                 chambro.controller.safeModeAvailable and not chambro.controller.safeModeCooldown:
             chambro.controller.activateSafeMode()
         # Run each creeps
-        for chambro_creep in room_creeps:
+        for chambro_creep in room_objs['my_creeps']:
             creep_cpu = Game.cpu.getUsed()
 
             creep = Game.creeps[chambro_creep.name]
@@ -538,36 +548,36 @@ def main():
 
             # but if a soldier/harvester.... nope. they're must-be-run creeps
             if creep.memory.role == 'soldier':
-                role_soldier.run_remote_defender(all_structures, creep, room_creeps, hostile_creeps)
+                role_soldier.run_remote_defender(all_objs, all_structures, creep, my_creeps, hostile_creeps)
 
             elif creep.memory.role == 'h_defender':
-                role_soldier_h_defender.h_defender(all_structures, creep, room_creeps, hostile_creeps)
+                role_soldier_h_defender.h_defender(all_structures, creep, my_creeps, hostile_creeps)
 
             elif creep.memory.role == 'harvester':
-                role_harvester.run_harvester(creep, all_structures, my_constructions, room_creeps, dropped_all)
+                role_harvester.run_harvester(creep, all_structures, my_constructions, my_creeps, dropped)
                 """
                 Runs a creep as a generic harvester.
                 :param creep: The creep to run
                 :param all_structures: creep.room.find(FIND_STRUCTURES)
                 :param constructions: creep.room.find(FIND_CONSTRUCTION_SITES)
                 :param creeps: creep.room.find(FIND_MY_CREEPS)
-                :param dropped_all: creep.room.find(FIND_DROPPED_RESOURCES)
+                :param dropped: creep.room.find(FIND_DROPPED_RESOURCES)
                 """
 
             elif creep.memory.role == 'hauler':
-                role_hauler.run_hauler(creep, all_structures, my_constructions,
-                                       room_creeps, dropped_all, all_repairs, terminal_capacity)
+                role_hauler.run_hauler(all_objs, creep, all_structures, my_constructions,
+                                       my_creeps, dropped, all_repairs, terminal_capacity)
                 """
                 :param creep:
                 :param all_structures: creep.room.find(FIND_STRUCTURES)
                 :param constructions: creep.room.find(FIND_CONSTRUCTION_SITES)
                 :param creeps: creep.room.find(FIND_MY_CREEPS)
-                :param dropped_all: creep.room.find(FIND_DROPPED_RESOURCES)
+                :param dropped: creep.room.find(FIND_DROPPED_RESOURCES)
                 :return:
                 """
             elif creep.memory.role == 'fixer':
                 role_fixer.run_fixer(creep, all_structures, my_constructions,
-                                     room_creeps, all_repairs, min_wall, terminal_capacity, dropped_all)
+                                     my_creeps, all_repairs, min_wall, terminal_capacity, dropped)
                 """
                 :param creep:
                 :param all_structures: creep.room.find(FIND_STRUCTURES)
@@ -576,14 +586,14 @@ def main():
                 :return:
                 """
             elif creep.memory.role == 'carrier':
-                role_carrier.run_carrier(creep, room_creeps, all_structures, my_constructions, dropped_all, all_repairs)
+                role_carrier.run_carrier(creep, my_creeps, all_structures, my_constructions, dropped, all_repairs)
                 """
                 technically same with hauler, but more concentrated in carrying itself.
                     and it's for remote mining ONLY.
                 :param creep: Game.creep
                 :param creeps: creep.room.find(FIND_MY_CREEPS)
                 :param all_structures: creep.room.find(FIND_STRUCTURES)
-                :param dropped_all: creep.room.find(FIND_DROPPED_RESOURCES)
+                :param dropped: creep.room.find(FIND_DROPPED_RESOURCES)
                 :return:
                 """
 
@@ -597,20 +607,20 @@ def main():
                     continue
 
             if creep.memory.role == 'upgrader':
-                role_upgrader.run_upgrader(creep, room_creeps, all_structures,
-                                           all_repairs, my_constructions, dropped_all)
+                role_upgrader.run_upgrader(creep, my_creeps, all_structures,
+                                           all_repairs, my_constructions, dropped)
 
             elif creep.memory.role == 'miner':
                 role_harvester.run_miner(creep, all_structures)
             elif creep.memory.role == 'scout':
-                role_scout.run_scout(creep, enemy_constructions)
+                role_scout.run_scout(creep, hostile_constructions)
             elif creep.memory.role == 'reserver':
                 role_upgrader.run_reserver(creep)
             elif creep.memory.role == 'demolition':
                 role_soldier.demolition(creep, all_structures)
 
             elif creep.memory.role == 'g_collector':
-                role_collector.collector(creep, room_creeps, dropped_all, all_structures)
+                role_collector.collector(creep, my_creeps, dropped, all_structures)
             # 크립의 CPU 사용량 명시.
             if not creep.memory.cpu_usage:
                 creep.memory.cpu_usage = []
@@ -671,7 +681,7 @@ def main():
             for i in chambro.memory[STRUCTURE_TOWER]:
                 if Game.getObjectById(i):
                     room_cpu_num += 1
-                    structure_misc.run_tower(Game.getObjectById(i), enemy, tow_repairs, malsana_amikoj)
+                    structure_misc.run_tower(Game.getObjectById(i), enemy, tow_repairs, wounded)
                 else:
                     chambro.memory[STRUCTURE_TOWER].splice(for_str, 1)
                 for_str += 1
@@ -779,7 +789,7 @@ def main():
                 print('방 {} 루프에서 스폰 {} 준비시간 : {} cpu'.format(nesto.room.name, nesto.name
                                                              , round(Game.cpu.getUsed() - spawn_cpu, 2)))
 
-            structure_spawn.run_spawn(nesto, all_structures, my_constructions, room_creeps, hostile_creeps, divider,
+            structure_spawn.run_spawn(nesto, all_structures, my_constructions, my_creeps, hostile_creeps, divider,
                                       counter, cpu_bucket_emergency, cpu_bucket_emergency_spawn_start, extractor,
                                       terminal_capacity, chambro, interval, wall_repairs, objs_for_disp,
                                       min_hits)

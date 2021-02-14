@@ -5,6 +5,7 @@ from _custom_constants import *
 #  Game, etc. do exist.
 from defs import *
 import miscellaneous
+import random
 
 # These are currently required for Transcrypt in order to use the following names in JavaScript.
 # Without the 'noalias' pragma, each of the following would be translated into something like 'py_Infinity' or
@@ -39,7 +40,7 @@ def init_memory():
         room_creeps = chambro.find(FIND_MY_CREEPS)
         malsana_amikoj = _.filter(room_creeps, lambda c: c.hits < c.hitsMax)
 
-        enemy_constructions = chambro.find(FIND_HOSTILE_CONSTRUCTION_SITES)
+        hostile_constructions = chambro.find(FIND_HOSTILE_CONSTRUCTION_SITES)
         my_constructions = chambro.find(FIND_MY_CONSTRUCTION_SITES)
         dropped_all = chambro.find(FIND_DROPPED_RESOURCES)
         tombs = chambro.find(FIND_TOMBSTONES)
@@ -214,27 +215,23 @@ def refresh_base_stats(chambro: Room, all_structures, fix_rating, min_wall, spaw
                 path_to_closest_storage = stl.pos.findPathTo(closest_storage, {ignoreCreeps: True})
                 # 링크에서 컨트롤러까지의 길
                 path_to_controller = stl.pos.findPathTo(chambro.controller, {'ignoreCreeps': True, 'range': 3})
-
                 # 거리가 조건에 충족하면 우선 저장용임.
                 if len(path_to_closest_storage) <= range_required or len(path_to_controller) <= range_required:
                     _store = 1
-
                 # 만일 저장용이긴 한데 렙8인 상황에서 컨트롤러 근처에만 있는 경우 너무 먼거라 더이상 쓸모없음.
                 # 이 경우 안에 남아있는 자원이 없으면 더 이상 운송용으로 쓰지 않는다.
                 if chambro.controller.level == 8 and _store and not len(path_to_closest_storage) <= range_required \
                         and stl.store.getUsedCapacity(RESOURCE_ENERGY) == 0:
                     _store = 0
-
                 # 저장용이면 컨트롤러 근처에 있는지도 센다. 업글용인지 확인할 용도
                 if _store and not chambro.controller.level == 8:
                     # 컨트롤러가 스토리지보다 더 가까울 경우 업글용으로 분류한다.
                     if len(path_to_controller) < len(path_to_closest_storage):
                         _upgrade = 1
-
                 # 추가한다
                 chambro.memory[STRUCTURE_LINK] \
                     .push({'id': stl.id, for_upgrade: _upgrade, for_store: _store, 'received_time': 1})
-
+            random.shuffle(chambro.memory[STRUCTURE_LINK])
         # 컨테이너
         str_cont = _.filter(all_structures, lambda s: s.structureType == STRUCTURE_CONTAINER)
         # if not len(str_cont) == len(chambro.memory[STRUCTURE_CONTAINER]):

@@ -1,7 +1,8 @@
+from typing import Optional
 import random
 from defs import *
 from _custom_constants import *
-
+import movement
 
 __pragma__('noalias', 'name')
 __pragma__('noalias', 'undefined')
@@ -15,6 +16,8 @@ __pragma__('noalias', 'update')
 """
 제목 그대로 잡다한 기능들 총집합. 메인에서 굳이 반복작업 안하려고 만든거. 
 """
+
+
 # todo 주제별로 다 분류해야함.
 
 
@@ -61,11 +64,12 @@ def check_for_carrier_setting(creep, target_obj):
         return
 
 
-def filter_friend_foe(foreign_creeps):
+def filter_friend_foe(foreign_creeps, has_sites: bool = False):
     """
     크립목록에서 적과 아군 필터링한다.
 
     :param foreign_creeps: 적 크립 전부
+    :param has_sites: 건설장이 있는지. 있으면 단순 정찰대도 적이다!
     :return: [[적 전부], [적 NPC], [적 플레이어], [동맹]]
     """
 
@@ -100,13 +104,10 @@ def filter_friend_foe(foreign_creeps):
                 enemy = False
                 break
 
-        if enemy:
-            for body in hostile.body:
-                # 움직일수만 있는놈 빼고 다 잡는다.
-                if body['type'] != MOVE:
-                    all_enemies.append(hostile)
-                    player_enemies.append(hostile)
-                    break
+        # 몸 1 제외 모든게 적.
+        if enemy and (has_sites or len(hostile.body) > 1):
+            all_enemies.append(hostile)
+            player_enemies.append(hostile)
 
     return [all_enemies, npc_enemies, player_enemies, friendly]
 
@@ -177,15 +178,6 @@ def pick_pickup(creep, creeps, pickup_targets, resource_type=RESOURCE_ENERGY):
                 # if hauler dont have pickup, pass
                 if loop_storage.id == c.memory.pickup:
                     stored_energy -= c.store.getFreeCapacity()
-                # NULLIFIED - 통과해도 될거같은데?
-                # if not c.memory.pickup:
-                #     continue
-                # else:
-                #     # if same id, drop the amount the c can carry.
-                #     if loop_storage.id == c.memory.pickup:
-                #         stored_energy -= c.store.getCapacity()
-                #     else:
-                #         continue
         # if leftover stored_energy has enough energy for carry, set pickup.
         if stored_energy >= int((creep.store.getCapacity() - creep.store.getUsedCapacity()) * .5):
             return loop_storage.id
@@ -241,7 +233,7 @@ def roomCallback(creeps, roomName, structures, constructions=None
             costs.set(struct.pos.x, struct.pos.y, 1)
 
         elif struct.structureType != STRUCTURE_CONTAINER and (
-            struct.structureType != STRUCTURE_RAMPART or not struct.my):
+                struct.structureType != STRUCTURE_RAMPART or not struct.my):
             costs.set(struct.pos.x, struct.pos.y, 0xff)
 
     if not ignoreCreeps:
@@ -289,10 +281,6 @@ def calc_size(distance, divisor=6, work_chance=False):
         body.push(CARRY)
 
 
-def find_distance(creep, distance=5):
-    return {'pos': creep.pos, 'range': distance}
-
-
 def clear_orders():
     my_orders = Game.market.orders
     for order in Object.keys(my_orders):
@@ -308,24 +296,45 @@ def clear_orders():
         Game.market.cancelOrder(order)
 
 
-def swapping(creep, creeps, avoid_id=0, avoid_role=''):
+def end_is_near(creep, target: Optional[Structure]):
     """
-    길막할 경우 위치변환.
+    when creep is on the brink of death, it'll take whatever resources they have back to the storage and die
+
     :param creep:
-    :param creeps:
-    :param avoid_id:
-    :param avoid_role:
+    :param target: place to store the resource to. usually the storage.
     :return:
     """
-    for c in creeps:
-        if creep.pos.inRangeTo(c, 1) and not c.name == creep.name \
-                and not (c.id == avoid_id or c.memory.role == avoid_role):
-            creep.say('GTFO', True)
-            mv = c.moveTo(creep)
-            creep.moveTo(c)
-            return c.id
 
-    return ERR_NO_PATH
+    if creep.store.getUsedCapacity() == 0:
+        creep.suicide()
+        return ERR_NOT_ENOUGH_RESOURCES
+    elif not target:
+        return ERR_INVALID_TARGET
+
+    creep.say('endIsNear')
+    if creep.memory.haul_target:
+        del creep.memory
+    if creep.memory.pickup:
+        del creep.memory.pickup
+
+    if not creep.pos.isNearTo(target):
+        result = ERR_NOT_IN_RANGE
+    else:
+        result = creep.transfer(target, Object.keys(creep.store)[0])
+    if result == ERR_NOT_IN_RANGE:
+        move_by_path = movement.move_with_mem(creep, target.pos, 0)
+        if move_by_path[0] == OK and move_by_path[1]:
+            creep.memory.path = move_by_path[2]
+    elif result == 0:
+        pass
+    else:
+        print('endNearSomething', creep.name, result)
+        creep.say('END?? {}'.format(result))
+    return result
+
+
+def find_distance(creep, distance=5):
+    return {'pos': creep.pos, 'range': distance}
 
 
 def repair_on_the_way(creep, repairs, constructions, upgrader=False, irregular=False):
@@ -363,10 +372,7 @@ def repair_on_the_way(creep, repairs, constructions, upgrader=False, irregular=F
     if (creep.room.controller and creep.room.controller.my and creep.room.controller.level < 8) \
             or upgrader:
         if irregular:
-            if Game.time % 5 == 0:
-                run_upg = True
-            else:
-                run_upg = False
+            run_upg = bool(Game.time % 5 == 0)
         else:
             run_upg = True
         if creep.pos.inRangeTo(creep.room.controller, 3) and run_upg:
@@ -384,5 +390,24 @@ def repair_on_the_way(creep, repairs, constructions, upgrader=False, irregular=F
 
     return repair_or_build_result
 
-# def map_changer(map_name, desto):
 
+def swapping(creep, creeps, avoid_id=0, avoid_role=''):
+    """
+    길막할 경우 위치변환.
+    :param creep:
+    :param creeps:
+    :param avoid_id:
+    :param avoid_role:
+    :return:
+    """
+    for c in creeps:
+        if creep.pos.inRangeTo(c, 1) and not c.name == creep.name \
+                and not (c.id == avoid_id or c.memory.role == avoid_role):
+            creep.say('GTFO', True)
+            mv = c.moveTo(creep)
+            creep.moveTo(c)
+            return c.id
+
+    return ERR_NO_PATH
+
+# def map_changer(map_name, desto):

@@ -32,24 +32,14 @@ def run_upgrader(creep, creeps, all_structures, repairs, constructions, dropped_
     # todo 터미널 안에 용량인데... 이거 추후 바꿔야함.
     terminal_capacity = 10000
 
+    if creep.store.getCapacity() > 0:
+        miscellaneous.repair_on_the_way(creep, repairs, constructions, True)
+        transfer_nearest(creep, all_structures)
+
     # in case it's gonna die soon. this noble act is only allowed if there's a storage in the room.
-    if creep.ticksToLive < 30 and creep.store.getUsedCapacity() != 0 and creep.room.storage:
-        miscellaneous.repair_on_the_way(creep, repairs, constructions)
-        creep.say('endIsNear')
-        for minerals in Object.keys(creep.store):
-            # print('minerals:', minerals)
-            transfer_minerals_result = creep.transfer(creep.room.storage, minerals)
-            # print(transfer_minerals_result)
-            if transfer_minerals_result == ERR_NOT_IN_RANGE:
-                creep.moveTo(creep.room.storage, {'visualizePathStyle': {'stroke': '#ffffff'}, 'reusePath': 10})
-                break
-            elif transfer_minerals_result == 0:
-                break
-        return
-    elif creep.ticksToLive < 30 and creep.room.storage:
-        # 죽어가는데 굳이 턴날릴 필요 없다.
-        creep.suicide()
-        return
+    if creep.ticksToLive < 30:
+        if miscellaneous.end_is_near(creep, creep.room.storage) != ERR_INVALID_TARGET:
+            return
 
     # 혹시 딴짓하다 옆방으로 새는거에 대한 대비 - it really happened lol
     if not creep.memory.upgrade_target:
@@ -86,6 +76,12 @@ def run_upgrader(creep, creeps, all_structures, repairs, constructions, dropped_
         if creep.memory.dropped:
             harvest_stuff.pick_drops_act(creep, True)
             return
+
+        if creep.memory.pickup and \
+                (not Game.getObjectById(creep.memory.pickup)
+                 or Game.getObjectById(creep.memory.pickup).store.getUsedCapacity(
+                            RESOURCE_ENERGY) < creep.store.getCapacity() * .5):
+            del creep.memory.pickup
 
         # 배정된 저장소가 없을 경우
         if not creep.memory.pickup:
@@ -143,15 +139,14 @@ def run_upgrader(creep, creeps, all_structures, repairs, constructions, dropped_
                 creep.memory.source_num = creep.pos.findClosestByRange(creep.room.find(FIND_SOURCES)).id
             harvest_stuff.harvest_energy(creep, creep.memory.source_num)
 
-        # se vi jam havas pickup, ne bezonas sercxi por ujojn
+        # if you already have pickup, no need to search for containers
         if creep.memory.pickup:
             result = harvest_stuff.grab_energy(creep, creep.memory.pickup, True)
             if result == ERR_NOT_IN_RANGE:
                 # path = _.map(creep.memory.path, lambda p: __new__(RoomPosition(p.x, p.y, creep.room.name)))
                 move_by_path = movement.move_with_mem(creep, creep.memory.pickup, 0)
                 if move_by_path[0] == OK and move_by_path[1]:
-                        creep.memory.path = move_by_path[2]
-
+                    creep.memory.path = move_by_path[2]
             elif result == 0:
                 del creep.memory.last_swap
                 del creep.memory.pickup
@@ -163,8 +158,6 @@ def run_upgrader(creep, creeps, all_structures, repairs, constructions, dropped_
     # laboro: 1 == UPGRADE
     if creep.memory.laboro == 1:
         movement.ranged_move(creep, creep.memory.upgrade_target, creeps)
-        miscellaneous.repair_on_the_way(creep, repairs, constructions, True)
-        transfer_nearest(creep, all_structures)
 
     return
 
@@ -194,12 +187,10 @@ def run_reserver(creep):
         # 5칸이내 들어가기 전까진 패스파인딩 갑시다.
         if not creep.pos.inRangeTo(Game.getObjectById(creep.memory.upgrade_target), 5):
             move_by_path = movement.move_with_mem(creep, creep.memory.upgrade_target, 1)
-
             if move_by_path[0] == OK and move_by_path[1]:
                 path = move_by_path[2]
             elif not move_by_path[0] == OK and not move_by_path[0] == ERR_TIRED:
                 creep.say('업글중: {}'.format(move_by_path[0]))
-
         else:
             res = movement.movi(creep, creep.memory.upgrade_target, 1)
             del creep.memory.path
@@ -235,15 +226,15 @@ def get_path(creep, creeps, target):
     # 업글러 중에 컨트롤러 범위 내에 있는애들 전부
     upgraders = _.filter(creeps,
                          lambda c: (c.memory.role == 'upgrader' or c.memory.role == 'hauler')
-                         and c.memory.assigned_room == creep.room.name and c.pos.inRangeTo(target, 4))
+                                   and c.memory.assigned_room == creep.room.name and c.pos.inRangeTo(target, 4))
 
     opts = {'trackCreeps': False, 'refreshMatrix': True, 'pass_walls': False,
             'costByArea': {'objects': upgraders, 'size': 0, 'cost': 100}}
 
     # 돌아올 패스 어레이
     path_arr = creep.pos.findPathTo(target,
-                                 {'plainCost': 2, 'swampCost': 3, 'ignoreCreeps': True, 'range': 3,
-                                  'costCallback':
-                                      lambda room_name: pathfinding.Costs(room_name, opts).load_matrix()})
+                                    {'plainCost': 2, 'swampCost': 3, 'ignoreCreeps': True, 'range': 3,
+                                     'costCallback':
+                                         lambda room_name: pathfinding.Costs(room_name, opts).load_matrix()})
 
     return _.map(path_arr, lambda p: __new__(RoomPosition(p.x, p.y, creep.pos.roomName)))

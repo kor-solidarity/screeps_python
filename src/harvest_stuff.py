@@ -68,7 +68,7 @@ def grab_energy(creep, pickup, only_energy, min_capacity=.5):
         if Game.getObjectById(pickup).store:
             # storage: 뽑아가고 싶은 자원의 총량
             if only_energy:
-                storage = Game.getObjectById(pickup).store[RESOURCE_ENERGY]
+                storage = Game.getObjectById(pickup).store.getUsedCapacity(RESOURCE_ENERGY)
             else:
                 storage = _.sum(Game.getObjectById(pickup).store)
             if storage < (creep.store.getCapacity() - creep.store.getUsedCapacity()) * min_capacity:
@@ -152,18 +152,18 @@ def grab_energy_new(creep, resource_type, min_capacity=.5):
     # 존재하지 않는 물건이거나 용량 저장하는게 없으면 이 작업을 못함.
     if not pickup_obj:
         return ERR_INVALID_TARGET
-    elif not (pickup_obj.store or pickup_obj.energy or pickup_obj.mineralAmount):
+    elif not (pickup_obj.store or pickup_obj.store.getUsedCapacity(energy) or pickup_obj.mineralAmount):
         print(creep.name, "harvest_stuff.grab_energy_new")
         return ERR_NOT_ENOUGH_ENERGY
 
     # 스토어가 있는 경우면 에너지 외 다른것도 있을 수 있단거
     # 리소스가 여러 소스 다 수용할 수 있는 경우.
-    if pickup_obj.store.getCapacity():
+    if pickup_obj.store.getUsedCapacity():
         # storage: 뽑아가고 싶은 자원의 총량
         if resource_type == haul_all:
-            storage = _.sum(pickup_obj.store)
+            storage = pickup_obj.store.getUsedCapacity()
         elif resource_type == haul_all_but_energy:
-            storage = _.sum(pickup_obj.store) - pickup_obj.store[RESOURCE_ENERGY]
+            storage = pickup_obj.store.getUsedCapacity() - pickup_obj.store.getUsedCapacity(RESOURCE_ENERGY)
         else:
             storage = pickup_obj.store[resource_type]
 
@@ -171,22 +171,21 @@ def grab_energy_new(creep, resource_type, min_capacity=.5):
     elif pickup_obj.structureType == STRUCTURE_LAB:
         # 뭘 뽑을거냐에 따라 다름
         if resource_type == RESOURCE_ENERGY:
-            storage = pickup_obj.energy
+            storage = pickup_obj.store.getUsedCapacity(energy)
         # 근데 이건 이리 두기만 한거지 사실 쓸 이유가 없음.
         elif resource_type == haul_all:
-            storage = pickup_obj.energy + pickup_obj.mineralAmount
+            storage = pickup_obj.store.getUsedCapacity(energy) + pickup_obj.mineralAmount
         else:
             storage = pickup_obj.mineralAmount
     # todo NUKES AND POWERSPAWN
     # 그외는 전부 링크나 등등. 에너지만 보면 됨 이건.
     else:
-        storage = pickup_obj.energy
+        storage = pickup_obj.store.getUsedCapacity(energy)
     if storage < (creep.store.getCapacity() - creep.store.getUsedCapacity()) * min_capacity:
         return ERR_NOT_ENOUGH_ENERGY
 
     # 근처에 없으면 아래 확인하는 의미가 없다.
     if not pickup_obj.pos.isNearTo(creep):
-        # print(creep.name, 'not in range wtf', pickup_obj.pos.isNearTo(creep))
         return ERR_NOT_IN_RANGE
 
     # 스토어만 있는 경우면
@@ -194,7 +193,7 @@ def grab_energy_new(creep, resource_type, min_capacity=.5):
     if pickup_obj.store:
         carry_objects = pickup_obj.store
     else:
-        carry_objects = pickup_obj.energy
+        carry_objects = pickup_obj.store.getUsedCapacity(energy)
 
     # 모든 종류의 자원을 뽑아가려는 경우. 여기서 끝낸다.
     if resource_type == haul_all:
@@ -220,7 +219,7 @@ def grab_energy_new(creep, resource_type, min_capacity=.5):
 
     # 에너지 빼고 모든걸 뽑을 경우
     elif resource_type == haul_all_but_energy:
-        storage = _.sum(pickup_obj.store) - pickup_obj.store[RESOURCE_ENERGY]
+        storage = pickup_obj.store.getUsedCapacity() - pickup_obj.store.getUsedCapacity(RESOURCE_ENERGY)
         if len(carry_objects) > 1:
             for resource in Object.keys(carry_objects):
                 # 우선 에너지면 통과.
@@ -267,7 +266,6 @@ def filter_drops(creep, _drops, target_range, only_energy=False):
     drops = _.clone(_drops)
     # 돌려보낼 아이디
     target = 0
-
     while len(drops):
         drop = creep.pos.findClosestByRange(drops)
         # target_range 밖이면 손절
@@ -279,22 +277,21 @@ def filter_drops(creep, _drops, target_range, only_energy=False):
         # only_energy 면 에너지 있나만 본다. 다른건 무시
         if only_energy:
             # 스토어에 에너지가 없거나 리소스타입이 존재하면 에너지가 아닌게 있는거임.
-            if (drop.store and not drop.store[RESOURCE_ENERGY]) \
+            if (drop.store and drop.store.getUsedCapacity(RESOURCE_ENERGY) == 0) \
                     or (drop.resourceType and drop.resourceType != RESOURCE_ENERGY):
                 index = drops.indexOf(drop)
                 drops.splice(index, 1)
                 continue
         # 안에 자원 계산.
-        # todo 지금 폐허 못잡음
         if drop.store:
-            resource_amount = _.sum(drop.store)
+            resource_amount = drop.store.getUsedCapacity()
         else:
             resource_amount = drop.amount
         # 모든 크립 조사.
         for cr in Object.keys(Game.creeps):
             c = Game.creeps[cr]
             if not c.id == creep.id and c.memory.dropped and c.memory.dropped == drop.id:
-                resource_amount -= c.store.getCapacity()
+                resource_amount -= c.store.getUsedCapacity()
         # 리소스 양이 다른 크립이 가져가고도 남아있으면 선택한다.
         if resource_amount > 0:
             target = drop.id
@@ -333,38 +330,32 @@ def pick_drops(creep, only_energy=False):
     # 떨군거고 리소스타입이 에너지가 아닌 경우
     # print(pickup_obj)
     if only_energy \
-            and ((pickup_obj.store and not pickup_obj.store[RESOURCE_ENERGY])
+            and ((pickup_obj.store and not pickup_obj.store.getUsedCapacity(RESOURCE_ENERGY))
                  or pickup_obj.amount and not pickup_obj.resourceType == RESOURCE_ENERGY):
-        # print('ch1')
         return ERR_NOT_ENOUGH_ENERGY
     # 무덤인데 내용물이 없는 경우. 떨궜는데 내용물이 없으면 자동삭제되니 무관
-    elif pickup_obj.store and not _.sum(pickup_obj.store):
-        # print('ch2')
+    elif pickup_obj.store and not pickup_obj.store.getUsedCapacity():
         return ERR_NOT_ENOUGH_ENERGY
 
     # 근처에 없으면 이걸 돌릴 이유가 없다.
     if not pickup_obj.pos.isNearTo(creep):
         return ERR_NOT_IN_RANGE
 
-    # 두 경우만 존재한다. 떨궈졌냐? 무덤이냐. 스토어 있음 무덤
     if pickup_obj.store:
         # 에너지만 잡는거면 에너지만 본다.
         if only_energy:
-            if pickup_obj.store[RESOURCE_ENERGY]:
+            if pickup_obj.store.getUsedCapacity(RESOURCE_ENERGY):
                 return creep.withdraw(pickup_obj, RESOURCE_ENERGY)
             else:
                 return ERR_NOT_ENOUGH_ENERGY
         else:
             # 에너지가 안에 있는지 확인.
-            if len(Object.keys(pickup_obj.store)) > 1:
-                for resource in Object.keys(pickup_obj.store):
-                    # 에너지는 마지막에 챙긴다.
-                    if resource == RESOURCE_ENERGY:
-                        continue
-                    else:
-                        return creep.withdraw(pickup_obj, resource)
-            else:
-                return creep.withdraw(pickup_obj, RESOURCE_ENERGY)
+            for resource in Object.keys(pickup_obj.store):
+                # 에너지는 마지막에 챙긴다.
+                if resource == RESOURCE_ENERGY and len(Object.keys(pickup_obj.store)) > 1:
+                    continue
+                else:
+                    return creep.withdraw(pickup_obj, resource)
     # 떨군거
     else:
         if only_energy and pickup_obj.resourceType != RESOURCE_ENERGY:

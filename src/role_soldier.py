@@ -16,10 +16,11 @@ __pragma__('noalias', 'update')
 
 
 # only for defending the remote room from ai
-def run_remote_defender(all_structures, creep: Creep, creeps: List[Creep], hostile_creeps: List[Creep], lairs=None):
+def run_remote_defender(all_objs, all_structures, creep: Creep, creeps: List[Creep], hostile_creeps: List[Creep], lairs=None):
     """
     blindly search and kills npc invaders
 
+    :param all_objs:
     :param all_structures:
     :param creep:
     :param creeps: creep.room.find(FIND_MY_CREEPS)
@@ -27,6 +28,8 @@ def run_remote_defender(all_structures, creep: Creep, creeps: List[Creep], hosti
     :param lairs:
     :return:
     """
+
+    assigned_room_objs = all_objs[creep.memory.assigned_room]
 
     # in case there's no creep for visual
     if creep.room.name != creep.memory.assigned_room:
@@ -37,7 +40,16 @@ def run_remote_defender(all_structures, creep: Creep, creeps: List[Creep], hosti
                 creep.rangedAttack(e)
         if creep.hits != creep.hitsMax:
             creep.heal(Game.getObjectById(creep.id))
-        movement.get_to_da_room(creep, creep.memory.assigned_room, False)
+        if assigned_room_objs:
+            # if there's no enemy in the room, just get there. If there is, head to one of them.
+            if len(assigned_room_objs['hostile_creeps']):
+                movement.ranged_move(creep, assigned_room_objs['hostile_creeps'][0].id, creeps)
+            elif len(assigned_room_objs['hostile_structures']):
+                movement.ranged_move(creep, assigned_room_objs['hostile_structures'][0].id, creeps)
+            else:
+                movement.get_to_da_room(creep, creep.memory.assigned_room, False)
+        else:
+            movement.get_to_da_room(creep, creep.memory.assigned_room, False)
         return
 
     if not creep.memory.keeper_lair and not creep.memory.keeper_lair == 0:
@@ -53,14 +65,14 @@ def run_remote_defender(all_structures, creep: Creep, creeps: List[Creep], hosti
     if creep.room.name == creep.memory.assigned_room:
         enemies = hostile_creeps
         # 혹시 npc 건물이 있는지도 확인한다.
-        enemy_buildings = _.filter(all_structures, lambda s: (s.owner and s.owner.username == 'Invader'))
+        hostile_buildings = _.filter(all_structures, lambda s: (s.owner and s.owner.username == 'Invader'))
     else:
         enemies = Game.rooms[creep.memory.assigned_room].find(FIND_HOSTILE_CREEPS)
         enemies = miscellaneous.filter_enemies(enemies)
-        enemy_buildings = None
-    # print('enemy_buildings', enemy_buildings)
+        hostile_buildings = None
+    # print('hostile_buildings', hostile_buildings)
 
-    if len(enemies) > 0 or len(enemy_buildings):
+    if len(enemies) > 0 or len(hostile_buildings):
         if creep.memory.keeper_lair_spawning:
             del creep.memory.keeper_lair_spawning
 
@@ -70,11 +82,10 @@ def run_remote_defender(all_structures, creep: Creep, creeps: List[Creep], hosti
         if len(enemies):
             enemy: Creep = creep.pos.findClosestByRange(enemies)
         else:
-            enemy: Structure = creep.pos.findClosestByRange(enemy_buildings)
+            enemy: Structure = creep.pos.findClosestByRange(hostile_buildings)
         distance = creep.pos.getRangeTo(enemy)
         # 거리유지
         if distance < 3:
-
             goals = _.map(enemies, lambda: miscellaneous.find_distance(enemy))
             # print("goals:", goals)
             f = PathFinder.search(creep.pos, goals, {'flee': True})
@@ -86,7 +97,6 @@ def run_remote_defender(all_structures, creep: Creep, creeps: List[Creep], hosti
         elif distance == 3:
             creep.cancelOrder('rangedMassAttack')
             creep.rangedAttack(enemy)
-            # if creep.rangedAttack(enemy) == ERR_NO_BODYPART:
             creep.heal(Game.getObjectById(creep.id))
         else:
             if creep.hits < creep.hitsMax:

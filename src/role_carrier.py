@@ -433,11 +433,10 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                 # 캐리어가 갈 수 있는 컨테이너·링크 등등
                 haul_target_objs = []
 
-                # TOTAL OVERHAUL
                 # 캐리어가 방으로 들어오는 지점을 기준으로 조건에 맞는 모든 운반 목적지를 찾아 등록한다.
                 if not creep.memory.haul_destos or not len(creep.memory.haul_destos) or creep.memory.no_desto:
                     # 기준점. 자원에서 본진으로 돌아오는 순간의 위치
-                    gijun = None
+                    gijun: RoomPosition = None
                     for i in creep.memory[to_home]:
                         if i.roomName == creep.memory.home_room:
                             gijun = __new__(RoomPosition(i.x, i.y, i.roomName))
@@ -449,68 +448,10 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                     # {아이디, 타입}
 
                     # 초기화. 데스토에 들어가야하는 목록: 아이디와 타입.
-                    creep.memory.haul_destos = []
-
-                    # 스토리지가 범위에 있으면 딴거 다 버리고 여따 모읍시다.
-                    if creep.room.storage \
-                            and len(gijun.findPathTo(creep.room.storage, {'ignoreCreeps': True})) <= MAX_DROP_DISTANCE:
-                        creep.memory.haul_destos.append({'id': creep.room.storage.id, 'type': STRUCTURE_STORAGE})
-                        if creep.memory.no_desto:
-                            del creep.memory.no_desto
-                    else:
-                        # 방 안에 모든 전송용 링크목록
-                        haul_link_objs = []
-
-                        # 스토리지 외 넣는 방식은 두가지가 존재한다.
-                        # 먼저 max_drop_distance 범위내 링크가 있는지 확인하고 있으면추가.
-                        # + 그 링크 주변 max_drop_distance / 2 거리 내 컨테이너가 있는지 확인하고 있으면 추가
-                        # 위 해당사항 없으면 max_drop_distance 내 컨테이너 전부 확인 후 추가
-                        # 마지막으로 추가 시 for_harvest 라고 구분이 안돼있으면 구분한다.
-                        #   그래야 혹여나 업글용인데 멀리 떨어진거 허울러가 와리가리 안함.
-
-                        # 전송용 링크
-                        for l in creep.room.memory[STRUCTURE_LINK]:
-                            if not l[for_store]:
-                                haul_link_objs.append(Game.getObjectById(l.id))
-
-                        # 거리조건 맞는애들로 추린다.
-                        haul_target_objs = \
-                            haul_link_objs.filter(
-                                lambda h: len(h.pos.findPathTo(gijun, {'ignoreCreeps': True})) <= MAX_DROP_DISTANCE)
-                        # print('haul_target_objs', (haul_target_objs))
-                        # 링크가 그래서 있음?
-                        if len(haul_target_objs):
-                            # 넣을 컨테이너 목록
-                            haul_containers = []
-                            # 컨테이너는 링크에서 가장 가까운거중 max_drop_distance 절반거리 이하 값인 애들만 선택.
-                            for c in creep.room.memory[STRUCTURE_CONTAINER]:
-                                c_obj = Game.getObjectById(c.id)
-                                if not c_obj:
-                                    continue
-                                closest_link = c_obj.pos.findClosestByPath(haul_target_objs, {'ignoreCreeps': True})
-                                distance_array = c_obj.pos.findPathTo(closest_link, {'ignoreCreeps': True})
-                                if len(distance_array) <= int(MAX_DROP_DISTANCE / 2):
-                                    # print('closest_link', closest_link.id, JSON.stringify(closest_link.pos))
-                                    # print(JSON.stringify(distance_array))
-                                    # print('distance of {}: {}'.format(c_obj.id, len(distance_array)))
-                                    haul_containers.append(c_obj)
-                            # print(haul_containers)
-                            if len(haul_containers):
-                                haul_target_objs.extend(haul_containers)
-                                # print('add added:', haul_target_objs)
-                        # 링크가 없는 경우 컨테이너만 있다는건데 이 경우 링크찾는것과 동일한 기준으로 간다.
-                        else:
-                            for c in creep.room.memory[STRUCTURE_CONTAINER]:
-                                c_obj = Game.getObjectById(c.id)
-                                if c_obj and len(
-                                        c_obj.pos.findPathTo(gijun, {'ignoreCreeps': True})) <= MAX_DROP_DISTANCE:
-                                    haul_target_objs.append(c_obj)
-
-                        for i in haul_target_objs:
-                            creep.memory.haul_destos.append({'id': i.id, 'type': i.structureType})
-                        # 이전에 데스토 설정이 안되서 목록화가 안됬을 경우임.
-                        if len(creep.memory.haul_destos) and creep.memory.no_desto:
-                            del creep.memory.no_desto
+                    creep.memory.haul_destos = get_carrier_drop_locations(creep, gijun)
+                    # 이전에 데스토 설정이 안되서 목록화가 안됬을 경우임.
+                    if len(creep.memory.haul_destos) and creep.memory.no_desto:
+                        del creep.memory.no_desto
 
                 # 배정된 목표지가 있는가?
                 if not creep.memory.haul_target:
@@ -617,8 +558,11 @@ def run_carrier(creep, creeps, all_structures, constructions, dropped_all, repai
                     if not creep.memory.err_full and not creep.memory.err_full == 0:
                         creep.memory.err_full = 0
                     # 꽉찼는데 컨테이너면 무조건 다른거 바로바로 찾는다. 링크가 비었는데 컨테이너에서 서성이는거 방지.
+                    # 쿨다운 많이 남아있는 링크인 경우도 동일처리.
                     if Game.getObjectById(creep.memory.haul_target) \
-                            and Game.getObjectById(creep.memory.haul_target).structureType == STRUCTURE_CONTAINER:
+                            and Game.getObjectById(creep.memory.haul_target).structureType == STRUCTURE_CONTAINER \
+                            or (Game.getObjectById(creep.memory.haul_target).structureType == STRUCTURE_LINK
+                                and Game.getObjectById(creep.memory.haul_target).cooldown > 1):
                         creep.memory.err_full = 1
                     creep.memory.err_full += 1
                     # 카운터가 찼으면 즉각 교체. 교체는 링크를 우선적으로 택한다.
@@ -819,3 +763,69 @@ def carrier_movement(creep, path_mem):
         creep.say('ERR {}'.format(move_by_path[0]))
 
     return move_by_path[0], in_its_path
+
+
+def get_carrier_drop_locations(creep: Creep, position: RoomPosition):
+    """
+    캐리어가 본진에 도착해서 가진 자원 넣을 곳 찾아내기. 
+
+    :return: [자원넣을 오브젝트 목록]
+    """
+    room_obj = Game.rooms[position.roomName]
+    storage = room_obj.storage
+    # 스토리지가 MAX_DROP_DISTANCE 내 존재하는 경우 스토리지로만 가면 됨.
+    if storage and len(position.findPathTo(storage, {'ignoreCreeps': True})) <= MAX_DROP_DISTANCE:
+        return [{'id': storage.id, 'type': storage.structureType}]
+
+    else:
+        # 방 안에 모든 전송용 링크목록
+        haul_link_objs = []
+
+        # 스토리지 외 넣는 방식은 두가지가 존재한다.
+        # 먼저 MAX_DROP_DISTANCE 범위내 링크가 있는지 확인하고 있으면추가.
+        # + 그 링크 주변 MAX_DROP_DISTANCE / 2 거리 내 컨테이너가 있는지 확인하고 있으면 추가
+        # 위 해당사항 없으면 MAX_DROP_DISTANCE 내 컨테이너 전부 확인 후 추가
+        # 마지막으로 추가 시 for_harvest 라고 구분이 안돼있으면 구분한다.
+        #   그래야 혹여나 업글용인데 멀리 떨어진거 허울러가 와리가리 안함.
+
+        # 전송용 링크
+        for link in room_obj.memory[STRUCTURE_LINK]:
+            if not link[for_store]:
+                haul_link_objs.append(Game.getObjectById(link.id))
+
+        # 거리조건 맞는애들로 추린다.
+        haul_target_objs = \
+            haul_link_objs.filter(
+                lambda h: len(h.pos.findPathTo(position, {'ignoreCreeps': True})) <= MAX_DROP_DISTANCE)
+        # 링크가 그래서 있음?
+        if len(haul_target_objs):
+            # 넣을 컨테이너 목록
+            haul_containers = []
+            # 컨테이너는 링크에서 가장 가까운거중 max_drop_distance 절반거리 이하 값인 애들만 선택.
+            for c in creep.room.memory[STRUCTURE_CONTAINER]:
+                c_obj = Game.getObjectById(c.id)
+                if not c_obj:
+                    continue
+                closest_link = c_obj.pos.findClosestByPath(haul_target_objs, {'ignoreCreeps': True})
+                distance_array = c_obj.pos.findPathTo(closest_link, {'ignoreCreeps': True})
+                if len(distance_array) <= int(MAX_DROP_DISTANCE / 2):
+                    # print('closest_link', closest_link.id, JSON.stringify(closest_link.pos))
+                    # print(JSON.stringify(distance_array))
+                    # print('distance of {}: {}'.format(c_obj.id, len(distance_array)))
+                    haul_containers.append(c_obj)
+            # print(haul_containers)
+            if len(haul_containers):
+                haul_target_objs.extend(haul_containers)
+                # print('add added:', haul_target_objs)
+        # 링크가 없는 경우 컨테이너만 있다는건데 이 경우 링크찾는것과 동일한 기준으로 간다.
+        else:
+            for c in creep.room.memory[STRUCTURE_CONTAINER]:
+                c_obj = Game.getObjectById(c.id)
+                if c_obj and len(
+                        c_obj.pos.findPathTo(position, {'ignoreCreeps': True})) <= MAX_DROP_DISTANCE:
+                    haul_target_objs.append(c_obj)
+
+        loc_list = []
+        for i in haul_target_objs:
+            loc_list.append({'id': i.id, 'type': i.structureType})
+        return loc_list

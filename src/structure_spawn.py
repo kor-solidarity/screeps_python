@@ -238,17 +238,17 @@ def run_spawn(spawn: StructureSpawn, all_structures: List[Structure], constructi
         elif spawn.room.storage:
             # 스토리지가 생기면 원칙적으로 스토리지 안 에너지 양 / expected_reserve 값으로 할당량 배정
             # 렙7 이면 9천부터 5천단위로 세자. 그 대신 큰애들로 뽑는다.
-            if spawn.room.controller.level == 7 and spawn.room.storage.store[RESOURCE_ENERGY] >= 9000:
+            if spawn.room.controller.level == 7 and spawn.room.storage.store.getUsedCapacity(RESOURCE_ENERGY) >= 9000:
                 expected_reserve = 5000
                 mega_upgrader = True
             else:
                 expected_reserve = 3000
 
             # more than 3k
-            if spawn.room.storage.store[RESOURCE_ENERGY] >= expected_reserve:
+            if spawn.room.storage.store.getUsedCapacity(RESOURCE_ENERGY) >= expected_reserve:
                 upgrader_quota = 1
                 # extra upgrader every expected_reserve
-                upgrader_quota += int(spawn.room.storage.store[RESOURCE_ENERGY] / expected_reserve)
+                upgrader_quota += int(spawn.room.storage.store.getUsedCapacity(RESOURCE_ENERGY) / expected_reserve)
         # 여기로 넘어왔다는건 스토리지가 없는 상황.
         # 건설할게 있으면 무조건 생산 중단.
         elif num_of_constructions:
@@ -318,13 +318,14 @@ def run_spawn(spawn: StructureSpawn, all_structures: List[Structure], constructi
 
         # print('make_hauler', make_hauler,
         #       'hauler_quota', hauler_quota,
+        #       'container_full', container_full,
         #       'accumulated_size', accumulated_size,
         #       'upgrader_quota', upgrader_quota,
         #       'mega_upgrader', mega_upgrader,
         #       'len(creep_upgraders)', len(creep_upgraders),
         #       'energyCapacityAvailable', chambro.energyCapacityAvailable)
         # if spawn.room.storage:
-        #     print('storage.store[RESOURCE_ENERGY]', spawn.room.storage.store[RESOURCE_ENERGY])
+        #     print('storage.store.getUsedCapacity(RESOURCE_ENERGY)', spawn.room.storage.store.getUsedCapacity(RESOURCE_ENERGY))
 
         if make_hauler:
             # 순서는 무조건 아래와 같다. 무조건 덩치큰게 장땡.
@@ -332,7 +333,7 @@ def run_spawn(spawn: StructureSpawn, all_structures: List[Structure], constructi
             # 1200, 800, 500, 250, 150, 100
             hauler_body = [15, 6, 24, 2, 8], \
                           [10, 4, 16, 2, 8], \
-                          [7, 4, 10, 2, 0], \
+                          [7, 4, 10, 2, 4], \
                           [5, 4, 5, 1, 0], \
                           [3, 1, 3, 1, 0], \
                           [2, 1, 2, 1, 0]
@@ -473,7 +474,7 @@ def run_spawn(spawn: StructureSpawn, all_structures: List[Structure], constructi
         # 그리고 할당량 다 찼는데도 뽑는 경우도 있을 수 있으니 타이머 쟨다.
         # 수리할게 더 없으면 500틱동안 추가 생산을 안한다.
         if elapsed_fixer_time > 500 and len(wall_repairs) and chambro.storage and room_level >= 4 \
-                and chambro.storage.store[RESOURCE_ENERGY] >= 5000:
+                and chambro.storage.store.getUsedCapacity(RESOURCE_ENERGY) >= 5000:
 
             make_mini = False
             # 원칙적으로는 렙 7부터 본격적으로 생산한다. 그 이하면 소형만 생산.
@@ -488,21 +489,22 @@ def run_spawn(spawn: StructureSpawn, all_structures: List[Structure], constructi
 
             # 렙8부터 본격적인 작업에 드간다. 그전까진 무의미.
             # 또한 수리할게 더 없는 상황에서 첫 생성을 한거면 하나만 뽑고 천틱 대기한다.
-            elif room_level < 8 and (10000 <= chambro.storage.store[RESOURCE_ENERGY] or elapsed_fixer_time <= 2000):
+            elif room_level < 8 and (
+                    10000 <= chambro.storage.store.getUsedCapacity(RESOURCE_ENERGY) or elapsed_fixer_time <= 2000):
                 max_num_fixers = 1
 
             # 벽수리가 중심인데 수리할 벽이 없으면 의미가 없음.
             elif room_level == 8 and min_hits < chambro.memory[options][repair]:
                 # 스토리지에 에너지가 3만 이하면 1로 제한.
                 # CPU bucket 부족인 상황에도 적용
-                if chambro.storage.store[RESOURCE_ENERGY] < 30000 \
+                if chambro.storage.store.getUsedCapacity(RESOURCE_ENERGY) < 30000 \
                         or cpu_bucket_emergency > Game.cpu.bucket:
                     max_num_fixers = 1
                 # 그 이상인 경우 수리대상 벽 20개당 하나로 제한한다
                 # 수리대상 10개당 하나 vs elapsed_fixer_time // 2k vs 스토리지 에너지양 / 3만의 정수
                 # 셋중 가장 적은걸로 결정
                 else:
-                    storage_dividend = int(chambro.storage.store[RESOURCE_ENERGY] / 50000)
+                    storage_dividend = int(chambro.storage.store.getUsedCapacity(RESOURCE_ENERGY) / 50000)
                     elapsed_fixer_dividend = int(elapsed_fixer_time / 2000) + 1
                     # dividend_by_repairs = len(wall_repairs) // 10
                     max_num_fixers = _.min([storage_dividend, elapsed_fixer_dividend])
@@ -1492,7 +1494,7 @@ def run_spawn(spawn: StructureSpawn, all_structures: List[Structure], constructi
                                                                       haul_resource: haul_all,
                                                                       to_home: path_to_home,
                                                                       to_pickup: path_spawn_to_pickup}})
-                                # print(spawn.name, 'spawning carrier', spawning)
+                                print(spawn.name, 'spawning carrier in', room_name_low, spawning)
                                 return
                     continue
                     # todo 철거반 손봐야함!!
@@ -1636,11 +1638,14 @@ def run_spawn(spawn: StructureSpawn, all_structures: List[Structure], constructi
                         creep_upgraders = _.filter(room_creeps,
                                                    lambda c: (c.memory.role == 'upgrader'
                                                               and c.memory.assigned_room == spawn.pos.roomName
-                                                              and (c.spawning or c.ticksToLive > 100)))
-                        storage_amount = (len(creep_upgraders) - 1) * 3000
+                                                              and (c.spawning or c.ticksToLive > 100)
+                                                              and c.memory.level >= room_level))
+                        if spawn.room.storage and spawn.room.storage.store.getUsedCapacity(RESOURCE_ENERGY) > 10000:
+                            storage_amount = (len(creep_upgraders) - 1) * 5000
+                        else:
+                            storage_amount = (len(creep_upgraders) - 1) * 3000
                         if storage_amount < 3000:
                             storage_amount = 3000
-
                     elif creep.memory.role == 'fixer':
                         # 수리대상 10개 이하면 거의 끝이란 소리니 회복대상에서 제외
                         if len(wall_repairs) <= 10:
@@ -1667,7 +1672,8 @@ def run_spawn(spawn: StructureSpawn, all_structures: List[Structure], constructi
                     # 자원조건이 할당된 경우 스토리지를 확인.
                     # 스토리지가 없거나 거기 안에 에너지가 storage_amount 보다 적으면 회복은 없다
                     if storage_amount \
-                            and (not spawn.room.storage or spawn.room.storage.store[RESOURCE_ENERGY] < storage_amount):
+                            and (not spawn.room.storage or spawn.room.storage.store.getUsedCapacity(
+                        RESOURCE_ENERGY) < storage_amount):
                         no_renew = True
                     if no_renew:
                         continue
@@ -1802,7 +1808,7 @@ def find_closest_path(spawn: StructureSpawn, goal: RoomPosition, containers, lin
     # print('counter', counter, 'result', JSON.stringify(result))
     if result:
         return result
-    # print('spawn')
+
     return PathFinder.search(spawn.pos, goal,
                              {'plainCost': 2, 'swampCost': 3,
                               'roomCallback':

@@ -1,5 +1,6 @@
 from typing import List
 
+from action import logistics
 from defs import *
 import movement
 from harvest_stuff import *
@@ -18,7 +19,7 @@ __pragma__('noalias', 'type')
 __pragma__('noalias', 'update')
 
 
-def run_hauler(creep: Creep, all_structures: List[Structure], constructions: List[ConstructionSite],
+def run_hauler(all_objs, creep: Creep, all_structures: List[Structure], constructions: List[ConstructionSite],
                creeps, dropped_all, repairs, terminal_capacity):
     """
     this guy's job: carrying energy from containers. repairing stuff on the way.
@@ -26,6 +27,7 @@ def run_hauler(creep: Creep, all_structures: List[Structure], constructions: Lis
     when all those are done it's gonna repair stuff around.
     and when that's all done they're going for upgrade.
 
+    :param all_objs:
     :param creep:
     :param all_structures: creep.room.find(FIND_STRUCTURES)
     :param constructions: creep.room.find(FIND_CONSTRUCTION_SITES)
@@ -72,29 +74,12 @@ def run_hauler(creep: Creep, all_structures: List[Structure], constructions: Lis
 
     end_is_near = 10
     # in case it's gonna die soon. this noble act is only allowed if there's a storage in the room.
-    if creep.ticksToLive < end_is_near and creep.store.getUsedCapacity() != 0 and homeroom_storage:
-        creep.say('endIsNear')
-        if creep.memory.haul_target:
-            del creep.memory.haul_target
-        elif creep.memory.pickup:
-            del creep.memory.pickup
-        for minerals in Object.keys(creep.store):
-            if not creep.pos.isNearTo(homeroom_storage):
-                transfer_minerals_result = ERR_NOT_IN_RANGE
-            else:
-                transfer_minerals_result = creep.transfer(homeroom_storage, minerals)
-            if transfer_minerals_result == ERR_NOT_IN_RANGE:
-                creep.moveTo(homeroom_storage, {'visualizePathStyle': {'stroke': '#ffffff'}})
-                break
-            elif transfer_minerals_result == 0:
-                break
-            else:
-                print('endNearSomething', creep.name, transfer_minerals_result)
-                creep.say('END?? {}'.format(transfer_minerals_result))
-        return
-    elif creep.ticksToLive < end_is_near and homeroom_storage:
-        creep.suicide()
-        return
+    if creep.ticksToLive < end_is_near:
+        if creep.store.getCapacity() > 0:
+            miscellaneous.repair_on_the_way(creep, repairs, constructions, True)
+            logistics.transfer_nearest(creep, all_structures)
+        if miscellaneous.end_is_near(creep, creep.room.storage) != ERR_INVALID_TARGET:
+            return
 
     # if there's nothing to carry then get to harvesting.
     # being not zero also includes being None lol
@@ -428,7 +413,7 @@ def run_hauler(creep: Creep, all_structures: List[Structure], constructions: Lis
             miscellaneous.repair_on_the_way(creep, repairs, constructions)
 
             # check if haul_target's capacity is full
-            target = Game.getObjectById(creep.memory.haul_target)
+            target: Structure = Game.getObjectById(creep.memory.haul_target)
             # haul_target 이 중간에 폭파되거나 이미 꽉 찼을 시...
             if not target \
                     or ((target.structureType == STRUCTURE_TOWER and target.energy >= target.energyCapacity - 20)
@@ -436,7 +421,9 @@ def run_hauler(creep: Creep, all_structures: List[Structure], constructions: Lis
                             and target.energy >= target.energyCapacity * .9)
                         or ((target.structureType == STRUCTURE_SPAWN or target.structureType == STRUCTURE_EXTENSION)
                             and target.energy == target.energyCapacity)
-                        or _.sum(target.store) == target.storeCapacity):
+                        or _.sum(target.store) == target.storeCapacity
+                        or (target.structureType == STRUCTURE_STORAGE
+                            and target.room.energyAvailable < target.room.energyCapacityAvailable * .9)):
                 # print(creep.name, 'FULL')
                 del creep.memory.haul_target
             # 에너지 외 자원 운송중인데 대상이 에너지 채우는거면 통과한다.
