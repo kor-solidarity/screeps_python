@@ -37,30 +37,17 @@ def run_fixer(creep, all_structures, constructions, creeps, repairs, min_wall, t
     pickup == 에너지 빼갈 대상.
     """
 
-    end_is_near = 20
-    # in case it's gonna die soon. this noble act is only allowed if there's a storage in the room.
-    if (creep.memory.die or creep.ticksToLive < end_is_near) and creep.store.getUsedCapacity() != 0 and creep.room.storage:
-        creep.say('endIsNear')
-        if creep.memory.haul_target:
-            del creep.memory.haul_target
-        elif creep.memory.pickup:
-            del creep.memory.pickup
-        for minerals in Object.keys(creep.store):
-            # print('minerals:', minerals)
-            transfer_minerals_result = creep.transfer(creep.room.storage, minerals)
-            # print(transfer_minerals_result)
-            if transfer_minerals_result == ERR_NOT_IN_RANGE:
-                creep.moveTo(creep.room.storage, {'visualizePathStyle': {'stroke': '#ffffff'}})
-                break
-            elif transfer_minerals_result == 0:
-                break
+    # in case it's gonna die soon.
+    if creep.memory.die or creep.ticksToLive < 20:
+        if creep.store.getCapacity() > 0:
+            miscellaneous.repair_on_the_way(creep, repairs, constructions, True)
+            transfer_nearest(creep, all_structures)
         if creep.memory.die and len(min_wall):
             creep.say('예토전생!', True)
             del creep.memory.die
-        return
-    elif (creep.memory.die or creep.ticksToLive < end_is_near) and creep.room.storage:
-        creep.suicide()
-        return
+            return
+        elif miscellaneous.end_is_near(creep, creep.room.storage) != ERR_INVALID_TARGET:
+            return
 
     # 자원이 없으면 초기화
     if creep.store.getUsedCapacity() == 0 and creep.memory.laboro != 0:
@@ -74,7 +61,6 @@ def run_fixer(creep, all_structures, constructions, creeps, repairs, min_wall, t
 
     # laboro: 0 == pickup something.
     if creep.memory.laboro == 0:
-
         if creep.memory.pickup and \
             (not Game.getObjectById(creep.memory.pickup)
              or not Game.getObjectById(creep.memory.pickup).room.name == creep.memory.assigned_room):

@@ -1,11 +1,13 @@
+from typing import Optional
+
 from _custom_constants import *
+import miscellaneous
+import random
 
 # defs is a package which claims to export all constants and some JavaScript objects, but in reality does
 #  nothing. This is useful mainly when using an editor like PyCharm, so that it 'knows' that things like Object, Creep,
 #  Game, etc. do exist.
 from defs import *
-import miscellaneous
-import random
 
 # These are currently required for Transcrypt in order to use the following names in JavaScript.
 # Without the 'noalias' pragma, each of the following would be translated into something like 'py_Infinity' or
@@ -81,7 +83,8 @@ def init_memory():
 
 
 # 본진 관련
-def refresh_base_stats(chambro: Room, all_structures, fix_rating, min_wall, spawns):
+def refresh_base_stats(chambro: Room, all_structures, fix_rating,
+                       min_wall: Optional[StructureRampart, StructureWall], spawns):
     """
     방 내 메모리 현황 갱신을 위한 함수.
     잘 바뀌지 않는 사안들()
@@ -160,13 +163,13 @@ def refresh_base_stats(chambro: Room, all_structures, fix_rating, min_wall, spaw
         # 스토리지 내 남은 공간이 max_energy 보다 적으면 발동하는거임.
         # 이름이 좀 꼬였는데 별수없음...
         if room_storage \
-                and room_storage.storeCapacity - _.sum(room_storage.store) < chambro.memory[options][max_energy] + 10000 \
-                and not len(min_wall) and chambro.memory[options][repair] < 150 \
+                and room_storage.store.getCapacity() - room_storage.store.getUsedCapacity() < chambro.memory[options][max_energy] + 10000 \
+                and not min_wall and chambro.memory[options][repair] < 150 \
                 and chambro.controller.level == 8:
             chambro.memory[options][repair] += 1
 
         # 방에 수리할 벽이 없을 경우 확인한 시간 갱신한다.
-        elif not len(min_wall):
+        elif not min_wall or min_wall.hits > chambro.memory[options][repair] * fix_rating:
             chambro.memory[options][stop_fixer] = Game.time
 
         # 만약 리페어가 너무 아래로 떨어졌을 시 리페어값을 거기에 맞게 낮춘다.
@@ -197,11 +200,6 @@ def refresh_base_stats(chambro: Room, all_structures, fix_rating, min_wall, spaw
             storage_points = _.filter(all_structures, lambda s: s.structureType == STRUCTURE_STORAGE
                                                                 or s.structureType == STRUCTURE_SPAWN
                                                                 or s.structureType == STRUCTURE_TERMINAL)
-            print("roomName", chambro.name, 'lvl', chambro.controller.level)
-            # NULLIFIED - 거리기준 문제로 별도로센다.
-            # 만렙이 아닐 경우 컨트롤러 근처에 있는것도 센다.
-            # if not chambro.controller.level == 8:
-            #     storage_points.append(chambro.controller)
 
             # 링크는 크게 두 종류가 존재한다. 하나는 보내는거, 또하난 받는거.
             for stl in str_links:
@@ -299,6 +297,7 @@ def refresh_base_stats(chambro: Room, all_structures, fix_rating, min_wall, spaw
                         print('x{}y{}에 {}, 업글컨테이너로 분류'.format(stc.pos.x, stc.pos.y, stc.id))
                 chambro.memory[STRUCTURE_CONTAINER] \
                     .append({'id': stc.id, for_upgrade: _upgrade, for_harvest: _harvest})
+            random.shuffle(chambro.memory[STRUCTURE_CONTAINER])
 
         # todo 연구소
         # 연구소는 렙8 되기 전까지 건들지 않는다. 또한 모든 랩의 수가 10개여야만 찾는다.

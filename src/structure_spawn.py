@@ -17,7 +17,7 @@ __pragma__('noalias', 'update')
 
 
 # 스폰을 메인에서 쪼개기 위한 용도. 현재 어떻게 빼내야 하는지 감이 안잡혀서 공백임.
-def run_spawn(spawn: StructureSpawn, all_structures: List[Structure], constructions: List[ConstructionSite],
+def run_spawn(all_objs, spawn: StructureSpawn, all_structures: List[Structure], constructions: List[ConstructionSite],
               room_creeps: List[Creep],
               hostile_creeps: List[Creep], divider, counter,
               cpu_bucket_emergency, cpu_bucket_emergency_spawn_start, extractor,
@@ -25,6 +25,7 @@ def run_spawn(spawn: StructureSpawn, all_structures: List[Structure], constructi
     """
 
 
+    :param all_objs:
     :param spawn:
     :param all_structures:
     :param constructions:
@@ -210,7 +211,6 @@ def run_spawn(spawn: StructureSpawn, all_structures: List[Structure], constructi
                                                        'size': harvester_body[harvest_counter][3],
                                                        'level': harvester_body[harvest_counter][4]}})
                 harvest_counter += 1
-
             return
 
         # 꽉찬 컨테이너 수
@@ -325,7 +325,8 @@ def run_spawn(spawn: StructureSpawn, all_structures: List[Structure], constructi
         #       'len(creep_upgraders)', len(creep_upgraders),
         #       'energyCapacityAvailable', chambro.energyCapacityAvailable)
         # if spawn.room.storage:
-        #     print('storage.store.getUsedCapacity(RESOURCE_ENERGY)', spawn.room.storage.store.getUsedCapacity(RESOURCE_ENERGY))
+        #     print('storage.store.getUsedCapacity(RESOURCE_ENERGY)',
+        #           spawn.room.storage.store.getUsedCapacity(RESOURCE_ENERGY))
 
         if make_hauler:
             # 순서는 무조건 아래와 같다. 무조건 덩치큰게 장땡.
@@ -377,7 +378,6 @@ def run_spawn(spawn: StructureSpawn, all_structures: List[Structure], constructi
                 hl_body_counter += 1
             if not spawn_res == OK:
                 print('hauler err', spawn_res)
-
             return
 
         # todo need one for ranged one too.
@@ -988,7 +988,8 @@ def run_spawn(spawn: StructureSpawn, all_structures: List[Structure], constructi
                     hostiles = Game.rooms[room_name].find(FIND_HOSTILE_CREEPS)
 
                     # 원래 더 아래에 있었지만 키퍼방 문제가 있는지라...
-                    flag_structures = Game.rooms[room_name].find(FIND_STRUCTURES)
+                    # flag_structures = Game.rooms[room_name].find(FIND_STRUCTURES)
+                    flag_structures = all_objs[room_name].all_structures
 
                     keeper_lair = False
                     if Game.rooms[room_name].memory[STRUCTURE_KEEPER_LAIR] \
@@ -1089,14 +1090,6 @@ def run_spawn(spawn: StructureSpawn, all_structures: List[Structure], constructi
 
                     # 1. 리서버를 먼저 생산한다. 2. 컨트롤러 예약이 다른 플레이어에 의해 먹혔을 시 대응방안
                     # find creeps with assigned flag.
-                    # 필요없는듯??
-                    # remote_carriers = _.filter(creeps, lambda c: c.memory.role == 'carrier'
-                    #                                              and c.memory.assigned_room == room_name
-                    #                                              and (c.spawning or c.ticksToLive > 150))
-                    # 캐리어 스폰 계산문제로 추가로 더 확인할 용도.
-                    # alive_remote_carriers = _.filter(creeps, lambda c: c.memory.role == 'carrier'
-                    #                                                    and c.memory.assigned_room == room_name
-                    #                                                    and (c.spawning or c.ticksToLive >= 500))
                     # exclude creeps with less than 100 life ticks so the new guy can be replaced right away
                     remote_harvesters = _.filter(creeps, lambda c: c.memory.role == 'harvester'
                                                                    and c.memory.assigned_room == room_name
@@ -1111,15 +1104,16 @@ def run_spawn(spawn: StructureSpawn, all_structures: List[Structure], constructi
                     # 멀티에 소스가 여럿일 경우 둘을 스폰할 필요가 있다.
                     flag_energy_sources: List[Source] = Game.rooms[room_name].find(FIND_SOURCES)
                     # print('flag_energy_sources', flag_energy_sources)
-                    flag_containers = _.filter(flag_structures,
-                                               lambda s: s.structureType == STRUCTURE_CONTAINER)
+                    flag_containers: List[Optional[StructureContainer, ConstructionSite]] = \
+                        _.filter(flag_structures, lambda s: s.structureType == STRUCTURE_CONTAINER)
                     # 실제로 만들어져 있는 컨테이너. flag_containers 는 건설중인 컨테이너도 포함.
                     flag_built_containers: List[StructureContainer] = _.clone(flag_containers)
 
                     flag_lairs = _.filter(flag_structures,
                                           lambda s: s.structureType == STRUCTURE_KEEPER_LAIR)
                     flag_mineral = Game.rooms[room_name].find(FIND_MINERALS)
-                    flag_constructions = Game.rooms[room_name].find(FIND_CONSTRUCTION_SITES)
+                    # flag_constructions = Game.rooms[room_name].find(FIND_CONSTRUCTION_SITES)
+                    flag_constructions = all_objs[room_name].all_constructions
 
                     flag_containers_const = flag_constructions.filter(lambda s: s.structureType == STRUCTURE_CONTAINER)
 
@@ -1299,11 +1293,18 @@ def run_spawn(spawn: StructureSpawn, all_structures: List[Structure], constructi
                                     counter = 2
                                 rm_hv_counter = 0
                                 rm_hv_body = []
-
-                                for i in harvester_body[counter]:
-                                    if rm_hv_counter < 3:
-                                        rm_hv_body.extend([def_body_content[rm_hv_counter] for _ in range(i)])
-                                    rm_hv_counter += 1
+                                # todo - 수확하는 동시에 컨테이너에 적재가 가능한 경우에만 사용 가능하다.
+                                closeBy = \
+                                    _.filter(flag_containers,
+                                             lambda c: Game.getObjectById(target_energy_source).pos.inRangeTo(c, 2))
+                                if len(closeBy) and counter > 1:
+                                    rm_hv_body = [MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK, WORK,
+                                                  WORK, WORK, CARRY]
+                                else:
+                                    for i in harvester_body[counter]:
+                                        if rm_hv_counter < 3:
+                                            rm_hv_body.extend([def_body_content[rm_hv_counter] for _ in range(i)])
+                                        rm_hv_counter += 1
 
                                 spawning_rem_harv = \
                                     spawn.spawnCreep(rm_hv_body, "hv_{}_{}".format(room_name_low, rand_int),
@@ -1598,87 +1599,71 @@ def run_spawn(spawn: StructureSpawn, all_structures: List[Structure], constructi
         )
     else:
         # 주변에 있는 크립 회복조치.
-        # 이 곳에 필요한거: spawn 레벨보다 같거나 높은 애들 지나갈 때 TTL 오백 이하면 회복시켜준다.
-        # room controller lvl ± 2 에 부합한 경우에만 수리를 실시한다.
         # 스토리지를 가지는 시점부터 충전시작.
         if spawn.room.storage:
             # soldier > harvester > hauler > upgrader > etc.
             # ^ not applied yet idk
             for creep in room_creeps:
-                # 먼저 무조건 거르는 대상: 근접이 아니거나 TTL 100미만
-                if not spawn.pos.isNearTo(creep) or creep.ticksToLive < 100:
+                if not spawn.pos.isNearTo(creep) or creep.memory.level < room_level or creep.spawning:
                     continue
                 # 일꾼은 무조건 항시 채워준다. 어차피 근접할 가능성 거의없기도 함.
                 # 렙4 에서 조건 충족하는 애가 얘뿐이기도 함.
-                if creep.memory.role == 'harvester' and creep.memory.level >= room_level and creep.ticksToLive < 1400:
+                if creep.memory.role == 'harvester' and creep.ticksToLive <= 1400:
                     spawn.renewCreep(creep)
                     break
-                # 방 안에 있는 크립 중에 회복대상자
-                elif creep.ticksToLive < 500 and creep.memory.level >= room_level:
-                    # 회복대상이 아닌가?
-                    no_renew = False
-                    # 일부 크립은 스토리지에 자원이 있는 경우에만 채운다.
-                    storage_amount = 0
-                    # 스폰을 자주 지나다니는 허울러 특성상
-                    # 1. 너무 자주 충전되면 스폰 사이 무의미하게 왔다갔다하는 현상 발생. 타임계산은 이를 방지
-                    # 2. 허울러는 방 중간중간 추가 허울러가 무의미하게 스폰될 가능성이 있는 특성상
-                    #  틱 300 이상은 채우지 않는다. 300 인 이유는 허울러 둘이 생겼을 경우 약간 보조하기 위한 용도.
-                    #  둘이 동시생성되는건 지양합시다.
-                    # 3. 허울러는 기본값으로 한명으로 유지해야 하기에 둘 이상이면 안건든다.
-                    # 셋중 하나라도 걸리는게 있으면 통과
-                    if creep.memory.role == 'hauler' \
-                            and (not Game.time % 3 == 0 or creep.ticksToLive > 300
-                                 or len(_.filter(Game.creeps,
-                                                 lambda c: c.memory.role == 'hauler'
-                                                           and c.memory.assigned_room == spawn.pos.roomName)) > 1):
-                        no_renew = True
-                    # 업글러는 스토리지 자원 삼천당 수리대상의 업글러의 수로 계산한다.
-                    # 업글러가 둘이면 스토리지에 자원이 최소 3천은 있어야 하는거.
-                    elif creep.memory.role == 'upgrader' and not room_level == 8:
-                        creep_upgraders = _.filter(room_creeps,
-                                                   lambda c: (c.memory.role == 'upgrader'
-                                                              and c.memory.assigned_room == spawn.pos.roomName
-                                                              and (c.spawning or c.ticksToLive > 100)
-                                                              and c.memory.level >= room_level))
-                        if spawn.room.storage and spawn.room.storage.store.getUsedCapacity(RESOURCE_ENERGY) > 10000:
-                            storage_amount = (len(creep_upgraders) - 1) * 5000
-                        else:
-                            storage_amount = (len(creep_upgraders) - 1) * 3000
-                        if storage_amount < 3000:
-                            storage_amount = 3000
-                    elif creep.memory.role == 'fixer':
-                        # 수리대상 10개 이하면 거의 끝이란 소리니 회복대상에서 제외
-                        if len(wall_repairs) <= 10:
-                            no_renew = True
-                        storage_amount = 50000 * len(_.filter(room_creeps, lambda c: c.memory.role == 'fixer'))
-                    # 캐리어인 경우
-                    elif creep.memory.role == 'carrier':
-                        creeps = Game.creeps
-                        current_size = 0
-                        for name in Object.keys(creeps):
-                            c = creeps[name]
-                            if c.memory.role == 'carrier' and c.memory.source_num == creep.memory.source_num:
-                                current_size += c.memory.size
-                        pickup: StructureContainer = Game.getObjectById(creep.memory.pickup)
-
-                        # 1. 캐리어의 크기가 전체크기의 2/3 이상이고
-                        # 2. 누적 캐리어의 크기가 총 크기를 넘기지 않으면 채운다.
-                        # 3. 컨테이너 체력이 절반 이상 떨어졌으면 WORK 가 없을 가능성이 높으니 이 또한 감안.
-                        if not (creep.memory.size >= creep.memory.total * (2 / 3)
-                                and not current_size > creep.memory.total
-                                and pickup and pickup.hits > pickup.hitsMax * .5):
-                            no_renew = True
-
-                    # 자원조건이 할당된 경우 스토리지를 확인.
-                    # 스토리지가 없거나 거기 안에 에너지가 storage_amount 보다 적으면 회복은 없다
-                    if storage_amount \
-                            and (not spawn.room.storage or spawn.room.storage.store.getUsedCapacity(
-                        RESOURCE_ENERGY) < storage_amount):
-                        no_renew = True
-                    if no_renew:
-                        continue
-                    result = spawn.renewCreep(creep)
-                    break
+                # 스폰을 자주 지나다니는 허울러 특성상
+                # 1. 너무 자주 충전되면 스폰 사이 무의미하게 왔다갔다하는 현상 발생. 타임계산은 이를 방지
+                # 2. 허울러는 방 중간중간 추가 허울러가 무의미하게 스폰될 가능성이 있는 특성상
+                #  틱 300 이상은 채우지 않는다. 300 인 이유는 허울러 둘이 생겼을 경우 약간 보조하기 위한 용도.
+                #  둘이 동시생성되는건 지양합시다.
+                # 3. 허울러는 기본값으로 한명으로 유지해야 하기에 둘 이상이면 안건든다.
+                # 셋중 하나라도 걸리는게 있으면 통과
+                if creep.memory.role == 'hauler' and creep.ticksToLive < 300:
+                    if Game.time % 3 == 0 \
+                            and len(_.filter(Game.creeps,
+                                             lambda c: c.memory.role == 'hauler'
+                                                       and c.memory.assigned_room == spawn.pos.roomName
+                                                       and creep.memory.level >= room_level)) == 1:
+                        spawn.renewCreep(creep)
+                        break
+                # 업글러는 스토리지 자원 삼천당 수리대상의 업글러의 수로 계산한다.
+                # 업글러가 둘이면 스토리지에 자원이 최소 3천은 있어야 하는거.
+                if creep.memory.role == 'upgrader' and creep.ticksToLive <= 500 and not room_level == 8 and \
+                        spawn.room.storage.store.getUsedCapacity(RESOURCE_ENERGY) > 3000:
+                    creep_upgraders = _.filter(room_creeps,
+                                               lambda c: (c.memory.role == 'upgrader'
+                                                          and c.memory.assigned_room == spawn.pos.roomName
+                                                          and (c.spawning or c.ticksToLive > 100)
+                                                          and c.memory.level >= room_level))
+                    if spawn.room.storage.store.getUsedCapacity(RESOURCE_ENERGY) > 10000:
+                        storage_amount = (len(creep_upgraders) - 1) * 5000
+                    else:
+                        storage_amount = (len(creep_upgraders) - 1) * 3000
+                    if spawn.room.storage.store.getUsedCapacity(RESOURCE_ENERGY) > storage_amount:
+                        spawn.renewCreep(creep)
+                        break
+                # 수리대상 10개 이하면 거의 끝이란 소리니 회복대상에서 제외
+                if creep.memory.role == 'fixer' and creep.ticksToLive <= 500 and len(wall_repairs) > 10:
+                    if spawn.room.storage.store.getUsedCapacity(RESOURCE_ENERGY) \
+                            >= 50000 * len(_.filter(room_creeps, lambda c: c.memory.role == 'fixer')):
+                        spawn.renewCreep(creep)
+                        break
+                if creep.memory.role == 'carrier' and creep.ticksToLive <= 500:
+                    # 1. 캐리어의 크기가 전체크기의 2/3 이상이고
+                    # 2. 누적 캐리어의 크기가 총 크기를 넘기지 않으면 채운다.
+                    # 3. 컨테이너 체력이 절반 이상 떨어졌으면 WORK 가 없을 가능성이 높으니 이 또한 감안.
+                    creeps = Game.creeps
+                    current_size = 0
+                    for name in Object.keys(creeps):
+                        c = creeps[name]
+                        if c.memory.role == 'carrier' and c.memory.source_num == creep.memory.source_num:
+                            current_size += c.memory.size
+                    pickup: StructureContainer = Game.getObjectById(creep.memory.pickup)
+                    if creep.memory.size >= creep.memory.total * (2 / 3) \
+                            and current_size <= creep.memory.total \
+                            and (pickup and pickup.hits > pickup.hitsMax * .5):
+                        spawn.renewCreep(creep)
+                        break
 
 
 def determine_carrier_size(criteria: int, work_chance=0, small=False):
@@ -1784,7 +1769,7 @@ def find_closest_path(spawn: StructureSpawn, goal: RoomPosition, containers, lin
                         counter += 1
                 if counter <= 10:
                     result = constr_roads_pos
-                    print('link!')
+                    # print('link!')
                     break
 
     if len(containers) and not result:

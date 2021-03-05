@@ -60,8 +60,7 @@ def run_upgrader(creep, creeps, all_structures, repairs, constructions, dropped_
 
     # when you have to harvest. laboro: 0 == HARVEST
     if creep.memory.laboro == 0:
-
-        # todo 자원캐기 방식:
+        # 자원캐기 방식:
         # 업글은 렙8 도달전까지 필수임. 업글러가 무조건 최우선권 가져야함.
         # 우선 원칙적으로 컨트롤러 옆에 업글러 전용 컨테이너/링크가 있어야함. >> 확인완료
         # 없으면? 아무 컨테이너나 찾는다. >> 이거 미구현임.
@@ -85,33 +84,19 @@ def run_upgrader(creep, creeps, all_structures, repairs, constructions, dropped_
 
         # 배정된 저장소가 없을 경우
         if not creep.memory.pickup:
-            # 전용 컨테이너가 있고 채워짐?
-            jeonyong = False
-            # 업글 전용 컨테이너 목록
-            la_containers = []
-            # 모든 컨테이너 목록 - 업글에 용량이 없을때 대비
+            # 모든 컨테이너 목록
             total_containers = []
 
-            pickup_id = ERR_INVALID_TARGET
-            # 업글용 컨테이너/링크를 우선적으로 따로 뽑는다 - 방렙 8인 경우에만.
-            if not Game.getObjectById(creep.memory.upgrade_target).level == 8:
-                if creep.room.memory[STRUCTURE_CONTAINER]:
-                    for s in creep.room.memory[STRUCTURE_CONTAINER]:
-                        obj = Game.getObjectById(s.id)
-                        if obj:
-                            total_containers.append(obj)
-                            if s.for_upgrade:
-                                la_containers.append(obj)
-
-                if creep.room.memory[STRUCTURE_LINK]:
-                    for s in creep.room.memory[STRUCTURE_LINK]:
-                        obj = Game.getObjectById(s.id)
-                        if obj:
-                            if s.for_store:
-                                total_containers.append(obj)
-                            if s.for_upgrade:
-                                la_containers.append(obj)
-
+            if creep.room.memory[STRUCTURE_CONTAINER]:
+                for s in creep.room.memory[STRUCTURE_CONTAINER]:
+                    obj = Game.getObjectById(s.id)
+                    if obj:
+                        total_containers.append(obj)
+            if creep.room.memory[STRUCTURE_LINK]:
+                for s in creep.room.memory[STRUCTURE_LINK]:
+                    obj = Game.getObjectById(s.id)
+                    if obj:
+                        total_containers.append(obj)
             if creep.room.storage:
                 total_containers.append(creep.room.storage)
             pickup_id = miscellaneous.pick_pickup(creep, creeps, total_containers)

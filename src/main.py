@@ -258,6 +258,7 @@ def main():
         hostile_creeps = {'hostile_creeps': friends_and_foes[0]}
         hostile_humans = {'hostile_humans': friends_and_foes[2]}
         allied_creeps = {'allied_creeps': friends_and_foes[3]}
+        # not working in transcrypt
         # room_objs = {chambra_nomo: {**all_structures,
         #                             **my_creeps,
         #                             **wounded,
@@ -501,13 +502,13 @@ def main():
         wall_repairs = []
         if chambro.controller and chambro.controller.my:
             # 방에 있는 모든 수리대상 장벽·방어막
-            wall_repairs = room_objs['all_structures'].filter(lambda s: (s.structureType == STRUCTURE_RAMPART
-                                                                         or s.structureType == STRUCTURE_WALL)
-                                                                        and s.hits < chambro.memory[options][
-                                                                            repair] * fix_rating + nuke_extra)
+            wall_repairs = room_objs['all_structures'] \
+                .filter(lambda s: (s.structureType == STRUCTURE_RAMPART or s.structureType == STRUCTURE_WALL)
+                                  and (s.hits < chambro.memory[options][repair] * fix_rating + nuke_extra + 10000
+                                       and s.hits < s.hitsMax))
         # 벽을 본다.
         all_repairs = []
-        if len(wall_repairs) > 1:
+        if len(wall_repairs) > 0:
             # 지도에서 가장 낮은 체력의 방벽
             min_wall = _.min(wall_repairs, lambda s: s.hits)
             # 가장 낮은 체력의 방벽이 몇? 여기서 필요한건 아님.
@@ -516,7 +517,7 @@ def main():
             all_repairs.extend(repairs)
             all_repairs.extend(wall_repairs)
         else:
-            min_wall = []
+            min_wall = None
             min_hits = 0
             all_repairs.extend(repairs)
 
@@ -554,7 +555,7 @@ def main():
                 role_soldier_h_defender.h_defender(all_structures, creep, my_creeps, hostile_creeps)
 
             elif creep.memory.role == 'harvester':
-                role_harvester.run_harvester(creep, all_structures, my_constructions, my_creeps, dropped)
+                role_harvester.run_harvester(creep, all_structures, repairs, my_constructions, my_creeps, dropped)
                 """
                 Runs a creep as a generic harvester.
                 :param creep: The creep to run
@@ -668,7 +669,7 @@ def main():
                                                    or (s.structureType == STRUCTURE_ROAD
                                                        and s.hits < s.hitsMax * .2))
             # 벽수리는 5천까지만. 다만 핵이 있으면 예외.
-            if min_wall.hits < 5000 or bool(nukes):
+            if min_wall and (min_wall.hits < 5000 or bool(nukes)):
                 # print('min_wall', min_wall)
                 tow_repairs.append(min_wall)
             # print('tow', JSON.stringify(tow_repairs))
@@ -789,7 +790,7 @@ def main():
                 print('방 {} 루프에서 스폰 {} 준비시간 : {} cpu'.format(nesto.room.name, nesto.name
                                                              , round(Game.cpu.getUsed() - spawn_cpu, 2)))
 
-            structure_spawn.run_spawn(nesto, all_structures, my_constructions, my_creeps, hostile_creeps, divider,
+            structure_spawn.run_spawn(all_objs, nesto, all_structures, my_constructions, my_creeps, hostile_creeps, divider,
                                       counter, cpu_bucket_emergency, cpu_bucket_emergency_spawn_start, extractor,
                                       terminal_capacity, chambro, interval, wall_repairs, objs_for_disp,
                                       min_hits)

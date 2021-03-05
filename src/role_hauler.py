@@ -84,7 +84,7 @@ def run_hauler(all_objs, creep: Creep, all_structures: List[Structure], construc
     # if there's nothing to carry then get to harvesting.
     # being not zero also includes being None lol
     if creep.store.getUsedCapacity() == 0 and not creep.memory.laboro == 0:
-        creep.say('🚛운송투쟁!', True)
+        creep.say('🚛 운송!', True)
         init_memory(creep, 0)
 
     elif creep.memory.laboro == 0 and \
@@ -386,10 +386,10 @@ def run_hauler(all_objs, creep: Creep, all_structures: List[Structure], construc
                 creep.say('🚧건설,염려말라!', True)
                 creep.memory.priority = 2
             elif len(repairs) > 0 and creep.room.controller.level > 3:
-                creep.say('🔧 세상을 고치자!', True)
+                creep.say('🔧 고치자!', True)
                 creep.memory.priority = 3
             else:
-                creep.say('⚡ 위대한 발전!', True)
+                creep.say('⚡ 발전!', True)
                 creep.memory.priority = 4
 
         # priority 1: transfer
@@ -471,7 +471,7 @@ def run_hauler(all_objs, creep: Creep, all_structures: List[Structure], construc
                     creep.say('🚧 공사전환~', True)
                     creep.memory.priority = 2
                 elif len(repairs) > 0 and creep.room.controller.level > 4:
-                    creep.say('✊단결투쟁!', True)
+                    creep.say('🔧 수리전환~', True)
                     creep.memory.priority = 3
                 else:
                     creep.say('⚡ 발전에총력!', True)
@@ -834,7 +834,7 @@ def grab_haul_list(creep: Creep, roomName, totalStructures, add_storage=False):
     if add_storage:
         structures.extend(totalStructures.filter
                           (lambda s: s.structureType == STRUCTURE_STORAGE
-                                     # and s.storeCapacity - _.sum(s.store) >= Game.rooms[roomName].memory.options[max_energy]))
+                                     # and s.storeCapacity - _.sum(s.store) >= Game.rooms[roomName].memory.structure_type[max_energy]))
                                      and s.storeCapacity - _.sum(s.store) > 0))
 
     # 핵에 에너지 넣는걸로 함?

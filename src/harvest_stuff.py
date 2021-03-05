@@ -258,7 +258,7 @@ def filter_drops(creep, _drops, target_range, only_energy=False):
     허울러의 grab_haul_list 함수와 거의 비슷함
 
     :param creep:
-    :param _drops: 자원 및 자원있는 비석. 여기서 다 필터 거친다. 굳이 필터한 상태로 가져올 필요 없음.
+    :param _drops: 자원 및 자원있는 비석 등. 여기서 다 필터 거친다. 굳이 필터한 상태로 가져올 필요 없음.
     :param target_range: 찾을 최대거리
     :param only_energy:
     :return: target 이 있으면 해당 템의 ID를 메모리에 넣고 아님 만다. 반환값 의미없음
@@ -273,25 +273,23 @@ def filter_drops(creep, _drops, target_range, only_energy=False):
             index = drops.indexOf(drop)
             drops.splice(index, 1)
             continue
-
-        # only_energy 면 에너지 있나만 본다. 다른건 무시
-        if only_energy:
-            # 스토어에 에너지가 없거나 리소스타입이 존재하면 에너지가 아닌게 있는거임.
-            if (drop.store and drop.store.getUsedCapacity(RESOURCE_ENERGY) == 0) \
-                    or (drop.resourceType and drop.resourceType != RESOURCE_ENERGY):
-                index = drops.indexOf(drop)
-                drops.splice(index, 1)
-                continue
-        # 안에 자원 계산.
+        # 안에 자원 계산. only_energy 면 에너지 있나만 본다. 다른건 무시
         if drop.store:
             resource_amount = drop.store.getUsedCapacity()
+            if only_energy:
+                resource_amount = drop.store.getUsedCapacity(RESOURCE_ENERGY)
         else:
             resource_amount = drop.amount
+            if only_energy:
+                if drop.resourceType == RESOURCE_ENERGY:
+                    resource_amount = drop.amount
+                else:
+                    resource_amount = 0
         # 모든 크립 조사.
         for cr in Object.keys(Game.creeps):
             c = Game.creeps[cr]
             if not c.id == creep.id and c.memory.dropped and c.memory.dropped == drop.id:
-                resource_amount -= c.store.getUsedCapacity()
+                resource_amount -= c.store.getFreeCapacity()
         # 리소스 양이 다른 크립이 가져가고도 남아있으면 선택한다.
         if resource_amount > 0:
             target = drop.id
@@ -333,7 +331,7 @@ def pick_drops(creep, only_energy=False):
             and ((pickup_obj.store and not pickup_obj.store.getUsedCapacity(RESOURCE_ENERGY))
                  or pickup_obj.amount and not pickup_obj.resourceType == RESOURCE_ENERGY):
         return ERR_NOT_ENOUGH_ENERGY
-    # 무덤인데 내용물이 없는 경우. 떨궜는데 내용물이 없으면 자동삭제되니 무관
+    # 내용물이 없는 경우. 떨궜는데 내용물이 없으면 자동삭제되니 무관
     elif pickup_obj.store and not pickup_obj.store.getUsedCapacity():
         return ERR_NOT_ENOUGH_ENERGY
 

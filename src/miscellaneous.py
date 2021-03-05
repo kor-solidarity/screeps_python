@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, List
 import random
 from defs import *
 from _custom_constants import *
@@ -112,7 +112,7 @@ def filter_friend_foe(foreign_creeps, has_sites: bool = False):
     return [all_enemies, npc_enemies, player_enemies, friendly]
 
 
-def pick_pickup(creep, creeps, pickup_targets, resource_type=RESOURCE_ENERGY):
+def pick_pickup(creep: Creep, creeps: List[Creep], pickup_targets, resource_type=RESOURCE_ENERGY):
     """
     designate pickup memory by targeted haulers/upgraders/fixers
 
@@ -126,7 +126,6 @@ def pick_pickup(creep, creeps, pickup_targets, resource_type=RESOURCE_ENERGY):
     passed_upgr = False
 
     # todo 최대한 빨리 이거 정리할것!!! 버그걸림
-
     # will filter for leftover energy,
     # tldr - if theres already a creep going for it, dont go unless there's some for you.
     while not creep.memory.pickup or len(pickup_targets) > 0:
@@ -138,10 +137,8 @@ def pick_pickup(creep, creeps, pickup_targets, resource_type=RESOURCE_ENERGY):
 
         # 가장 가까운 대상
         loop_storage = creep.pos.findClosestByPath(pickup_targets, {ignoreCreeps: True})
-
         if not loop_storage:
             break
-
         if loop_storage.structureType == STRUCTURE_LAB \
                 or loop_storage.structureType == STRUCTURE_LINK:
             stored_energy = loop_storage.store.getUsedCapacity(resource_type)
@@ -151,14 +148,11 @@ def pick_pickup(creep, creeps, pickup_targets, resource_type=RESOURCE_ENERGY):
             # 널값 떴을 경우.
             if not stored_energy:
                 stored_energy = 0
-
         # todo 이 컨테이너 확인을 메모리가 존재할때만 하고 거리도 실질적으로 맞게 변환해야한다.
         # 예전엔 대상을 찾아서 이게 업글용인건지(즉 소스근처가 아닌거) 확인용도였음. 이제 그건 컨테이너 메모리에 적혀있음.
         # 컨테이너인 경우
         elif loop_storage.structureType == STRUCTURE_CONTAINER:
-            #
             stored_energy = _.sum(loop_storage.store)
-
         elif loop_storage.structureType == STRUCTURE_STORAGE:
             stored_energy = loop_storage.store.getUsedCapacity(resource_type)
             if resource_type == haul_all:
@@ -166,12 +160,6 @@ def pick_pickup(creep, creeps, pickup_targets, resource_type=RESOURCE_ENERGY):
                 stored_energy = loop_storage.store.getUsedCapacity(RESOURCE_ENERGY)
             if not stored_energy:
                 stored_energy = 0
-                # print('the storage energy', stored_energy)
-            # else:
-            #     stored_energy = _.sum(loop_storage.store)
-        # 위에 해당사항 없으면 뽑는 대상 자체가 아닌거임.
-        else:
-            stored_energy = 0
 
         if stored_energy:
             for c in creeps:

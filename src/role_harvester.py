@@ -3,6 +3,7 @@ import harvest_stuff
 import miscellaneous
 from _custom_constants import *
 from typing import List
+from action import logistics
 import movement
 
 __pragma__('noalias', 'name')
@@ -27,13 +28,15 @@ __pragma__('noalias', 'update')
 '''
 
 
-def run_harvester(creep: Creep, all_structures: List[Structure], constructions: List[ConstructionSite],
+def run_harvester(creep: Creep, all_structures: List[Structure], repairs: List[Structure],
+                  constructions: List[ConstructionSite],
                   room_creeps: List[Creep], dropped_all: List[Resource]):
     """
     Runs a creep as a generic harvester.
 
     :param creep: The creep to run
     :param all_structures: creep.room.find(FIND_STRUCTURES)
+    :param repairs:
     :param constructions: creep.room.find(FIND_CONSTRUCTION_SITES)
     :param room_creeps: creep.room.find(FIND_MY_CREEPS)
     :param dropped_all: creep.room.find(FIND_DROPPED_RESOURCES)
@@ -50,6 +53,9 @@ def run_harvester(creep: Creep, all_structures: List[Structure], constructions: 
 
     if creep.memory.debug:
         print(creep.name, 'sourceNum:', creep.memory.source_num, bool(creep.memory.source_num))
+
+    if creep.store.getUsedCapacity() >= creep.store.getCapacity() * .5:
+        logistics.transfer_nearest(creep, all_structures, [STRUCTURE_CONTAINER])
 
     # if there's no source_num, need to distribute it.
     if not creep.memory.source_num and Game.rooms[creep.memory.assigned_room]:
@@ -151,8 +157,6 @@ def run_harvester(creep: Creep, all_structures: List[Structure], constructions: 
 
     # If you have nothing but on laboro 1 => get back to harvesting.
     if creep.store.getUsedCapacity() == 0 and not creep.memory.laboro == 0:
-        if creep.ticksToLive < 5:
-            return
         creep.say('☭☭', True)
         creep.memory.laboro = 0
     if creep.ticksToLive < 5:
@@ -206,6 +210,7 @@ def run_harvester(creep: Creep, all_structures: List[Structure], constructions: 
 
     # if carryCapacity is full - then go to nearest container or storage to store the energy.
     if creep.memory.laboro == 1:
+        miscellaneous.repair_on_the_way(creep, repairs, constructions, True)
         # todo 임시방편임. 추후 조치 시급
         for i in range(len(creep.memory.haul_destos)):
             if creep.memory.haul_destos[i] is None:
@@ -468,6 +473,9 @@ def run_miner(creep: Creep, all_structures):
             storage = creep.pos.findClosestByRange(storages)
             # print('storage:', storage)
             # print('id:', storage.id)
+            if not storage:
+                creep.say('noStorage!')
+                return
             creep.memory.container = storage.id
             # for_harvest 설정 바꾼다.
             miscellaneous.check_for_carrier_setting(creep, creep.memory.container)
